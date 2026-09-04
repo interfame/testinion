@@ -5619,7 +5619,7 @@
     --card-foreground: lab(97.6531% 0.0266731 -1.89829);
     --popover: lab(2.96791% 0.463836 -4.75507);
     --popover-foreground: lab(97.6531% 0.0266731 -1.89829);
-    --primary: lab(64.6541% 43.7746 -55.8542);
+    --primary: #00f169;
     --primary-foreground: lab(1.92084% 0.400029 -3.66425);
     --secondary: lab(9.2858% 1.3606 -10.9144);
     --secondary-foreground: lab(97.6531% 0.0266731 -1.89829);
@@ -5675,7 +5675,7 @@
 .glass-strong {
   -webkit-backdrop-filter: blur(24px) saturate(160%);
   background: #ffffff12;
-  background: lab(100% 0 0/0.07);
+  background: lab(7 0.1 0.03 / 0.75);
   border: 1px solid #ffffff1f;
   border: 1px solid lab(100% 0 0/0.12);
 }
