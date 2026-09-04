@@ -1,0 +1,259 @@
+/* ============================================================
+   RushCodeLab — Navbar & Interactive Component Styles
+   Supplemental CSS for the static export (loaded after main CSS)
+   ============================================================ */
+
+/* ---- Navbar dropdown panels ---- */
+.rcl-mega-panel {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  margin-top: 0.5rem;
+  width: 640px;
+  max-width: 90vw;
+  transform: translateX(-50%);
+  z-index: 100;
+  animation: rcl-fade-in 0.18s ease;
+}
+
+/* Show on hover (desktop) — JS handles click/touch toggle */
+.rcl-nav-group:hover .rcl-mega-panel {
+  display: block;
+}
+
+@keyframes rcl-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ---- Mobile menu panel ---- */
+.rcl-mobile-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 88vw;
+  max-width: 24rem;
+  z-index: 200;
+  background: rgba(17, 17, 17, 0.98);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.rcl-mobile-panel.rcl-mobile-open {
+  transform: translateX(0);
+}
+
+.rcl-mobile-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background: rgba(0, 0, 0, 0.6);
+  display: none;
+}
+
+.rcl-mobile-group-body {
+  display: none;
+  overflow: hidden;
+}
+
+/* ---- Reveal animation ---- */
+.reveal {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---- Accordion ---- */
+[data-accordion-content] {
+  overflow: hidden;
+  height: 0px;
+  transition: height 0.25s ease;
+}
+
+[data-accordion-item][data-state="open"] [data-accordion-content] {
+  height: auto;
+}
+
+/* ---- Range slider (reseller calculator) ---- */
+.rcl-range-wrapper {
+  position: relative;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.rcl-range-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 6px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+}
+
+.rcl-range-fill {
+  position: absolute;
+  left: 0;
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    oklch(0.72 0.19 305),
+    oklch(0.75 0.16 195)
+  );
+  pointer-events: none;
+  width: 0%;
+}
+
+.rcl-range-thumb {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 3px solid oklch(0.72 0.19 305);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+input[type="range"].rcl-range-input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 1.5rem;
+  background: transparent;
+  position: relative;
+  z-index: 2;
+  cursor: pointer;
+  margin: 0;
+}
+
+input[type="range"].rcl-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 3px solid oklch(0.72 0.19 305);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+input[type="range"].rcl-range-input::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 3px solid oklch(0.72 0.19 305);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+input[type="range"].rcl-range-input::-webkit-slider-runnable-track {
+  background: transparent;
+  height: 6px;
+}
+
+input[type="range"].rcl-range-input::-moz-range-track {
+  background: transparent;
+  height: 6px;
+}
+
+/* ---- Partner Dashboard area chart ---- */
+.rcl-area-chart { width: 100%; height: 100%; display: block; }
+.rcl-area-chart .rcl-area-fill { fill: url(#rcl-area-grad); opacity: 0.35; }
+.rcl-area-chart .rcl-area-line { fill: none; stroke: oklch(0.72 0.19 305); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.rcl-area-chart .rcl-area-dot { fill: oklch(0.72 0.19 305); stroke: var(--background, #0a0a0a); stroke-width: 2; }
+.rcl-area-chart .rcl-grid-line { stroke: rgba(255, 255, 255, 0.06); stroke-width: 1; }
+
+/* ---- Calculator chart bars ---- */
+#calc-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 100%;
+  width: 100%;
+}
+
+.rcl-chart-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 100%;
+  width: 100%;
+}
+
+/* ---- Partner Dashboard area chart (static SVG replacement) ---- */
+.rcl-area-chart {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.rcl-area-chart .rcl-area-fill {
+  fill: url(#rcl-area-grad);
+  opacity: 0.35;
+}
+.rcl-area-chart .rcl-area-line {
+  fill: none;
+  stroke: oklch(0.72 0.19 305);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.rcl-area-chart .rcl-area-dot {
+  fill: oklch(0.72 0.19 305);
+  stroke: var(--background, #0a0a0a);
+  stroke-width: 2;
+}
+.rcl-area-chart .rcl-grid-line {
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 1;
+}
+
+.rcl-chart-bar {
+  flex: 1;
+  min-height: 4px;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(
+    180deg,
+    oklch(0.75 0.16 195),
+    oklch(0.72 0.19 305)
+  );
+  opacity: 0.85;
+  transition: height 0.3s ease, opacity 0.2s ease;
+}
+
+.rcl-chart-bar:hover {
+  opacity: 1;
+}
+
+/* ---- Smooth scroll ---- */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ---- Body lock when mobile menu open ---- */
+body.rcl-no-scroll {
+  overflow: hidden;
+}
