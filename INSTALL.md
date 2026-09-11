@@ -8,6 +8,41 @@ Plataforma SMM completa: panel de superadministrador, panel de revendedor con La
 
 ## Español
 
+### 🖱️ Instalación 100% web (sin terminal) — la más fácil
+
+No necesitas escribir ni un comando: todo se hace desde el navegador.
+
+**1. Base de datos en Neon (copia y pega 2 archivos):**
+
+1. Crea tu cuenta/proyecto en [neon.tech](https://neon.tech) → en el menú lateral entra a **SQL Editor**.
+2. Abre en GitHub el archivo **`prisma/postgres-schema.sql`** de este repo → botón **“Copy raw file”** (arriba a la derecha del archivo) → pégalo en el SQL Editor → **Run**. ✔️ Crea las 35 tablas.
+3. Igual con **`prisma/seed.postgres.sql`** → copiar → pegar → **Run**. ✔️ Carga el catálogo (172 servicios, 60 categorías), planes, pasarelas, usuarios demo, FAQs, blog, CRM de ejemplo y ajustes.
+4. Comprueba en la barra lateral de Neon (*Tables*) que las tablas existen.
+
+**2. Desplegar en Vercel (importar y 2 variables):**
+
+1. Entra en [vercel.com/new](https://vercel.com/new) → **Import** el repositorio.
+2. Framework: Next.js (se detecta solo). Abre **Build and Output Settings** → activa **Override** en *Build Command* y pega:
+
+   ```
+   npx prisma generate --schema prisma/schema.postgres.prisma && next build
+   ```
+
+3. En **Environment Variables** añade:
+
+   | Variable | Valor |
+   |---|---|
+   | `DATABASE_URL` | tu connection string **pooled** de Neon (Dashboard → Connect) |
+   | `CRON_SECRET` | una cadena larga y aleatoria (ej: `gr_7kd93mfp29xq`) |
+
+4. **Deploy** → en ~2 minutos tu plataforma está online.
+
+**3. Primer acceso:** entra con `admin@growthrush.io` / `admin123` (**¡cambia la contraseña en Cuenta → Seguridad!**). El registro público está abierto (la verificación por email se activa desde Admin → Email y notificaciones).
+
+**4. Cron del motor de pedidos:** en [cron-job.org](https://cron-job.org) (gratis) crea un job cada 1 minuto → `POST https://tu-app.vercel.app/api/cron/tick` con el header `x-cron-secret: TU_CRON_SECRET`.
+
+> Si prefieres la terminal o un hosting propio (cPanel/VPS), sigue los pasos de abajo.
+
 ### Requisitos
 
 | Requisito | Detalle |
@@ -168,6 +203,19 @@ node index.ts        # o: bun index.ts
 ---
 
 ## English
+
+### 🖱️ 100% web install (no terminal) — easiest path
+
+Everything from the browser:
+
+1. **Neon.tech** → create account/project → open the **SQL Editor**:
+   - Open **`prisma/postgres-schema.sql`** on GitHub → **“Copy raw file”** → paste into the SQL Editor → **Run** (creates the 35 tables).
+   - Same with **`prisma/seed.postgres.sql`** → paste → **Run** (demo catalog: 172 services, plans, gateways, demo users, FAQs, blog, CRM, settings).
+2. **Vercel** → [vercel.com/new](https://vercel.com/new) → **Import** the repo → in **Build and Output Settings** override the Build Command with:
+   `npx prisma generate --schema prisma/schema.postgres.prisma && next build`
+   → add env vars `DATABASE_URL` (Neon **pooled** string) and `CRON_SECRET` (long random string) → **Deploy**.
+3. Log in with `admin@growthrush.io` / `admin123` (change the password immediately).
+4. Order-engine cron: [cron-job.org](https://cron-job.org) every 1 min → `POST https://your-app.vercel.app/api/cron/tick` with header `x-cron-secret: YOUR_SECRET`.
 
 ### Requirements
 
