@@ -1,0 +1,223 @@
+# GrowthRush — Guía de instalación (Neon.tech + Next.js)
+
+Plataforma SMM completa: panel de superadministrador, panel de revendedor con Landing Studio, tienda/storefront white-label, CRM, blog, emails automáticos, multi-moneda, multi-idioma y multi-tema.
+
+**Stack:** Next.js 16 (Node) + Prisma + **PostgreSQL en Neon.tech**. No es PHP.
+
+---
+
+## Español
+
+### Requisitos
+
+| Requisito | Detalle |
+|---|---|
+| Node.js | **20 o superior** (o Bun 1.x) |
+| Base de datos | **PostgreSQL — cuenta gratis en [neon.tech](https://neon.tech)** |
+| Hosting | Debe permitir aplicaciones **Node.js** (Vercel, Railway, Render, VPS, cPanel con "Setup Node.js App", Plesk…). La base de datos NO va en tu hosting: vive en Neon. |
+
+### Paso 1 — Crear la base de datos en Neon.tech (gratis)
+
+1. Crea una cuenta en **https://neon.tech** (plan Free suficiente para empezar).
+2. Crea un proyecto (p. ej. `growthrush`).
+3. En el **Dashboard** pulsa **Connect** → copia la **connection string** (formato
+   `postgresql://usuario:password@ep-xxxx-pooler.region.aws.neon.tech/neondb?sslmode=require`).
+   Usa la variante **pooled** (con `-pooler` en el host): es la recomendada para apps serverless/Node.
+
+### Paso 2 — Subir y descomprimir
+
+Sube el ZIP a tu hosting y descomprímelo (por ejemplo en `~/growthrush`). **No subas la carpeta `node_modules`** — se instala en el paso 4.
+
+> ¿Despliegas en **Vercel**? Sube el proyecto a GitHub e impórtalo en Vercel; luego sigue los pasos 3, 5 y 7 desde el panel (Environment Variables, Build Command y cron). El paso 6 (db push) puedes ejecutarlo desde tu máquina local apuntando al mismo `DATABASE_URL` de Neon.
+
+### Paso 3 — Configurar el entorno
+
+```bash
+cp .env.example .env
+```
+
+Edita `.env` y pega tu connection string de Neon:
+
+```env
+DATABASE_URL="postgresql://usuario:password@ep-xxxx-pooler.region.aws.neon.tech/neondb?sslmode=require"
+CRON_SECRET="una-cadena-larga-y-aleatoria"
+```
+
+### Paso 4 — Instalar dependencias
+
+```bash
+npm install            # o: bun install
+```
+
+### Paso 5 — Crear las tablas en Neon (PostgreSQL)
+
+La app incluye el esquema Prisma para PostgreSQL en `prisma/schema.postgres.prisma`:
+
+```bash
+npx prisma db push --schema prisma/schema.postgres.prisma
+npx prisma generate --schema prisma/schema.postgres.prisma
+```
+
+*(Alternativa sin terminal: importa `prisma/postgres-schema.sql` desde el SQL Editor de Neon o con `psql`. Después ejecuta igualmente `prisma generate`.)*
+
+### Paso 6 — Datos de demostración (opcional pero recomendado)
+
+Crea el catálogo, planes, pasarelas, usuarios demo, plantillas de email, FAQs y posts:
+
+```bash
+npx tsx scripts/seed.ts    # o: bun scripts/seed.ts
+```
+
+### Paso 7 — Compilar y arrancar
+
+```bash
+npm run build
+npm run start:node       # Node:  node .next/standalone/server.js
+# con Bun: npm run start
+```
+
+La app escucha en el puerto **3000** (configurable con `PORT`). En cPanel ("Setup Node.js App") define *Application startup file* → usa `node_modules/next/dist/bin/next` con comando `start`, o ejecuta `npm run start:node` como script de inicio.
+
+> En Vercel: no uses `npm run build` — usa la sección **“Despliegue con GitHub + Vercel”** de abajo (build command con `prisma generate` del esquema PostgreSQL).
+
+### Paso 8 — Cron del motor de pedidos (importante)
+
+Los pedidos avanzan (IN_PROGRESS → COMPLETED, parciales, recargas) mediante un worker por intervalos. Crea un **cron job cada 1 minuto**:
+
+```bash
+curl -s -X POST http://127.0.0.1:3000/api/cron/tick -H "x-cron-secret: TU_CRON_SECRET"
+```
+
+- **Vercel:** crea `vercel.json` con un cron que llame a `https://tu-dominio/api/cron/tick` con el header `x-cron-secret`.
+- **cPanel/VPS:** cron del sistema con el comando de arriba.
+
+### Paso 9 — Servicio realtime (opcional)
+
+Para actualizaciones de pedidos en vivo (WebSocket). El servicio corre en el puerto **3032**:
+
+```bash
+cd mini-services/realtime
+npm install
+node index.ts        # o: bun index.ts
+```
+
+> En el preview el navegador lo alcanza a través del gateway incluido (`/?XTransformPort=3032`). En tu hosting puedes exponer el 3032 con un proxy inverso (Nginx/Caddy) o ejecutar la plataforma sin realtime — todo lo demás funciona igual.
+
+---
+
+## Despliegue con GitHub + Vercel (recomendado)
+
+1. **Neon.tech** — crea tu proyecto y copia la connection string **pooled**
+   (`postgresql://…-pooler….aws.neon.tech/neondb?sslmode=require`).
+
+2. **Crea las tablas y (opcional) los datos demo** desde tu máquina — solo una vez:
+
+   ```bash
+   git clone https://github.com/interfame/testinion.git growthrush && cd growthrush
+   cp .env.example .env        # pega tu DATABASE_URL de Neon (variante pooled)
+   npm install
+   npx prisma db push --schema prisma/schema.postgres.prisma
+   npx tsx scripts/seed.ts     # opcional: catálogo, planes, usuarios demo…
+   ```
+
+3. **Vercel** — entra en https://vercel.com/new e importa el repo `growthrush`:
+   - Framework: **Next.js** (se detecta solo)
+   - **Build Command:** `npx prisma generate --schema prisma/schema.postgres.prisma && next build`
+   - **Environment Variables** (Settings → Environment Variables):
+
+     | Variable | Valor |
+     |---|---|
+     | `DATABASE_URL` | connection string **pooled** de Neon |
+     | `CRON_SECRET` | una cadena larga y aleatoria |
+     | `NEXT_PUBLIC_REALTIME_URL` | *(opcional)* URL pública del servicio realtime (paso 6) |
+
+4. **Deploy** — en ~2 minutos tendrás el panel en `https://tu-proyecto.vercel.app`.
+
+5. **Cron del motor de pedidos** (importante):
+   - **Opción gratis (recomendada):** job cada 1 minuto en [cron-job.org](https://cron-job.org) →
+     `POST https://tu-proyecto.vercel.app/api/cron/tick` con header `x-cron-secret: TU_CRON_SECRET`.
+   - **Opción Vercel Cron (plan Pro):** añade `vercel.json` a la raíz:
+
+     ```json
+     { "crons": [{ "path": "/api/cron/tick", "schedule": "* * * * *" }] }
+     ```
+
+     Vercel inyecta automáticamente `Authorization: Bearer $CRON_SECRET` y el endpoint ya lo acepta.
+   - Nota: el plan gratuito (Hobby) de Vercel limita sus crons a 1 vez/día — para 1/min gratis usa cron-job.org.
+
+6. **Realtime (opcional):** el WebSocket vive en `mini-services/realtime` y Vercel no aloja
+   servicios separados. Súbelo a Railway/Render (comando `node index.ts`, puerto 3032, variable
+   `REALTIME_PORT=3032`) y pon su URL pública en `NEXT_PUBLIC_REALTIME_URL` en Vercel.
+   Sin realtime la plataforma funciona igual: la UI cae automáticamente a *polling*.
+
+7. **Tras el primer deploy:** entra con `admin@growthrush.io` / `admin123` (¡cambia la contraseña!) y
+   revisa **Admin → Ajustes** (motor de pedidos, verificación de email, pasarelas).
+
+---
+
+### Usuarios de demostración (creados por el seed — ¡cámbialos!)
+
+| Rol | Email | Contraseña |
+|---|---|---|
+| Super administrador | `admin@growthrush.io` | `admin123` |
+| Revendedor | `reseller@growthrush.io` | `reseller123` |
+| Cliente | `client@growthrush.io` | `client123` |
+
+> El admin puede desactivar la verificación por email en **Admin → Email y notificaciones**. Con la verificación activada, el código de 6 dígitos se guarda en el Outbox (Admin → Logs) hasta que configures SMTP.
+
+---
+
+## English
+
+### Requirements
+
+- **Node.js 20+** (or Bun 1.x) — the app is Next.js (Node), **not PHP**.
+- **PostgreSQL database — free account at [neon.tech](https://neon.tech)** (the DB lives on Neon, not on your hosting).
+- Hosting that supports Node.js apps (Vercel, Railway, Render, VPS, cPanel "Setup Node.js App", Plesk…).
+
+### Steps
+
+1. **Create a Neon project** → copy the **pooled** connection string (`…-pooler…neon.tech/neondb?sslmode=require`).
+2. **Upload & unzip** the package (e.g. `~/growthrush`).
+3. `cp .env.example .env` and set `DATABASE_URL="postgresql://…neon.tech…"` plus a random `CRON_SECRET`.
+4. `npm install`.
+5. `npx prisma db push --schema prisma/schema.postgres.prisma` then `npx prisma generate --schema prisma/schema.postgres.prisma` (no SSH? import `prisma/postgres-schema.sql` from the Neon SQL Editor instead).
+6. Optional demo content: `npx tsx scripts/seed.ts` (catalog, plans, gateways, demo users, email templates, FAQs, posts).
+7. `npm run build` then `npm run start:node` (port 3000).
+8. **Cron every 1 minute:** `curl -s -X POST http://127.0.0.1:3000/api/cron/tick -H "x-cron-secret: YOUR_SECRET"` — drives the order engine.
+9. Optional realtime: run `mini-services/realtime` (see above).
+
+### Deploying with GitHub + Vercel (recommended)
+
+1. **Neon.tech** — create the project and copy the **pooled** connection string.
+2. **Push the schema once** from your machine:
+   `git clone` → `cp .env.example .env` (paste the Neon URL) → `npm install` →
+   `npx prisma db push --schema prisma/schema.postgres.prisma` → `npx tsx scripts/seed.ts` (optional demo data).
+3. **Vercel** — https://vercel.com/new → import the repo:
+   - **Build Command:** `npx prisma generate --schema prisma/schema.postgres.prisma && next build`
+   - **Env vars:** `DATABASE_URL` (Neon pooled string) · `CRON_SECRET` (long random string) ·
+     optional `NEXT_PUBLIC_REALTIME_URL`.
+4. **Cron:** free option — cron-job.org every 1 min → `POST https://your-app.vercel.app/api/cron/tick`
+   with header `x-cron-secret`; or Vercel Cron (Pro) via `vercel.json` (`Authorization: Bearer` is
+   accepted automatically). Vercel Hobby plan limits built-in crons to once per day.
+5. **Realtime (optional):** host `mini-services/realtime` on Railway/Render and set
+   `NEXT_PUBLIC_REALTIME_URL`. Without it, the UI falls back to polling automatically.
+
+### Demo accounts (change immediately)
+
+| Role | Email | Password |
+|---|---|---|
+| Super admin | `admin@growthrush.io` | `admin123` |
+| Reseller | `reseller@growthrush.io` | `reseller123` |
+| Client | `client@growthrush.io` | `client123` |
+
+---
+
+## Notas / Notes
+
+- **Landing Studio**: Revendedor → Landing Studio — editor visual completo (secciones reordenables/ocultables, plantillas, vista previa móvil/tablet, páginas personalizadas como Términos/Privacidad, newsletter con leads reales).
+- **Pagos**: el admin y cada revendedor configuran sus pasarelas (PayPal, MercadoPago, Pix, Cryptomus, CoinPayments, Payoneer, tarjetas…) desde **Finanzas → Métodos de pago**.
+- **Dominio propio**: opcional por plataforma (Configuración del sitio web del revendedor).
+- **Emails**: plantillas editables + SMTP por plataforma desde los paneles; sin SMTP queda en Outbox.
+- **Neon tips**: el plan Free pausa proyectos inactivos; la primera petición tras la pausa tarda ~500 ms extra. Para producción seria considera un plan pago o un upgrade de compute.
+- Security: keep `CRON_SECRET` private, use HTTPS, and change all demo passwords before going live.

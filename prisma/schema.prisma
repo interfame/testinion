@@ -1,0 +1,545 @@
+// GrowthRush — SMM Panel · Omnichannel CRM · Reseller SaaS
+// Prisma schema (SQLite)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────── Users & Platforms ───────────────────────────
+
+model User {
+  id               String        @id @default(cuid())
+  email            String        @unique
+  password         String
+  name             String
+  role             String        @default("CLIENT") // SUPER_ADMIN | RESELLER | CLIENT | TEAM
+  balance          Float         @default(0)
+  currency         String        @default("USD")
+  language         String        @default("en")
+  apiKey           String        @unique
+  twoFactorEnabled Boolean       @default(false)
+  status           String        @default("ACTIVE") // ACTIVE | SUSPENDED | BANNED
+  timezone         String        @default("America/Buenos_Aires")
+  platformId       String? // storefront the user belongs to (null = master GrowthRush)
+  refCode          String?       @unique // referral code (lazy-generated, shown in Account → Refer & earn)
+  referredById     String? // user who referred this account (awards $1 REF_BONUS on their first completed order)
+  verifyCode       String? // 6-digit email verification code (status PENDING until confirmed)
+  verifyExpires    DateTime? // code expiry (15 min after issue)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  platform       Platform?     @relation("PlatformOwner")
+  referredBy     User?         @relation("Referral", fields: [referredById], references: [id])
+  referrals      User[]        @relation("Referral")
+  couponRedemptions CouponRedemption[] @relation("CouponRedemptions")
+  orders         Order[]
+  transactions   Transaction[]
+  tickets        Ticket[]
+  paymentMethods PaymentMethod[]
+  deposits       Deposit[]
+  contactOwner   Contact[]       @relation("ContactOwner")
+}
+
+model Platform {
+  id           String    @id @default(cuid())
+  ownerId      String    @unique
+  owner        User      @relation("PlatformOwner", fields: [ownerId], references: [id])
+  name         String
+  slug         String    @unique // subdomain: slug.growthrush.io
+  domainType   String    @default("SUBDOMAIN") // SUBDOMAIN | CUSTOM
+  customDomain String?
+  domainStatus String    @default("ACTIVE") // PENDING | ACTIVE | FAILED
+  planId       String
+  plan         Plan      @relation(fields: [planId], references: [id])
+  status       String    @default("ACTIVE") // ACTIVE | PENDING | SUSPENDED
+  theme        String    @default("nova") // nova | horizon | boost | rush
+  accent       String    @default("#7c3aed")
+  logoUrl      String?
+  tagline      String?
+  heroTitle    String?
+  heroSubtitle String?
+  heroCta      String?
+  heroImage    String?
+  currency     String    @default("USD")
+  externalApi  Boolean   @default(false) // paid add-on: connect external providers API
+  cycle        String    @default("monthly") // rental billing cycle: monthly | annual
+  monthlyFee   Float     @default(0)
+  nextBilling  DateTime?
+  settings     String    @default("{}") // JSON blob: portal config, landing copy, integrations keys, crm settings
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  services      Service[]
+  categories    Category[]
+  providers     Provider[]
+  orders        Order[]
+  tickets       Ticket[]
+  contacts      Contact[]
+  conversations Conversation[]
+  channels      Channel[]
+  labels        Label[]
+  quickReplies  QuickReply[]
+  aiAgents      AiAgent[]
+  automations   Automation[]
+  news          News[]
+  faqs          Faq[]
+  posts         Post[]
+  pages         CmsPage[]
+  blacklists    Blacklist[]
+  deposits      Deposit[]
+  gateways      Gateway[]
+  teamMembers   TeamMember[]
+  landingLeads  LandingLead[]
+}
+
+model Plan {
+  id                String    @id @default(cuid())
+  name              String
+  slug              String    @unique
+  description       String?
+  monthlyPrice      Float
+  annualPrice       Float? // optional yearly rental (≈ 2 months free); null = monthly only
+  setupPrice        Float     @default(0)
+  customDomainPrice Float     @default(0)
+  externalApiPrice  Float     @default(0)
+  maxServices       Int       @default(500)
+  maxOrders         Int       @default(100000)
+  portalDesigns     String    @default("nova,horizon,boost")
+  features          String    @default("[]")
+  popular           Boolean   @default(false)
+  active            Boolean   @default(true)
+  sortOrder         Int       @default(0)
+  platforms         Platform[]
+}
+
+model TeamMember {
+  id         String    @id @default(cuid())
+  platformId String?
+  platform   Platform? @relation(fields: [platformId], references: [id])
+  name       String
+  email      String
+  role       String    @default("SUPPORT") // ADMIN | SUPPORT | FINANCE | CONTENT | CRM
+  permissions String   @default("[]")
+  status     String    @default("ACTIVE") // ACTIVE | SUSPENDED
+  lastLogin  DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+// ─────────────────────────── Catalog ───────────────────────────
+
+model Category {
+  id         String    @id @default(cuid())
+  platformId String? // null = master catalog
+  platform   Platform? @relation(fields: [platformId], references: [id])
+  name       String
+  slug       String
+  icon       String    @default("globe") // simple-icons key e.g. "instagram"
+  color      String    @default("#e11d48")
+  status     String    @default("ACTIVE")
+  sortOrder  Int       @default(0)
+  services   Service[]
+
+  @@unique([platformId, slug])
+}
+
+model Service {
+  id                String    @id @default(cuid())
+  platformId        String? // null = master catalog
+  platform          Platform? @relation(fields: [platformId], references: [id])
+  categoryId        String
+  category          Category  @relation(fields: [categoryId], references: [id])
+  providerId        String?
+  provider          Provider? @relation(fields: [providerId], references: [id])
+  providerServiceId String?
+  name              String
+  type              String    @default("DEFAULT") // DEFAULT | CUSTOM_COMMENTS | SUBSCRIPTION
+  rate              Float // per 1000, in USD
+  min               Int       @default(100)
+  max               Int       @default(100000)
+  description       String?
+  dripfeed          Boolean   @default(false)
+  refill            Boolean   @default(true)
+  cancel            Boolean   @default(true)
+  status            String    @default("ACTIVE")
+  featured          Boolean   @default(false)
+  sortOrder         Int       @default(0)
+  orders            Order[]
+}
+
+model Provider {
+  id         String    @id @default(cuid())
+  platformId String? // null = master (built-in GrowthRush provider)
+  platform   Platform? @relation(fields: [platformId], references: [id])
+  name       String
+  apiUrl     String
+  apiKey     String?
+  status     String    @default("ACTIVE")
+  balance    Float     @default(0)
+  markup     Float     @default(20) // % margin over provider price
+  services   Service[]
+}
+
+// ─────────────────────────── Orders & Money ───────────────────────────
+
+model Order {
+  id           String    @id @default(cuid())
+  platformId   String?
+  platform     Platform? @relation(fields: [platformId], references: [id])
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  serviceId    String
+  service      Service   @relation(fields: [serviceId], references: [id])
+  serviceName  String
+  link         String
+  quantity     Int
+  charge       Float
+  startCount   Int       @default(0)
+  remains      Int       @default(0)
+  status       String    @default("PENDING") // PENDING | IN_PROGRESS | COMPLETED | PARTIAL | CANCELED
+  dripfeed     Boolean   @default(false)
+  dripRuns     Int       @default(1)
+  dripInterval Int       @default(60)
+  comments     String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  platformId  String?
+  type        String // DEPOSIT | ORDER | REFUND | PLAN | ADDON | ADJUSTMENT | PAYOUT
+  amount      Float
+  currency    String   @default("USD")
+  description String
+  status      String   @default("COMPLETED") // COMPLETED | PENDING | FAILED
+  method      String?
+  reference   String?
+  meta        String?  @default("{}")
+  createdAt   DateTime @default(now())
+}
+
+model Deposit {
+  id         String    @id @default(cuid())
+  platformId String?
+  platform   Platform? @relation(fields: [platformId], references: [id])
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  amount     Float
+  currency   String    @default("USD")
+  method     String
+  reference  String?
+  note       String?
+  status     String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  createdAt  DateTime  @default(now())
+}
+
+model Gateway {
+  id           String    @id @default(cuid())
+  platformId   String? // null = master GrowthRush gateways
+  platform     Platform? @relation(fields: [platformId], references: [id])
+  name         String
+  type         String // CARD | PAYPAL | CRYPTO | BANK | MANUAL
+  code         String? // provider key: PAYPAL | MERCADOPAGO | PIX | CRYPTOMUS | COINPAYMENT | PAYONEER
+  instructions String?
+  config       String?   @default("{}") // JSON credentials (masked on read)
+  feePercent   Float     @default(0)
+  enabled      Boolean   @default(true)
+  sortOrder    Int       @default(0)
+}
+
+model PaymentMethod {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  brand     String
+  last4     String
+  expMonth  Int
+  expYear   Int
+  primary   Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ─────────────────────────── Support ───────────────────────────
+
+model Ticket {
+  id         String          @id @default(cuid())
+  platformId String?
+  platform   Platform?       @relation(fields: [platformId], references: [id])
+  userId     String
+  user       User            @relation(fields: [userId], references: [id])
+  subject    String
+  category   String          @default("general")
+  priority   String          @default("normal") // low | normal | high | urgent
+  status     String          @default("OPEN") // OPEN | ANSWERED | CLOSED
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  messages   TicketMessage[]
+}
+
+model TicketMessage {
+  id         String   @id @default(cuid())
+  ticketId   String
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderId   String?
+  senderName String
+  isStaff    Boolean  @default(false)
+  body       String
+  createdAt  DateTime @default(now())
+}
+
+// ─────────────────────────── CRM ───────────────────────────
+
+model Channel {
+  id         String   @id @default(cuid())
+  platformId String
+  platform   Platform @relation(fields: [platformId], references: [id])
+  type       String // WHATSAPP | INSTAGRAM | MESSENGER | TELEGRAM | EMAIL | WEBCHAT
+  name       String
+  handle     String?
+  status     String   @default("DISCONNECTED") // CONNECTED | DISCONNECTED | PENDING
+  config     String?  @default("{}")
+  createdAt  DateTime @default(now())
+}
+
+model Contact {
+  id         String         @id @default(cuid())
+  platformId String
+  platform   Platform       @relation(fields: [platformId], references: [id])
+  name       String
+  phone      String?
+  email      String?
+  channel    String         @default("WHATSAPP")
+  labels     String         @default("[]")
+  notes      String?
+  totalSpent Float          @default(0)
+  ownerId    String?
+  owner      User?          @relation("ContactOwner", fields: [ownerId], references: [id])
+  lastSeen   DateTime?
+  createdAt  DateTime       @default(now())
+  conversations Conversation[]
+}
+
+model Label {
+  id         String   @id @default(cuid())
+  platformId String
+  platform   Platform @relation(fields: [platformId], references: [id])
+  name       String
+  color      String   @default("#f43f5e")
+}
+
+model QuickReply {
+  id         String   @id @default(cuid())
+  platformId String
+  platform   Platform @relation(fields: [platformId], references: [id])
+  title      String
+  body       String
+  shortcut   String?
+}
+
+model AiAgent {
+  id          String   @id @default(cuid())
+  platformId  String
+  platform    Platform @relation(fields: [platformId], references: [id])
+  name        String
+  provider    String   @default("OPENAI") // OPENAI | CLAUDE | GEMINI
+  model       String   @default("gpt-4o-mini")
+  prompt      String?
+  knowledge   String?
+  temperature Float    @default(0.7)
+  channels    String   @default("[]")
+  active      Boolean  @default(true)
+  resolved    Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model Automation {
+  id         String   @id @default(cuid())
+  platformId String
+  platform   Platform @relation(fields: [platformId], references: [id])
+  name       String
+  trigger    String   @default("KEYWORD") // KEYWORD | WELCOME | AWAY_HOURS | NO_REPLY | HANDOFF
+  matchValue String?
+  actions    String?  @default("[]")
+  active     Boolean  @default(true)
+  runs       Int      @default(0)
+  createdAt  DateTime @default(now())
+}
+
+model Conversation {
+  id            String   @id @default(cuid())
+  platformId    String
+  platform      Platform @relation(fields: [platformId], references: [id])
+  contactId     String
+  contact       Contact  @relation(fields: [contactId], references: [id])
+  channel       String   @default("WHATSAPP")
+  status        String   @default("OPEN") // OPEN | AI | CLOSED | HANDED
+  assignedName  String?
+  unread        Int      @default(0)
+  lastMessage   String?
+  lastMessageAt DateTime @default(now())
+  messages      Message[]
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  direction      String       @default("IN") // IN | OUT
+  body           String
+  aiGenerated    Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+}
+
+// ─────────────────────────── Content & Misc ───────────────────────────
+
+model News {
+  id         String    @id @default(cuid())
+  platformId String?
+  platform   Platform? @relation(fields: [platformId], references: [id])
+  title      String
+  body       String
+  pinned     Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+}
+
+model Faq {
+  id         String    @id @default(cuid())
+  platformId String?
+  platform   Platform? @relation(fields: [platformId], references: [id])
+  question   String
+  answer     String
+  category   String    @default("General")
+  sortOrder  Int       @default(0)
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  platformId  String?
+  platform    Platform? @relation(fields: [platformId], references: [id])
+  title       String
+  slug        String
+  excerpt     String?
+  body        String
+  cover       String?
+  status      String    @default("PUBLISHED")
+  publishedAt DateTime  @default(now())
+}
+
+model CmsPage {
+  id        String    @id @default(cuid())
+  platformId String?
+  platform  Platform? @relation(fields: [platformId], references: [id])
+  title     String
+  slug      String
+  body      String
+  status    String    @default("PUBLISHED")
+  createdAt DateTime  @default(now())
+}
+
+model Blacklist {
+  id         String    @id @default(cuid())
+  platformId String?
+  platform   Platform? @relation(fields: [platformId], references: [id])
+  type       String    @default("EMAIL") // EMAIL | DOMAIN | IP | KEYWORD
+  value      String
+  note       String?
+  createdAt  DateTime  @default(now())
+}
+
+model Currency {
+  code      String   @id
+  name      String
+  symbol    String
+  rate      Float    @default(1) // units of this currency per 1 USD
+  isBase    Boolean  @default(false)
+  auto      Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+}
+
+model Coupon {
+  id          String    @id @default(cuid())
+  platformId  String? // null = master GrowthRush coupons (platform users redeem platform coupons)
+  code        String    @unique // uppercase promo code, e.g. WELCOME10
+  value       Float // USD credited on redemption
+  maxUses     Int       @default(0) // 0 = unlimited
+  usedCount   Int       @default(0)
+  expiresAt   DateTime?
+  note        String?
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  redemptions CouponRedemption[]
+}
+
+/** One row per user that already redeemed a coupon (a code can only be used once per account). */
+model CouponRedemption {
+  id        String   @id @default(cuid())
+  couponId  String
+  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("CouponRedemptions", fields: [userId], references: [id])
+  amount    Float
+  createdAt DateTime @default(now())
+
+  @@unique([couponId, userId])
+}
+
+model Setting {
+  key   String @id
+  value String
+}
+
+model EmailTemplate {
+  id         String   @id @default(cuid())
+  platformId String?  // null = master defaults
+  key        String   // welcome | verify_code | order_complete | deposit_approved | new_client
+  subject    String
+  body       String   // HTML with {{variables}}
+  updatedAt  DateTime @updatedAt
+
+  @@unique([platformId, key])
+}
+
+model EmailLog {
+  id         String   @id @default(cuid())
+  platformId String?
+  to         String
+  subject    String
+  template   String?
+  status     String   @default("OUTBOX") // SENT | FAILED | OUTBOX
+  error      String?
+  createdAt  DateTime @default(now())
+
+  @@index([platformId, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   @default("INFO") // ORDER | DEPOSIT | TICKET | MONEY | SYSTEM
+  title     String
+  body      String?
+  link      String? // panel section hint e.g. "orders"
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+/** Newsletter lead captured by the storefront's Newsletter section (Landing Studio). */
+model LandingLead {
+  id         String   @id @default(cuid())
+  platformId String
+  platform   Platform @relation(fields: [platformId], references: [id])
+  email      String
+  createdAt  DateTime @default(now())
+
+  @@index([platformId, createdAt])
+}
