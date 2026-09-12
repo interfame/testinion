@@ -60,16 +60,16 @@ function buildData(type: ContentType, b: Record<string, unknown>): Record<string
   } else if (type === 'post') {
     if (b.title !== undefined) data.title = String(b.title).trim().slice(0, 200)
     if (b.excerpt !== undefined) data.excerpt = b.excerpt ? String(b.excerpt).slice(0, 300) : null
-    if (b.body !== undefined) data.body = String(b.body).slice(0, 20000)
+    if (b.body !== undefined) data.body = String(b.body).slice(0, 200000)
     if (b.cover !== undefined) data.cover = b.cover ? String(b.cover).slice(0, 500) : null
     if (b.status !== undefined) data.status = b.status || 'PUBLISHED'
     // slug handled in POST/PATCH (user-editable, unique per platform scope)
   } else {
-    if (b.title !== undefined) {
-      data.title = String(b.title).trim().slice(0, 200)
-      data.slug = slugify(String(b.title))
-    }
-    if (b.body !== undefined) data.body = String(b.body).slice(0, 20000)
+    if (b.title !== undefined) data.title = String(b.title).trim().slice(0, 200)
+    if (b.body !== undefined) data.body = String(b.body).slice(0, 200000)
+    if (b.slug !== undefined) data.slug = slugify(String(b.slug))
+    if (b.metaTitle !== undefined) data.metaTitle = b.metaTitle ? String(b.metaTitle).slice(0, 200) : null
+    if (b.metaDescription !== undefined) data.metaDescription = b.metaDescription ? String(b.metaDescription).slice(0, 300) : null
     if (b.status !== undefined) data.status = b.status || 'PUBLISHED'
   }
   return data
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
     if (type === 'news') item = await db.news.create({ data: { platformId: null, title: String(data.title ?? 'Untitled'), body: String(data.body ?? ''), pinned: !!data.pinned } })
     else if (type === 'faq') item = await db.faq.create({ data: { platformId: null, question: String(data.question ?? ''), answer: String(data.answer ?? ''), category: String(data.category ?? 'General'), sortOrder: Number(data.sortOrder ?? 0) } })
     else if (type === 'post') item = await db.post.create({ data: { platformId: null, title: String(data.title), slug: await uniquePostSlug(String(b.slug || b.title || '')), excerpt: (data.excerpt as string) ?? null, body: String(data.body ?? ''), cover: (data.cover as string) ?? null, status: String(data.status ?? 'PUBLISHED') } })
-    else item = await db.cmsPage.create({ data: { platformId: null, title: String(data.title), slug: String(data.slug), body: String(data.body ?? ''), status: String(data.status ?? 'PUBLISHED') } })
+    else item = await db.cmsPage.create({ data: { platformId: null, title: String(data.title), slug: String(data.slug || slugify(String(data.title))), body: String(data.body ?? ''), metaTitle: (data.metaTitle as string) ?? null, metaDescription: (data.metaDescription as string) ?? null, status: String(data.status ?? 'PUBLISHED') } })
 
     return jsonOk({ ok: true, type, item, message: 'Content created' })
   })
@@ -119,6 +119,18 @@ export async function PATCH(req: NextRequest) {
     // Posts: persist an explicitly-sent slug ('' → regenerate from title), unique among master posts
     if (t === 'post' && typeof b.slug === 'string') {
       data.slug = await uniquePostSlug(b.slug.trim() || String(b.title ?? ''), id)
+    }
+    // Pages: persist an explicit slug, unique among master pages
+    if (t === 'page' && typeof b.slug === 'string') {
+      const root = slugify(b.slug) || slugify(String(b.title ?? '')) || 'page'
+      let candidate = root
+      let n = 2
+      for (;;) {
+        const clash = await db.cmsPage.findFirst({ where: { slug: candidate, platformId: null, id: { not: id } }, select: { id: true } })
+        if (!clash) break
+        candidate = `${root}-${n++}`
+      }
+      data.slug = candidate
     }
 
     let item: unknown

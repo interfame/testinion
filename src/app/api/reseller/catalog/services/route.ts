@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
 
+/** Round UP to 2 decimals — markups never lose money (owner request). */
+const ceil2 = (n: number) => Math.ceil(Math.round(n * 1e6) / 1e6 * 100) / 100
+
 async function myPlatform(userId: string) {
   const p = await db.platform.findUnique({ where: { ownerId: userId } })
   if (!p) throw jsonError('No platform', 404)
@@ -32,7 +35,7 @@ export async function POST(req: NextRequest) {
           platformId: platform.id,
           categoryId: target.id,
           name: master.name, type: master.type,
-          rate: Math.round(master.rate * (1 + margin / 100) * 100) / 100,
+          rate: ceil2(master.rate * (1 + margin / 100)),
           min: master.min, max: master.max, description: master.description,
           dripfeed: master.dripfeed, refill: master.refill, cancel: master.cancel,
           sortOrder: count,
@@ -90,7 +93,7 @@ export async function PATCH(req: NextRequest) {
         if (!mine) continue
         await db.service.update({
           where: { id: mine.id },
-          data: { rate: Math.round(m.rate * (1 + margin / 100) * 100) / 100 },
+          data: { rate: ceil2(m.rate * (1 + margin / 100)) },
         })
         updated++
       }

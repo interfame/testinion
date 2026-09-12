@@ -141,8 +141,28 @@ export function ProvidersSection() {
     let dead = false
     api
       .get<{ categories: { name: string; count: number }[] }>(`/api/admin/providers/categories?id=${syncing.id}`)
-      .then((d) => { if (!dead) setProvCats(d.categories ?? []) })
-      .catch((e) => { if (!dead) setCatsError(e instanceof Error ? e.message : 'Failed to load categories') })
+      .then((d) => {
+        if (dead) return
+        // dedupe by name (some providers repeat category names) and keep a stable list
+        const seen = new Set<string>()
+        const list: { name: string; count: number }[] = []
+        for (const c of d.categories ?? []) {
+          const name = String(c.name ?? '').trim()
+          if (!name || seen.has(name)) continue
+          seen.add(name)
+          list.push({ name, count: Number(c.count) || 0 })
+        }
+        setProvCats(list)
+      })
+      .catch((e) => {
+        if (dead) return
+        const msg = e instanceof Error ? e.message : 'Failed to load categories'
+        setCatsError(
+          msg.includes('timed out') || msg.toLowerCase().includes('timeout')
+            ? 'The provider took too long to answer. Large catalogs can exceed the serverless time limit — try "All categories", or sync one category at a time.'
+            : msg,
+        )
+      })
       .finally(() => { if (!dead) setCatsLoading(false) })
     return () => { dead = true }
   }, [syncing?.id])

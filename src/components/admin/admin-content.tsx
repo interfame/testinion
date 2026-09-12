@@ -3,7 +3,9 @@
 // Super Admin — Master content CRUD: news, FAQs, blog posts and CMS pages.
 
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, Pin, Search, Eye, Image as ImageIcon } from 'lucide-react'
+import { Plus, Pencil, Trash2, Pin, Search, Eye, Image as ImageIcon
+  , Loader2, Upload
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -22,6 +24,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { PanelPageHeader, StatusBadge } from '@/components/shared/panel-shell'
+import { toast } from '@/hooks/use-toast'
 import { api, mutate, useApi } from '@/lib/api'
 import { apiDel } from './admin-ui'
 import { formatDate } from '@/lib/format'
@@ -35,6 +38,54 @@ const slugify = (s: string) =>
     .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 100).replace(/-+$/, '')
 
 const viewMasterBlog = () => window.dispatchEvent(new CustomEvent('gr:blog', { detail: null }))
+
+/** Uploads a local file to the platform (stored in DB, served at /api/media/<id>). */
+async function uploadFile(file: File): Promise<string> {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await fetch('/api/uploads', { method: 'POST', body: fd })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error((data as { error?: string }).error || `Upload failed (${res.status})`)
+  return (data as { url: string }).url
+}
+
+/** File picker button that uploads the chosen image and returns its platform URL. */
+function UploadButton({ onUploaded, label, uploading, setUploading, accept = 'image/*' }: {
+  onUploaded: (url: string) => void
+  label: string
+  uploading: boolean
+  setUploading: (v: boolean) => void
+  accept?: string
+}) {
+  return (
+    <label className={`inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-[12px] font-bold text-zinc-700 transition hover:bg-zinc-50 dark:text-zinc-200 dark:hover:bg-zinc-800/60 ${uploading ? 'pointer-events-none opacity-60' : ''}`}>
+      {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+      {uploading ? label + '…' : label}
+      <input
+        type="file"
+        accept={accept}
+        className="sr-only"
+        onChange={async (e) => {
+          const file = e.target.files?.[0]
+          e.target.value = ''
+          if (!file) return
+          setUploading(true)
+          try {
+            const url = await uploadFile(file)
+            onUploaded(url)
+            toast({ title: t_toast('Uploaded to your platform ✅') })
+          } catch (err) {
+            toast({ title: err instanceof Error ? err.message : 'Upload failed', variant: 'destructive' })
+          } finally {
+            setUploading(false)
+          }
+        }}
+      />
+    </label>
+  )
+}
+
+function t_toast(s: string) { return s }
 
 // ── shared bits ───────────────────────────────────────────────────────
 
@@ -268,6 +319,7 @@ export function PostsSection() {
   const { setDeleting, confirmEl } = useRemove('post', refresh)
   const [editing, setEditing] = useState<PostItem | 'new' | null>(null)
   const [slugTouched, setSlugTouched] = useState(false)
+  const [coverUploading, setCoverUploading] = useState(false)
   const [form, setForm] = useState({ title: '', slug: '', excerpt: '', body: '', cover: '', status: 'PUBLISHED' })
 
   const open = (p: PostItem | 'new') => {
@@ -376,7 +428,17 @@ export function PostsSection() {
                     ? <img src={form.cover} alt={t('admin.content.coverAlt')} className="h-full w-full object-cover" />
                     : <ImageIcon className="h-5 w-5 text-zinc-400" aria-hidden />}
                 </span>
-                <Input placeholder="https://… image URL" value={form.cover} onChange={(e) => setForm({ ...form, cover: e.target.value })} />
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <UploadButton label={t('admin.content.uploadImage')} uploading={coverUploading} setUploading={setCoverUploading} onUploaded={(url) => setForm((f) => ({ ...f, cover: url }))} />
+                    {form.cover && (
+                      <Button type="button" size="sm" variant="ghost" className="h-7 rounded-full text-[11.5px] font-bold text-rose-500 hover:text-rose-600" onClick={() => setForm((f) => ({ ...f, cover: '' }))}>
+                        {t('common.remove')}
+                      </Button>
+                    )}
+                  </div>
+                  <Input className="h-8 text-[11.5px]" placeholder="https://…" value={form.cover} onChange={(e) => setForm({ ...form, cover: e.target.value })} />
+                </div>
               </div>
             </div>
             <div>
@@ -403,7 +465,9 @@ export function PostsSection() {
 
 // ── PAGES ─────────────────────────────────────────────────────────────
 
-type PageItem = { id: string; title: string; slug: string; body: string; status: string; createdAt: string }
+type PageItem = { id: string; title: string; slug: string; body: string; metaTitle: string | null; metaDescription: string | null; status: string; createdAt: string }
+
+const PAGE_PRESETS = ['terms', 'privacy', 'about', 'faq', 'refill-policy', 'refund-policy']
 
 export function PagesSection() {
   const { lang } = useApp()
@@ -411,23 +475,34 @@ export function PagesSection() {
   const { data, loading, refresh } = useContentList<PageItem>('page')
   const { setDeleting, confirmEl } = useRemove('page', refresh)
   const [editing, setEditing] = useState<PageItem | 'new' | null>(null)
-  const [form, setForm] = useState({ title: '', body: '', status: 'PUBLISHED' })
+  const [slugTouched, setSlugTouched] = useState(false)
+  const [showSource, setShowSource] = useState(false)
+  const [preview, setPreview] = useState(false)
+  const [form, setForm] = useState({ title: '', slug: '', body: '', metaTitle: '', metaDescription: '', status: 'PUBLISHED' })
 
   const open = (p: PageItem | 'new') => {
-    if (p === 'new') setForm({ title: '', body: '', status: 'PUBLISHED' })
-    else setForm({ title: p.title, body: p.body, status: p.status })
+    setShowSource(false)
+    setPreview(false)
+    if (p === 'new') { setSlugTouched(false); setForm({ title: '', slug: '', body: '', metaTitle: '', metaDescription: '', status: 'PUBLISHED' }) }
+    else { setSlugTouched(true); setForm({ title: p.title, slug: p.slug, body: p.body, metaTitle: p.metaTitle ?? '', metaDescription: p.metaDescription ?? '', status: p.status }) }
     setEditing(p)
   }
 
   const save = async () => {
     if (!form.title.trim()) return
-    const payload = { title: form.title.trim(), body: form.body, status: form.status }
+    const payload = {
+      title: form.title.trim(), slug: form.slug, body: form.body,
+      metaTitle: form.metaTitle.trim() || null, metaDescription: form.metaDescription.trim() || null,
+      status: form.status,
+    }
     const ok = await mutate(
       () => editing === 'new' ? api.post('/api/admin/content', { type: 'page', ...payload }) : api.patch('/api/admin/content', { type: 'page', id: (editing as PageItem).id, ...payload }),
       { success: t('admin.content.toastPageSaved') },
     )
     if (ok) { setEditing(null); refresh() }
   }
+
+  const usedSlugs = (data?.items ?? []).map((p) => p.slug)
 
   return (
     <div className="space-y-4">
@@ -445,6 +520,7 @@ export function PagesSection() {
               <tr className="border-b border-zinc-100 dark:border-zinc-800/70 text-[11px] uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
                 <th className="px-4 py-3 font-bold">{t('admin.content.title')}</th>
                 <th className="px-3 py-3 font-bold">Slug</th>
+                <th className="px-3 py-3 font-bold">SEO</th>
                 <th className="px-3 py-3 font-bold">{t('common.status')}</th>
                 <th className="px-3 py-3 font-bold">{t('admin.content.created')}</th>
                 <th className="px-4 py-3 text-right font-bold">{t('common.actions')}</th>
@@ -453,8 +529,13 @@ export function PagesSection() {
             <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/60">
               {data?.items.map((p) => (
                 <tr key={p.id} className="transition hover:bg-zinc-50/60 dark:hover:bg-zinc-900/40">
-                  <td className="px-4 py-3 font-semibold text-zinc-800 dark:text-zinc-100">{p.title}</td>
+                  <td className="max-w-[260px] truncate px-4 py-3 font-semibold text-zinc-800 dark:text-zinc-100">{p.title}</td>
                   <td className="px-3 py-3 font-mono text-[11.5px] text-zinc-400 dark:text-zinc-500">/{p.slug}</td>
+                  <td className="px-3 py-3">
+                    {p.metaTitle || p.metaDescription
+                      ? <Badge className="rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">META OK</Badge>
+                      : <Badge variant="outline" className="rounded-full text-[10px] font-bold text-zinc-400">NO META</Badge>}
+                  </td>
                   <td className="px-3 py-3"><StatusBadge status={p.status} /></td>
                   <td className="whitespace-nowrap px-3 py-3 text-[12px] text-zinc-400 dark:text-zinc-500">{formatDate(p.createdAt, lang)}</td>
                   <td className="px-4 py-3">
@@ -471,14 +552,91 @@ export function PagesSection() {
       )}
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle>{editing === 'new' ? t('admin.content.newPage') : t('admin.content.editPage')}</DialogTitle><DialogDescription>{t('admin.content.pageFormDesc')}</DialogDescription></DialogHeader>
-          <div className="space-y-3">
-            <div><FieldLabel>{t('admin.content.title')}</FieldLabel><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
-            <div><FieldLabel>{t('admin.content.body')}</FieldLabel><Textarea rows={7} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} /></div>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{editing === 'new' ? t('admin.content.newPage') : t('admin.content.editPage')}</DialogTitle>
+            <DialogDescription>{t('admin.pg.formDesc')}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <FieldLabel>{t('admin.content.title')}</FieldLabel>
+                <Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value, slug: editing === 'new' && !slugTouched ? slugify(e.target.value) : f.slug }))} />
+              </div>
+              <div>
+                <FieldLabel hint={t('admin.pg.slugHint')}>Slug</FieldLabel>
+                <div className="flex items-center gap-2">
+                  <span className="shrink-0 font-mono text-[12px] text-zinc-400">/</span>
+                  <Input
+                    className="font-mono text-[12.5px]"
+                    value={form.slug}
+                    onChange={(e) => { setSlugTouched(true); setForm((f) => ({ ...f, slug: slugify(e.target.value) })) }}
+                    placeholder="terms-of-service"
+                  />
+                </div>
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {PAGE_PRESETS.filter((sp) => !usedSlugs.includes(sp) || sp === form.slug).slice(0, 4).map((sp) => (
+                    <button
+                      key={sp} type="button"
+                      className="rounded-full border border-zinc-200 dark:border-zinc-800 px-2 py-0.5 text-[10.5px] font-bold text-zinc-500 transition hover:border-[var(--brand)] hover:text-zinc-800 dark:hover:text-zinc-200"
+                      onClick={() => { setSlugTouched(true); setForm((f) => ({ ...f, slug: sp, title: f.title || sp.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) })) }}
+                    >
+                      /{sp}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <FieldLabel hint={t('admin.pg.bodyHint')}>{t('admin.content.body')}</FieldLabel>
+                <div className="flex items-center gap-1">
+                  <Button type="button" size="sm" variant={showSource ? 'default' : 'ghost'} className="h-7 rounded-full px-2.5 text-[11px] font-bold" style={showSource ? { background: 'var(--brand)', color: 'var(--on-brand)' } : undefined} onClick={() => { setShowSource((v) => !v); setPreview(false) }}>
+                    HTML
+                  </Button>
+                  <Button type="button" size="sm" variant={preview ? 'default' : 'ghost'} className="h-7 rounded-full px-2.5 text-[11px] font-bold" style={preview ? { background: 'var(--brand)', color: 'var(--on-brand)' } : undefined} onClick={() => { setPreview((v) => !v); setShowSource(false) }}>
+                    <Eye className="mr-1 h-3 w-3" /> {t('admin.pg.preview')}
+                  </Button>
+                </div>
+              </div>
+              {preview ? (
+                <div
+                  className="gr-scroll prose prose-sm prose-zinc dark:prose-invert max-h-[360px] max-w-none overflow-y-auto rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 text-[13px] leading-relaxed [&_a]:underline [&_h1]:text-xl [&_h1]:font-extrabold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:font-bold [&_img]:rounded-lg [&_li]:ml-4 [&_li]:list-disc [&_p]:my-2"
+                  dangerouslySetInnerHTML={{ __html: form.body }}
+                />
+              ) : showSource ? (
+                <Textarea rows={12} className="font-mono text-[12px]" value={form.body} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))} placeholder="<h2>Terms</h2>\n<p>…</p>" />
+              ) : (
+                <RichEditor value={form.body} onChange={(html) => setForm((f) => ({ ...f, body: html }))} placeholder={t('admin.pg.bodyPlaceholder')} minRows={9} />
+              )}
+            </div>
+
+            {/* SEO */}
+            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-3.5">
+              <p className="mb-2.5 flex items-center gap-1.5 text-[12px] font-extrabold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                <Search className="h-3.5 w-3.5" /> {t('admin.pg.seoTitle')}
+              </p>
+              <div className="space-y-3">
+                <div>
+                  <FieldLabel hint={t('admin.pg.metaTitleHint')}>{t('admin.pg.metaTitle')}</FieldLabel>
+                  <Input value={form.metaTitle} onChange={(e) => setForm((f) => ({ ...f, metaTitle: e.target.value }))} placeholder={`${form.title || 'Page'} — GrowthRush`} maxLength={200} />
+                </div>
+                <div>
+                  <FieldLabel hint={t('admin.pg.metaDescHint')}>{t('admin.pg.metaDescription')}</FieldLabel>
+                  <Textarea rows={2} value={form.metaDescription} onChange={(e) => setForm((f) => ({ ...f, metaDescription: e.target.value }))} placeholder={t('admin.pg.metaDescPlaceholder')} maxLength={300} />
+                </div>
+                <div className="rounded-lg bg-zinc-50 dark:bg-zinc-900/60 p-3">
+                  <p className="truncate text-[13px] font-medium text-[#1a0dab] dark:text-[#8ab4f8]">{form.metaTitle || form.title || 'Page title'} — GrowthRush</p>
+                  <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">yoursite.com/{form.slug || 'page-slug'}</p>
+                  <p className="mt-0.5 line-clamp-2 text-[12px] text-zinc-500 dark:text-zinc-400">{form.metaDescription || t('admin.pg.metaDescPlaceholder')}</p>
+                </div>
+              </div>
+            </div>
+
             <div>
               <FieldLabel>{t('common.status')}</FieldLabel>
-              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+              <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v }))}>
                 <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="PUBLISHED">PUBLISHED</SelectItem>
@@ -489,7 +647,7 @@ export function PagesSection() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>{t('common.cancel')}</Button>
-            <Button onClick={save} disabled={!form.title.trim()} style={{ background: 'var(--brand)' }}>{t('common.save')}</Button>
+            <Button onClick={save} disabled={!form.title.trim()} className="text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>{t('common.save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

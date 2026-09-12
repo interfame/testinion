@@ -201,7 +201,7 @@ export type AdminTicket = {
   createdAt: string
   updatedAt: string
   user: { id: string; name: string; email: string }
-  messages: { id: string; senderName: string; isStaff: boolean; body: string; createdAt: string }[]
+  messages: { id: string; senderName: string; isStaff: boolean; body: string; fileUrl?: string | null; fileName?: string | null; fileMime?: string | null; fileSize?: number | null; createdAt: string }[]
 }
 
 export type AdminBlacklist = { id: string; type: string; value: string; note: string | null; createdAt: string }

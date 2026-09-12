@@ -2,7 +2,7 @@
 CREATE SCHEMA IF NOT EXISTS "public";
 
 -- CreateTable
-CREATE TABLE "User" (
+CREATE TABLE IF NOT EXISTS "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE "User" (
 );
 
 -- CreateTable
-CREATE TABLE "Platform" (
+CREATE TABLE IF NOT EXISTS "Platform" (
     "id" TEXT NOT NULL,
     "ownerId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -58,7 +58,7 @@ CREATE TABLE "Platform" (
 );
 
 -- CreateTable
-CREATE TABLE "Plan" (
+CREATE TABLE IF NOT EXISTS "Plan" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
@@ -80,7 +80,7 @@ CREATE TABLE "Plan" (
 );
 
 -- CreateTable
-CREATE TABLE "TeamMember" (
+CREATE TABLE IF NOT EXISTS "TeamMember" (
     "id" TEXT NOT NULL,
     "platformId" TEXT,
     "name" TEXT NOT NULL,
@@ -95,7 +95,7 @@ CREATE TABLE "TeamMember" (
 );
 
 -- CreateTable
-CREATE TABLE "Category" (
+CREATE TABLE IF NOT EXISTS "Category" (
     "id" TEXT NOT NULL,
     "platformId" TEXT,
     "name" TEXT NOT NULL,
@@ -109,7 +109,7 @@ CREATE TABLE "Category" (
 );
 
 -- CreateTable
-CREATE TABLE "Service" (
+CREATE TABLE IF NOT EXISTS "Service" (
     "id" TEXT NOT NULL,
     "platformId" TEXT,
     "categoryId" TEXT NOT NULL,
@@ -133,7 +133,7 @@ CREATE TABLE "Service" (
 );
 
 -- CreateTable
-CREATE TABLE "Provider" (
+CREATE TABLE IF NOT EXISTS "Provider" (
     "id" TEXT NOT NULL,
     "platformId" TEXT,
     "name" TEXT NOT NULL,
@@ -147,7 +147,7 @@ CREATE TABLE "Provider" (
 );
 
 -- CreateTable
-CREATE TABLE "Order" (
+CREATE TABLE IF NOT EXISTS "Order" (
     "id" TEXT NOT NULL,
     "platformId" TEXT,
     "userId" TEXT NOT NULL,
@@ -170,7 +170,7 @@ CREATE TABLE "Order" (
 );
 
 -- CreateTable
-CREATE TABLE "Transaction" (
+CREATE TABLE IF NOT EXISTS "Transaction" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "platformId" TEXT,
@@ -188,7 +188,7 @@ CREATE TABLE "Transaction" (
 );
 
 -- CreateTable
-CREATE TABLE "Deposit" (
+CREATE TABLE IF NOT EXISTS "Deposit" (
     "id" TEXT NOT NULL,
     "platformId" TEXT,
     "userId" TEXT NOT NULL,
@@ -204,7 +204,7 @@ CREATE TABLE "Deposit" (
 );
 
 -- CreateTable
-CREATE TABLE "Gateway" (
+CREATE TABLE IF NOT EXISTS "Gateway" (
     "id" TEXT NOT NULL,
     "platformId" TEXT,
     "name" TEXT NOT NULL,
@@ -220,7 +220,7 @@ CREATE TABLE "Gateway" (
 );
 
 -- CreateTable
-CREATE TABLE "PaymentMethod" (
+CREATE TABLE IF NOT EXISTS "PaymentMethod" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "brand" TEXT NOT NULL,
@@ -234,7 +234,7 @@ CREATE TABLE "PaymentMethod" (
 );
 
 -- CreateTable
-CREATE TABLE "Ticket" (
+CREATE TABLE IF NOT EXISTS "Ticket" (
     "id" TEXT NOT NULL,
     "platformId" TEXT,
     "userId" TEXT NOT NULL,
@@ -249,7 +249,7 @@ CREATE TABLE "Ticket" (
 );
 
 -- CreateTable
-CREATE TABLE "TicketMessage" (
+CREATE TABLE IF NOT EXISTS "TicketMessage" (
     "id" TEXT NOT NULL,
     "ticketId" TEXT NOT NULL,
     "senderId" TEXT,
@@ -262,7 +262,7 @@ CREATE TABLE "TicketMessage" (
 );
 
 -- CreateTable
-CREATE TABLE "Channel" (
+CREATE TABLE IF NOT EXISTS "Channel" (
     "id" TEXT NOT NULL,
     "platformId" TEXT NOT NULL,
     "type" TEXT NOT NULL,
@@ -276,7 +276,7 @@ CREATE TABLE "Channel" (
 );
 
 -- CreateTable
-CREATE TABLE "Contact" (
+CREATE TABLE IF NOT EXISTS "Contact" (
     "id" TEXT NOT NULL,
     "platformId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -294,7 +294,7 @@ CREATE TABLE "Contact" (
 );
 
 -- CreateTable
-CREATE TABLE "Label" (
+CREATE TABLE IF NOT EXISTS "Label" (
     "id" TEXT NOT NULL,
     "platformId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -304,7 +304,7 @@ CREATE TABLE "Label" (
 );
 
 -- CreateTable
-CREATE TABLE "QuickReply" (
+CREATE TABLE IF NOT EXISTS "QuickReply" (
     "id" TEXT NOT NULL,
     "platformId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -315,7 +315,7 @@ CREATE TABLE "QuickReply" (
 );
 
 -- CreateTable
-CREATE TABLE "AiAgent" (
+CREATE TABLE IF NOT EXISTS "AiAgent" (
     "id" TEXT NOT NULL,
     "platformId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -333,7 +333,7 @@ CREATE TABLE "AiAgent" (
 );
 
 -- CreateTable
-CREATE TABLE "Automation" (
+CREATE TABLE IF NOT EXISTS "Automation" (
     "id" TEXT NOT NULL,
     "platformId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -348,7 +348,7 @@ CREATE TABLE "Automation" (
 );
 
 -- CreateTable
-CREATE TABLE "Conversation" (
+CREATE TABLE IF NOT EXISTS "Conversation" (
     "id" TEXT NOT NULL,
     "platformId" TEXT NOT NULL,
     "contactId" TEXT NOT NULL,
@@ -363,7 +363,7 @@ CREATE TABLE "Conversation" (
 );
 
 -- CreateTable
-CREATE TABLE "Message" (
+CREATE TABLE IF NOT EXISTS "Message" (
     "id" TEXT NOT NULL,
     "conversationId" TEXT NOT NULL,
     "direction" TEXT NOT NULL DEFAULT 'IN',
@@ -375,7 +375,7 @@ CREATE TABLE "Message" (
 );
 
 -- CreateTable
-CREATE TABLE "News" (
+CREATE TABLE IF NOT EXISTS "News" (
     "id" TEXT NOT NULL,
     "platformId" TEXT,
     "title" TEXT NOT NULL,
@@ -387,7 +387,7 @@ CREATE TABLE "News" (
 );
 
 -- CreateTable
-CREATE TABLE "Faq" (
+CREATE TABLE IF NOT EXISTS "Faq" (
     "id" TEXT NOT NULL,
     "platformId" TEXT,
     "question" TEXT NOT NULL,
@@ -399,7 +399,7 @@ CREATE TABLE "Faq" (
 );
 
 -- CreateTable
-CREATE TABLE "Post" (
+CREATE TABLE IF NOT EXISTS "Post" (
     "id" TEXT NOT NULL,
     "platformId" TEXT,
     "title" TEXT NOT NULL,
@@ -414,7 +414,7 @@ CREATE TABLE "Post" (
 );
 
 -- CreateTable
-CREATE TABLE "CmsPage" (
+CREATE TABLE IF NOT EXISTS "CmsPage" (
     "id" TEXT NOT NULL,
     "platformId" TEXT,
     "title" TEXT NOT NULL,
@@ -427,7 +427,7 @@ CREATE TABLE "CmsPage" (
 );
 
 -- CreateTable
-CREATE TABLE "Blacklist" (
+CREATE TABLE IF NOT EXISTS "Blacklist" (
     "id" TEXT NOT NULL,
     "platformId" TEXT,
     "type" TEXT NOT NULL DEFAULT 'EMAIL',
@@ -439,7 +439,7 @@ CREATE TABLE "Blacklist" (
 );
 
 -- CreateTable
-CREATE TABLE "Currency" (
+CREATE TABLE IF NOT EXISTS "Currency" (
     "code" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "symbol" TEXT NOT NULL,
@@ -452,7 +452,7 @@ CREATE TABLE "Currency" (
 );
 
 -- CreateTable
-CREATE TABLE "Coupon" (
+CREATE TABLE IF NOT EXISTS "Coupon" (
     "id" TEXT NOT NULL,
     "platformId" TEXT,
     "code" TEXT NOT NULL,
@@ -468,7 +468,7 @@ CREATE TABLE "Coupon" (
 );
 
 -- CreateTable
-CREATE TABLE "CouponRedemption" (
+CREATE TABLE IF NOT EXISTS "CouponRedemption" (
     "id" TEXT NOT NULL,
     "couponId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -479,7 +479,7 @@ CREATE TABLE "CouponRedemption" (
 );
 
 -- CreateTable
-CREATE TABLE "Setting" (
+CREATE TABLE IF NOT EXISTS "Setting" (
     "key" TEXT NOT NULL,
     "value" TEXT NOT NULL,
 
@@ -487,7 +487,7 @@ CREATE TABLE "Setting" (
 );
 
 -- CreateTable
-CREATE TABLE "EmailTemplate" (
+CREATE TABLE IF NOT EXISTS "EmailTemplate" (
     "id" TEXT NOT NULL,
     "platformId" TEXT,
     "key" TEXT NOT NULL,
@@ -499,7 +499,7 @@ CREATE TABLE "EmailTemplate" (
 );
 
 -- CreateTable
-CREATE TABLE "EmailLog" (
+CREATE TABLE IF NOT EXISTS "EmailLog" (
     "id" TEXT NOT NULL,
     "platformId" TEXT,
     "to" TEXT NOT NULL,
@@ -513,7 +513,7 @@ CREATE TABLE "EmailLog" (
 );
 
 -- CreateTable
-CREATE TABLE "Notification" (
+CREATE TABLE IF NOT EXISTS "Notification" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "type" TEXT NOT NULL DEFAULT 'INFO',
@@ -527,7 +527,7 @@ CREATE TABLE "Notification" (
 );
 
 -- CreateTable
-CREATE TABLE "LandingLead" (
+CREATE TABLE IF NOT EXISTS "LandingLead" (
     "id" TEXT NOT NULL,
     "platformId" TEXT NOT NULL,
     "email" TEXT NOT NULL,
@@ -537,155 +537,177 @@ CREATE TABLE "LandingLead" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_apiKey_key" ON "User"("apiKey");
+CREATE UNIQUE INDEX IF NOT EXISTS "User_apiKey_key" ON "User"("apiKey");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_refCode_key" ON "User"("refCode");
+CREATE UNIQUE INDEX IF NOT EXISTS "User_refCode_key" ON "User"("refCode");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Platform_ownerId_key" ON "Platform"("ownerId");
+CREATE UNIQUE INDEX IF NOT EXISTS "Platform_ownerId_key" ON "Platform"("ownerId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Platform_slug_key" ON "Platform"("slug");
+CREATE UNIQUE INDEX IF NOT EXISTS "Platform_slug_key" ON "Platform"("slug");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Plan_slug_key" ON "Plan"("slug");
+CREATE UNIQUE INDEX IF NOT EXISTS "Plan_slug_key" ON "Plan"("slug");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Category_platformId_slug_key" ON "Category"("platformId", "slug");
+CREATE UNIQUE INDEX IF NOT EXISTS "Category_platformId_slug_key" ON "Category"("platformId", "slug");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Coupon_code_key" ON "Coupon"("code");
+CREATE UNIQUE INDEX IF NOT EXISTS "Coupon_code_key" ON "Coupon"("code");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "CouponRedemption_couponId_userId_key" ON "CouponRedemption"("couponId", "userId");
+CREATE UNIQUE INDEX IF NOT EXISTS "CouponRedemption_couponId_userId_key" ON "CouponRedemption"("couponId", "userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "EmailTemplate_platformId_key_key" ON "EmailTemplate"("platformId", "key");
+CREATE UNIQUE INDEX IF NOT EXISTS "EmailTemplate_platformId_key_key" ON "EmailTemplate"("platformId", "key");
 
 -- CreateIndex
-CREATE INDEX "EmailLog_platformId_createdAt_idx" ON "EmailLog"("platformId", "createdAt");
+CREATE INDEX IF NOT EXISTS "EmailLog_platformId_createdAt_idx" ON "EmailLog"("platformId", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "Notification_userId_createdAt_idx" ON "Notification"("userId", "createdAt");
+CREATE INDEX IF NOT EXISTS "Notification_userId_createdAt_idx" ON "Notification"("userId", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "LandingLead_platformId_createdAt_idx" ON "LandingLead"("platformId", "createdAt");
+CREATE INDEX IF NOT EXISTS "LandingLead_platformId_createdAt_idx" ON "LandingLead"("platformId", "createdAt");
 
 -- AddForeignKey
-ALTER TABLE "User" ADD CONSTRAINT "User_referredById_fkey" FOREIGN KEY ("referredById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "User" ADD CONSTRAINT "User_referredById_fkey" FOREIGN KEY ("referredById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Platform" ADD CONSTRAINT "Platform_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Platform" ADD CONSTRAINT "Platform_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Platform" ADD CONSTRAINT "Platform_planId_fkey" FOREIGN KEY ("planId") REFERENCES "Plan"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Platform" ADD CONSTRAINT "Platform_planId_fkey" FOREIGN KEY ("planId") REFERENCES "Plan"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "TeamMember" ADD CONSTRAINT "TeamMember_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "TeamMember" ADD CONSTRAINT "TeamMember_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Category" ADD CONSTRAINT "Category_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Category" ADD CONSTRAINT "Category_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Service" ADD CONSTRAINT "Service_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Service" ADD CONSTRAINT "Service_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Service" ADD CONSTRAINT "Service_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Service" ADD CONSTRAINT "Service_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Service" ADD CONSTRAINT "Service_providerId_fkey" FOREIGN KEY ("providerId") REFERENCES "Provider"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Service" ADD CONSTRAINT "Service_providerId_fkey" FOREIGN KEY ("providerId") REFERENCES "Provider"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Provider" ADD CONSTRAINT "Provider_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Provider" ADD CONSTRAINT "Provider_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Order" ADD CONSTRAINT "Order_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Order" ADD CONSTRAINT "Order_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Order" ADD CONSTRAINT "Order_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Order" ADD CONSTRAINT "Order_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Order" ADD CONSTRAINT "Order_serviceId_fkey" FOREIGN KEY ("serviceId") REFERENCES "Service"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Order" ADD CONSTRAINT "Order_serviceId_fkey" FOREIGN KEY ("serviceId") REFERENCES "Service"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Transaction" ADD CONSTRAINT "Transaction_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Transaction" ADD CONSTRAINT "Transaction_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Deposit" ADD CONSTRAINT "Deposit_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Deposit" ADD CONSTRAINT "Deposit_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Deposit" ADD CONSTRAINT "Deposit_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Deposit" ADD CONSTRAINT "Deposit_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Gateway" ADD CONSTRAINT "Gateway_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Gateway" ADD CONSTRAINT "Gateway_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "PaymentMethod" ADD CONSTRAINT "PaymentMethod_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "PaymentMethod" ADD CONSTRAINT "PaymentMethod_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "TicketMessage" ADD CONSTRAINT "TicketMessage_ticketId_fkey" FOREIGN KEY ("ticketId") REFERENCES "Ticket"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "TicketMessage" ADD CONSTRAINT "TicketMessage_ticketId_fkey" FOREIGN KEY ("ticketId") REFERENCES "Ticket"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Channel" ADD CONSTRAINT "Channel_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Channel" ADD CONSTRAINT "Channel_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Contact" ADD CONSTRAINT "Contact_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Contact" ADD CONSTRAINT "Contact_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Contact" ADD CONSTRAINT "Contact_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Contact" ADD CONSTRAINT "Contact_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Label" ADD CONSTRAINT "Label_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Label" ADD CONSTRAINT "Label_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "QuickReply" ADD CONSTRAINT "QuickReply_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "QuickReply" ADD CONSTRAINT "QuickReply_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "AiAgent" ADD CONSTRAINT "AiAgent_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "AiAgent" ADD CONSTRAINT "AiAgent_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Automation" ADD CONSTRAINT "Automation_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Automation" ADD CONSTRAINT "Automation_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Conversation" ADD CONSTRAINT "Conversation_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Conversation" ADD CONSTRAINT "Conversation_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Conversation" ADD CONSTRAINT "Conversation_contactId_fkey" FOREIGN KEY ("contactId") REFERENCES "Contact"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Conversation" ADD CONSTRAINT "Conversation_contactId_fkey" FOREIGN KEY ("contactId") REFERENCES "Contact"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Message" ADD CONSTRAINT "Message_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "Conversation"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Message" ADD CONSTRAINT "Message_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "Conversation"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "News" ADD CONSTRAINT "News_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "News" ADD CONSTRAINT "News_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Faq" ADD CONSTRAINT "Faq_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Faq" ADD CONSTRAINT "Faq_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Post" ADD CONSTRAINT "Post_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Post" ADD CONSTRAINT "Post_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "CmsPage" ADD CONSTRAINT "CmsPage_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "CmsPage" ADD CONSTRAINT "CmsPage_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "Blacklist" ADD CONSTRAINT "Blacklist_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "Blacklist" ADD CONSTRAINT "Blacklist_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "CouponRedemption" ADD CONSTRAINT "CouponRedemption_couponId_fkey" FOREIGN KEY ("couponId") REFERENCES "Coupon"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "CouponRedemption" ADD CONSTRAINT "CouponRedemption_couponId_fkey" FOREIGN KEY ("couponId") REFERENCES "Coupon"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "CouponRedemption" ADD CONSTRAINT "CouponRedemption_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "CouponRedemption" ADD CONSTRAINT "CouponRedemption_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-ALTER TABLE "LandingLead" ADD CONSTRAINT "LandingLead_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN ALTER TABLE "LandingLead" ADD CONSTRAINT "LandingLead_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- IDEMPOTENT UPGRADE (safe to re-run on an existing database — e.g. Neon)
+-- Adds tables/columns introduced after the first install. Existing data is kept.
+-- ─────────────────────────────────────────────────────────────────────────────
+ALTER TABLE "Service" ADD COLUMN IF NOT EXISTS "providerRate" DOUBLE PRECISION;
+ALTER TABLE "TicketMessage" ADD COLUMN IF NOT EXISTS "fileUrl" TEXT;
+ALTER TABLE "TicketMessage" ADD COLUMN IF NOT EXISTS "fileName" TEXT;
+ALTER TABLE "TicketMessage" ADD COLUMN IF NOT EXISTS "fileMime" TEXT;
+ALTER TABLE "TicketMessage" ADD COLUMN IF NOT EXISTS "fileSize" INTEGER;
+ALTER TABLE "CmsPage" ADD COLUMN IF NOT EXISTS "metaTitle" TEXT;
+ALTER TABLE "CmsPage" ADD COLUMN IF NOT EXISTS "metaDescription" TEXT;
+CREATE TABLE IF NOT EXISTS "Media" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "mime" TEXT NOT NULL,
+    "size" INTEGER NOT NULL,
+    "data" BYTEA NOT NULL,
+    "userId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Media_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "Media_id_key" ON "Media"("id");

@@ -695,7 +695,8 @@ function ImportServicesDialog({ open, data, onClose, onDone }: {
 type UnlockInfo = { unlocked: boolean; price: number }
 type ImportResult = { importedCategories: number; importedServices: number; skipped: number; capped: boolean }
 
-const round2 = (n: number) => Math.round(n * 100) / 100
+/** Round UP to 2 decimals — previews mirror the server (markup never loses money). */
+const round2 = (n: number) => Math.ceil(Math.round(n * 1e6) / 1e6 * 100) / 100
 
 function Providers({ data, refresh, onNavigate }: { data: CatalogData | null; refresh: () => void; onNavigate?: (k: string) => void }) {
   const app = useApp()

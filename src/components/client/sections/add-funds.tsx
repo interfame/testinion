@@ -417,7 +417,7 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
                 <div className="mt-1 flex justify-between"><span className="text-zinc-500 dark:text-zinc-400">{t('cfund.gatewayFee').replace('{n}', gateway && gateway.feePercent > 0 ? `(${gateway.feePercent}%)` : '')}</span><span className="font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{m(fee)}</span></div>
                 <div className="mt-2 flex justify-between border-t border-zinc-200 dark:border-zinc-800 pt-2">
                   <span className="font-bold text-zinc-700 dark:text-zinc-200">{t('cfund.youPay')}</span>
-                  <span className="text-lg font-extrabold tabular-nums text-[var(--brand)]">{m(total)}</span>
+                  <span className="text-lg font-extrabold tabular-nums text-zinc-900 dark:text-white">{m(total)}</span>
                 </div>
               </div>
 

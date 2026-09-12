@@ -111,6 +111,10 @@ export type TicketMsg = {
   senderName: string
   isStaff: boolean
   body: string
+  fileUrl?: string | null
+  fileName?: string | null
+  fileMime?: string | null
+  fileSize?: number | null
   createdAt: string
 }
 

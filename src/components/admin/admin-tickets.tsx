@@ -13,7 +13,9 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import { PanelPageHeader, StatusBadge, useEnumLabel } from '@/components/shared/panel-shell'
+import { toast } from '@/hooks/use-toast'
 import { useApp } from '@/components/shared/app-context'
+import { AttachmentPicker, MessageAttachment, uploadTicketFile, type UploadedFile } from '@/components/shared/ticket-attachment'
 import { api, mutate, useApi } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { formatDateTime } from '@/lib/format'
@@ -38,6 +40,8 @@ export function TicketsSection() {
   const [thread, setThread] = useState<AdminTicket | null>(null)
   const [reply, setReply] = useState('')
   const [sending, setSending] = useState(false)
+  const [attached, setAttached] = useState<UploadedFile | null>(null)
+  const [attaching, setAttaching] = useState(false)
 
   const list = useMemo(() => {
     const tickets = data?.tickets ?? []
@@ -53,23 +57,40 @@ export function TicketsSection() {
     setThread(t)
     setOpenTicket(t)
     setReply('')
+    setAttached(null)
   }
 
   const sendReply = async () => {
-    if (!openTicket || !reply.trim()) return
+    if (!openTicket || (!reply.trim() && !attached)) return
     setSending(true)
     const ok = await mutate(
-      () => api.post('/api/tickets/reply', { ticketId: openTicket.id, body: reply.trim() }),
+      () => api.post('/api/tickets/reply', {
+        ticketId: openTicket.id,
+        body: reply.trim(),
+        ...(attached ? { fileUrl: attached.url, fileName: attached.name, fileMime: attached.mime, fileSize: attached.size } : {}),
+      }),
       { success: t('admin.tk.toastReply') },
     )
     setSending(false)
     if (ok) {
       setReply('')
+      setAttached(null)
       const fresh = await api.get<{ tickets: AdminTicket[] }>('/api/admin/tickets')
       const updated = fresh.tickets.find((t) => t.id === openTicket.id) ?? null
       setThread(updated)
       setOpenTicket(updated)
       refresh()
+    }
+  }
+
+  const pickFile = async (f: File) => {
+    setAttaching(true)
+    try {
+      setAttached(await uploadTicketFile(f))
+    } catch (e) {
+      toast({ title: e instanceof Error ? e.message : 'Upload failed', variant: 'destructive' })
+    } finally {
+      setAttaching(false)
     }
   }
 
@@ -171,6 +192,7 @@ export function TicketsSection() {
                   style={m.isStaff ? { background: 'var(--brand)' } : undefined}>
                   <p className="mb-0.5 text-[10.5px] font-bold opacity-75">{m.isStaff ? m.senderName : thread?.user?.name} · {formatDateTime(m.createdAt, lang)}</p>
                   <p className="whitespace-pre-wrap">{m.body}</p>
+                  <MessageAttachment fileUrl={m.fileUrl} fileName={m.fileName} fileMime={m.fileMime} fileSize={m.fileSize} onBrand={m.isStaff} />
                 </div>
               </div>
             ))}
@@ -188,16 +210,21 @@ export function TicketsSection() {
               disabled={thread?.status === 'CLOSED'}
             />
             <div className="flex flex-wrap items-center justify-between gap-2">
-              {thread?.status === 'CLOSED' ? (
-                <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[12px] font-bold" onClick={() => thread && setStatus(thread, 'OPEN')}>
-                  <Unlock className="mr-1 h-3.5 w-3.5" /> {t('admin.tk.reopen')}
-                </Button>
-              ) : (
-                <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[12px] font-bold" onClick={() => thread && setStatus(thread, 'CLOSED')}>
-                  <Lock className="mr-1 h-3.5 w-3.5" /> {t('admin.tk.close')}
-                </Button>
-              )}
-              <Button size="sm" onClick={sendReply} disabled={sending || !reply.trim() || thread?.status === 'CLOSED'} className="h-8 rounded-full px-4 text-[12px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
+              <div className="flex items-center gap-2">
+                {thread?.status === 'CLOSED' ? (
+                  <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[12px] font-bold" onClick={() => thread && setStatus(thread, 'OPEN')}>
+                    <Unlock className="mr-1 h-3.5 w-3.5" /> {t('admin.tk.reopen')}
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[12px] font-bold" onClick={() => thread && setStatus(thread, 'CLOSED')}>
+                    <Lock className="mr-1 h-3.5 w-3.5" /> {t('admin.tk.close')}
+                  </Button>
+                )}
+                {thread?.status !== 'CLOSED' && (
+                  <AttachmentPicker file={attached} busy={attaching} onPick={pickFile} onClear={() => setAttached(null)} />
+                )}
+              </div>
+              <Button size="sm" onClick={sendReply} disabled={sending || (!reply.trim() && !attached) || thread?.status === 'CLOSED'} className="h-8 rounded-full px-4 text-[12px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
                 <Send className="mr-1 h-3.5 w-3.5" /> {t('admin.tk.send')}
               </Button>
             </div>

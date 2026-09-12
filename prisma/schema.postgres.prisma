@@ -292,7 +292,23 @@ model TicketMessage {
   senderName String
   isStaff    Boolean  @default(false)
   body       String
+  fileUrl    String? // /api/media/<id> — attachment stored on the platform
+  fileName   String?
+  fileMime   String?
+  fileSize   Int?
   createdAt  DateTime @default(now())
+}
+
+// Uploaded files (ticket attachments, blog covers, CMS assets). Bytes live in the DB
+// so the platform works on serverless (Vercel + Neon) with no external storage.
+model Media {
+  id        String   @id @default(cuid())
+  name      String
+  mime      String
+  size      Int
+  data      Bytes
+  userId    String?
+  createdAt DateTime @default(now())
 }
 
 // ─────────────────────────── CRM ───────────────────────────
@@ -440,6 +456,8 @@ model CmsPage {
   title     String
   slug      String
   body      String
+  metaTitle       String?
+  metaDescription String?
   status    String    @default("PUBLISHED")
   createdAt DateTime  @default(now())
 }

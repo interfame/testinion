@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
 
-const round2 = (n: number) => Math.round(n * 100) / 100
+/** Round UP to 2 decimals — sell prices stay round for clients while the markup never loses money. */
+const ceil2 = (n: number) => Math.ceil(Math.round(n * 1e6) / 1e6 * 100) / 100
 
 /**
  * POST /api/reseller/master-import
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
     const prices = new Map<string, number>()
     for (const [k, v] of Object.entries(rawPrices)) {
       const n = typeof v === 'number' ? v : parseFloat(String(v))
-      if (Number.isFinite(n) && n > 0) prices.set(k, round2(n))
+      if (Number.isFinite(n) && n > 0) prices.set(k, ceil2(n))
     }
 
     // Source: master catalog (platformId: null) — ACTIVE categories + their ACTIVE services
@@ -113,10 +114,10 @@ export async function POST(req: NextRequest) {
 
         const rate =
           mode === 'manual'
-            ? (prices.has(ms.id) ? prices.get(ms.id)! : round2(ms.rate))
-            : round2(ms.rate * (1 + percent / 100))
+            ? (prices.has(ms.id) ? prices.get(ms.id)! : ceil2(ms.rate))
+            : ceil2(ms.rate * (1 + percent / 100))
         // Clamp: never create a free service by accident (min $0.01)
-        const finalRate = Math.max(0.01, round2(rate))
+        const finalRate = Math.max(0.01, ceil2(rate))
 
         toCreate.push({
           platformId: platform.id,

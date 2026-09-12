@@ -47,6 +47,21 @@ type LandingCopy = {
   statsResellers?: string
   statsServices?: string
   statsUptime?: string
+  // Landing Studio — section-by-section overrides (all optional)
+  stepsTitle?: string
+  steps?: { n?: string; title?: string; desc?: string }[]
+  featuresEyebrow?: string
+  featuresTitle?: string
+  featuresSub?: string
+  pricingEyebrow?: string
+  pricingTitle?: string
+  pricingSub?: string
+  faqEyebrow?: string
+  faqTitle?: string
+  faqSub?: string
+  ctaTitle?: string
+  ctaSub?: string
+  ctaButton?: string
 }
 
 // Language-neutral stat values (labels come from the dict); admin copy can override
@@ -266,9 +281,30 @@ export default function Landing() {
     heroSub: t('landing.hero.sub'),
     ctaPrimary: t('landing.cta.primary'),
     ctaSecondary: t('landing.cta.secondary'),
+    featuresEyebrow: t('landing.nav.features'),
+    featuresTitle: t('landing.features.title'),
+    featuresSub: t('landing.features.sub'),
+    stepsTitle: t('landing.how.title'),
+    pricingEyebrow: t('landing.nav.pricing'),
+    pricingTitle: t('landing.pricing.title'),
+    pricingSub: t('landing.pricing.sub'),
+    faqEyebrow: 'FAQ',
+    faqTitle: t('landing.faqTitle'),
+    ctaSub: t('landing.cta.finalSub'),
+    ctaButton: t('landing.cta.buy'),
     ...DEFAULT_STATS,
     ...parseCopy(ps?.landing_copy),
   }), [ps?.landing_copy, t])
+
+  // Steps with optional per-index overrides from the Landing Studio (fallback to i18n defaults)
+  const stepsRendered = useMemo(() => STEPS.map((st, i) => {
+    const o = copy.steps?.[i]
+    return {
+      n: o?.n?.trim() || st.n,
+      title: o?.title?.trim() || t(st.titleKey),
+      desc: o?.desc?.trim() || t(st.descKey),
+    }
+  }), [copy.steps, t])
 
   const loggedIn = !!app.user?.id
   const [demoOpen, setDemoOpen] = useState(false)
@@ -583,7 +619,7 @@ export default function Landing() {
         {/* ============================ FEATURES ============================= */}
         <section id="features" className="scroll-mt-20 py-16 sm:py-24" aria-label={t('landing.nav.features')}>
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
-            <SectionHead eyebrow={t('landing.nav.features')} title={t('landing.features.title')} sub={t('landing.features.sub')} />
+            <SectionHead eyebrow={copy.featuresEyebrow} title={copy.featuresTitle ?? ''} sub={copy.featuresSub} />
             <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
               {FEATURES.map((f, i) => (
                 <FadeUp key={f.titleKey} delay={(i % 4) * 0.06}>
@@ -700,7 +736,7 @@ export default function Landing() {
         {/* ============================== PRICING ============================= */}
         <section id="pricing" className="scroll-mt-20 py-16 sm:py-24" aria-label={t('landing.nav.pricing')}>
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
-            <SectionHead eyebrow={t('landing.nav.pricing')} title={t('landing.pricing.title')} sub={t('landing.pricing.sub')} />
+            <SectionHead eyebrow={copy.pricingEyebrow} title={copy.pricingTitle ?? ''} sub={copy.pricingSub} />
             <div className="grid items-stretch gap-5 lg:grid-cols-3 lg:gap-6">
               {PLANS.map((plan, i) => (
                 <FadeUp key={plan.name} delay={i * 0.08} className="h-full">
@@ -781,20 +817,20 @@ export default function Landing() {
         {/* ============================ HOW IT WORKS ========================== */}
         <section className="border-y border-zinc-900/[0.06] bg-white dark:bg-zinc-900 py-16 sm:py-24" aria-label={t('landing.how.eyebrow')}>
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
-            <SectionHead eyebrow={t('landing.how.eyebrow')} title={t('landing.how.title')} />
+            <SectionHead eyebrow={t('landing.how.eyebrow')} title={copy.stepsTitle ?? ''} />
             <div className="relative mx-auto max-w-4xl">
               <div className="absolute left-[16%] right-[16%] top-7 hidden border-t-2 border-dashed border-zinc-300 dark:border-zinc-700 md:block" aria-hidden />
               <div className="grid gap-10 md:grid-cols-3 md:gap-6">
-                {STEPS.map((s, i) => (
-                  <FadeUp key={s.n} delay={i * 0.1} className="relative text-center">
+                {stepsRendered.map((st, i) => (
+                  <FadeUp key={st.n + i} delay={i * 0.1} className="relative text-center">
                     <span
                       className="relative z-10 mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl text-base font-black text-[var(--on-brand)] shadow-[0_10px_30px_-8px_var(--brand-glow)]"
                       style={{ background: 'var(--brand)' }}
                     >
-                      {s.n}
+                      {st.n}
                     </span>
-                    <h3 className="text-lg font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">{t(s.titleKey)}</h3>
-                    <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{t(s.descKey)}</p>
+                    <h3 className="text-lg font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">{st.title}</h3>
+                    <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{st.desc}</p>
                   </FadeUp>
                 ))}
               </div>
@@ -805,7 +841,7 @@ export default function Landing() {
         {/* ================================ FAQ =============================== */}
         <section id="faq" className="scroll-mt-20 py-16 sm:py-24" aria-label={t('landing.a11y.faqSection')}>
           <div className="mx-auto max-w-3xl px-4 sm:px-6">
-            <SectionHead eyebrow="FAQ" title={t('landing.faqTitle')} />
+            <SectionHead eyebrow={copy.faqEyebrow} title={copy.faqTitle ?? ''} sub={copy.faqSub} />
             <FadeUp>
               <Accordion type="single" collapsible className="space-y-3">
                 {FAQ_LIST.map((f, i) => (
@@ -846,14 +882,20 @@ export default function Landing() {
           <div className="relative mx-auto max-w-3xl px-4 sm:px-6">
             <FadeUp>
               <p className="mb-4 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--brand-2)] sm:text-xs">
-                {t('landing.badge')}
+                {copy.badge}
               </p>
               <h2 className="font-black tracking-tight text-4xl sm:text-5xl lg:text-6xl">
-                {t('landing.cta.finalPre')}{' '}
-                <span className="bg-gradient-to-r from-[var(--brand)] to-[var(--brand-2)] bg-clip-text text-transparent">{t('landing.cta.finalPost')}</span>?
+                {copy.ctaTitle ? (
+                  copy.ctaTitle
+                ) : (
+                  <>
+                    {t('landing.cta.finalPre')}{' '}
+                    <span className="bg-gradient-to-r from-[var(--brand)] to-[var(--brand-2)] bg-clip-text text-transparent">{t('landing.cta.finalPost')}</span>?
+                  </>
+                )}
               </h2>
               <p className="mx-auto mt-5 max-w-xl text-base text-white/60 sm:text-lg">
-                {t('landing.cta.finalSub').replace('{brand}', brand)}
+                {(copy.ctaSub || '').replace('{brand}', brand)}
               </p>
               <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
                 <Button
@@ -861,7 +903,7 @@ export default function Landing() {
                   className="h-12 rounded-full px-8 text-sm font-black text-[var(--on-brand)] transition-transform hover:scale-[1.04]"
                   style={{ background: 'var(--brand)', boxShadow: '0 14px 44px -10px var(--brand-glow)' }}
                 >
-                  {t('landing.cta.buy')} <ArrowRight className="ml-2 h-4 w-4" />
+                  {copy.ctaButton} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 <a
                   href="#pricing"

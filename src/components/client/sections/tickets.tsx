@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useClientData } from '../client-data'
+import { AttachmentPicker, MessageAttachment, uploadTicketFile, type UploadedFile } from '@/components/shared/ticket-attachment'
+import { toast } from '@/hooks/use-toast'
 import { Card, EmptyState, LoadingRows, Pill, BrandButton } from '../bits'
 import type { TicketDetailData, TicketItem } from '../types'
 
@@ -212,6 +214,8 @@ function TicketThread({ id, onBack }: { id: string; onBack: () => void }) {
   const [reply, setReply] = useState('')
   const [sending, setSending] = useState(false)
   const [toggling, setToggling] = useState(false)
+  const [attached, setAttached] = useState<UploadedFile | null>(null)
+  const [attaching, setAttaching] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const ticket = data?.ticket
@@ -222,16 +226,32 @@ function TicketThread({ id, onBack }: { id: string; onBack: () => void }) {
   }, [messages.length])
 
   async function send() {
-    if (!reply.trim()) return
+    if (!reply.trim() && !attached) return
     setSending(true)
     const ok = await mutate(
-      () => api.post('/api/tickets/reply', { ticketId: id, body: reply.trim() }),
+      () => api.post('/api/tickets/reply', {
+        ticketId: id,
+        body: reply.trim(),
+        ...(attached ? { fileUrl: attached.url, fileName: attached.name, fileMime: attached.mime, fileSize: attached.size } : {}),
+      }),
       { silent: true },
     )
     setSending(false)
     if (ok) {
       setReply('')
+      setAttached(null)
       refresh()
+    }
+  }
+
+  async function pickFile(f: File) {
+    setAttaching(true)
+    try {
+      setAttached(await uploadTicketFile(f))
+    } catch (e) {
+      toast({ title: e instanceof Error ? e.message : 'Upload failed', variant: 'destructive' })
+    } finally {
+      setAttaching(false)
     }
   }
 
@@ -304,6 +324,7 @@ function TicketThread({ id, onBack }: { id: string; onBack: () => void }) {
                       style={msg.isStaff ? undefined : { background: 'var(--brand)' }}
                     >
                       {msg.body}
+                      <MessageAttachment fileUrl={msg.fileUrl} fileName={msg.fileName} fileMime={msg.fileMime} fileSize={msg.fileSize} onBrand={!msg.isStaff} />
                     </div>
                   </div>
                 </div>
@@ -322,9 +343,12 @@ function TicketThread({ id, onBack }: { id: string; onBack: () => void }) {
                     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send()
                   }}
                 />
-                <div className="mt-2.5 flex items-center justify-between">
-                  <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{t('ctix.tip')}</p>
-                  <BrandButton className="min-h-[40px]" onClick={send} disabled={sending || !reply.trim()}>
+                <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <AttachmentPicker file={attached} busy={attaching} onPick={pickFile} onClear={() => setAttached(null)} />
+                    <p className="hidden text-[11px] text-zinc-400 dark:text-zinc-500 sm:block">{t('ctix.tip')}</p>
+                  </div>
+                  <BrandButton className="min-h-[40px]" onClick={send} disabled={sending || (!reply.trim() && !attached)}>
                     {sending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Send className="mr-1.5 h-4 w-4" />}
                     {t('ctix.send')}
                   </BrandButton>
