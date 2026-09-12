@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { api, mutate } from '@/lib/api'
+import { ceil2 } from '@/lib/pricing'
 import { useClientData } from '../client-data'
 import { useMoney, Card, CardHead, Pill, BrandButton } from '../bits'
 import type { CatalogCategory, CatalogService, NewOrderResult } from '../types'
@@ -70,7 +71,7 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
   const qty = rawQty === '' ? String(service?.min ?? '') : rawQty
   const qtyNum = parseInt(qty) || 0
 
-  const charge = service ? Math.round((qtyNum / 1000) * service.rate * 100) / 100 : 0
+  const charge = service ? ceil2((qtyNum / 1000) * service.rate) : 0
   const balanceAfter = Math.round((user.balance - charge) * 100) / 100
   const insufficient = charge > 0 && user.balance < charge
   const canSubmit =
@@ -480,12 +481,12 @@ function MassOrderPanel({ services, onDone, onGoFunds }: {
       if (!qty || qty <= 0) return { raw: line, link, qty: 0, charge: 0, error: t('cord.massInvalidQty'), service: svc }
       if (qty < svc.min) return { raw: line, link, qty, charge: 0, error: t('cord.massMin').replace('{n}', svc.min.toLocaleString()), service: svc }
       if (qty > svc.max) return { raw: line, link, qty, charge: 0, error: t('cord.massMax').replace('{n}', svc.max.toLocaleString()), service: svc }
-      return { raw: line, link, qty, charge: Math.round((qty / 1000) * svc.rate * 100) / 100, service: svc }
+      return { raw: line, link, qty, charge: ceil2((qty / 1000) * svc.rate), service: svc }
     }).filter((l) => l.raw !== '' || l.error)
   }, [text, byId, t])
 
   const valid = parsed.filter((l) => !l.error && l.service)
-  const totalCharge = Math.round(valid.reduce((s, l) => s + l.charge, 0) * 100) / 100
+  const totalCharge = ceil2(valid.reduce((s, l) => s + l.charge, 0))
   const insufficient = totalCharge > user.balance
 
   async function submitMass() {

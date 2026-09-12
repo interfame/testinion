@@ -1,4 +1,5 @@
 import { db } from '@/lib/db'
+import { ceil2 } from '@/lib/pricing'
 
 export type PlaceOrderInput = {
   serviceId: string
@@ -33,7 +34,8 @@ export async function placeOrder(
   if (qty > service.max) return { ok: false, error: `Maximum quantity is ${service.max.toLocaleString()}` }
   if (service.type === 'CUSTOM_COMMENTS' && !input.comments?.trim()) return { ok: false, error: 'Enter the comments, one per line' }
 
-  const charge = Math.round((qty / 1000) * service.rate * 100) / 100
+  // round UP to the cent — the platform never loses margin on fractional cents
+  const charge = ceil2((qty / 1000) * service.rate)
   const fresh = await db.user.findUnique({ where: { id: user.id }, select: { balance: true } })
   if ((fresh?.balance ?? 0) < charge) return { ok: false, error: 'Insufficient balance — add funds first' }
 

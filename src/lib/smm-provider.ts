@@ -5,6 +5,7 @@
 
 import { SOCIAL_ICONS } from './social'
 import { db } from '@/lib/db'
+import { ceil2 } from './pricing'
 
 export type ProviderResult<T> = { ok: true; data: T } | { ok: false; error: string }
 
@@ -46,7 +47,7 @@ function round2(n: number): number {
 
 export { round2 }
 
-/** 4-decimal precision — provider rates can be tiny (e.g. 0.0102 /1k). */
+/** 4-decimal precision — kept for display/verification of raw provider rates. */
 function round4(n: number): number {
   return Math.round(n * 10000) / 10000
 }
@@ -393,7 +394,7 @@ export async function runProviderSync(opts: {
       categoryId: catId,
       name: name.slice(0, 200),
       type: mapServiceType(e?.type),
-      rate: round4(providerRate * (1 + markup / 100)),
+      rate: ceil2(providerRate * (1 + markup / 100)),
       cost: providerRate,
       min: parseProviderInt(e?.min, 1),
       max: parseProviderInt(e?.max, 100000),

@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
 import { maskConfig, parseConfig } from '@/lib/gateways'
+import { ceil2 } from '@/lib/pricing'
 import {
   baseUrlFromReq,
   createDeposit,
@@ -56,8 +57,9 @@ export async function POST(req: NextRequest) {
     if (!gateway || !gateway.enabled) return jsonError('Payment method unavailable')
 
     // Totals are ALWAYS recomputed server-side; the client value is ignored.
-    const fee = Math.round(amount * (gateway.feePercent / 100) * 100) / 100
-    const total = Math.round((amount + fee) * 100) / 100
+    // Round UP — the platform never absorbs fractional-cent losses.
+    const fee = ceil2(amount * (gateway.feePercent / 100))
+    const total = ceil2(amount + fee)
 
     const deposit = await createDeposit({
       platformId,

@@ -75,10 +75,15 @@ export type PanelShellProps = {
   serviceSearch?: ServiceSearch
 }
 
-function MobileMenuButton() {
+function MobileMenuButton(props: React.ComponentProps<typeof Button>) {
   const { t } = useI18n()
   return (
-    <Button variant="outline" size="icon" className="fixed left-3 top-2.5 z-50 h-9 w-9 lg:hidden" aria-label={t('shell.openMenu')}>
+    <Button
+      variant="outline" size="icon"
+      className="fixed left-3 top-2.5 z-50 h-9 w-9 lg:hidden"
+      aria-label={t('shell.openMenu')}
+      {...props}
+    >
       <Menu className="h-4 w-4" />
     </Button>
   )

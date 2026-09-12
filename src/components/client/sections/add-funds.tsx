@@ -11,6 +11,7 @@ import { useApp } from '@/components/shared/app-context'
 import { useI18n } from '@/lib/i18n'
 import { PanelPageHeader } from '@/components/shared/panel-shell'
 import { api, mutate } from '@/lib/api'
+import { ceil2 } from '@/lib/pricing'
 import { toast } from '@/hooks/use-toast'
 import { formatDateTime } from '@/lib/format'
 import {
@@ -89,7 +90,7 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
   )
   const amountNum = Math.round(parseFloat(amount) * 100) / 100 || 0
   const fee = gateway ? Math.round(amountNum * (gateway.feePercent / 100) * 100) / 100 : 0
-  const total = Math.round((amountNum + fee) * 100) / 100
+  const total = ceil2(amountNum + fee)
 
   // Re-check a deposit with the provider (PayPal order / MP payment / crypto invoice).
   async function verifyDeposit(depositId: string) {
