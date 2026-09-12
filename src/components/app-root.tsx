@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { X, Rocket, LogIn, UserPlus, Loader2, Crown, Store, ShoppingCart, Zap, ShieldCheck } from 'lucide-react'
+import { X, Rocket, LogIn, UserPlus, Loader2, ShieldCheck } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,7 +36,7 @@ const FALLBACK_CURRENCIES: CurrencyInfo[] = [
   { code: 'EUR', name: 'Euro', symbol: '€', rate: 0.92 },
 ]
 
-export default function AppRoot() {
+export default function AppRoot({ initialStorefront }: { initialStorefront?: string | null } = {}) {
   const [booted, setBooted] = useState(false)
   const [user, setUser] = useState<AppUser | null>(null)
   const [view, setView] = useState<View>('landing')
@@ -90,10 +90,14 @@ export default function AppRoot() {
         if (saved && ['en', 'es', 'pt'].includes(saved)) setLangState(saved as Lang)
       } catch { /* ignore */ }
       // Deep link: /?storefront=slug → public white-label storefront
+      // Subdomain mode: middleware rewrites slug.domain.com → /?storefront=slug
       try {
         const sf = new URLSearchParams(window.location.search).get('storefront')
         if (sf) {
           setViewStorefrontSlug(sf.toLowerCase())
+          setView('storefront')
+        } else if (initialStorefront) {
+          setViewStorefrontSlug(initialStorefront.toLowerCase())
           setView('storefront')
         }
       } catch { /* ignore */ }
@@ -464,38 +468,6 @@ export default function AppRoot() {
                   {authBusy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {authOpen === 'login' ? translate(lang, 'auth.login') : translate(lang, 'auth.createAccount')}
                 </Button>
-                {authOpen === 'login' && (
-                  <div className="rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/60 p-3">
-                    <p className="mb-2 flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                      <Zap className="h-3 w-3" style={{ color: 'var(--brand)' }} />
-                      {translate(lang, 'auth.demoClick')}
-                    </p>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {([
-                        { role: 'admin@growthrush.io', pass: 'admin123', icon: Crown, label: 'Admin', cls: 'hover:border-amber-400 dark:hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30' },
-                        { role: 'reseller@growthrush.io', pass: 'reseller123', icon: Store, label: 'Reseller', cls: 'hover:border-violet-400 dark:hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-950/30' },
-                        { role: 'client@growthrush.io', pass: 'client123', icon: ShoppingCart, label: 'Client', cls: 'hover:border-teal-400 dark:hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-950/30' },
-                      ] as const).map((d) => {
-                        const Icon = d.icon
-                        return (
-                          <button
-                            key={d.role}
-                            type="button"
-                            disabled={authBusy}
-                            onClick={() => {
-                              toast({ title: translate(lang, 'auth.demoFilled') })
-                              handleAuth('login', { email: d.role, password: d.pass })
-                            }}
-                            className={`flex flex-col items-center gap-1 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-2.5 transition disabled:opacity-50 ${d.cls}`}
-                          >
-                            <Icon className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />
-                            <span className="text-[11px] font-extrabold text-zinc-600 dark:text-zinc-300">{d.label}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
                 <p className="text-center text-[12px] text-zinc-500 dark:text-zinc-400">
                   {authOpen === 'login' ? translate(lang, 'auth.noAccount') : translate(lang, 'auth.haveAccount')}
                   <button

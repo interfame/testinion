@@ -3,11 +3,12 @@
 // Super Admin — Upstream providers: API endpoints, markup and balances.
 
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, KeyRound, Link2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, KeyRound, Link2, PlugZap, RefreshCw, AlertTriangle, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
@@ -19,21 +20,41 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { PanelPageHeader, StatusBadge } from '@/components/shared/panel-shell'
+import { toast } from '@/hooks/use-toast'
 import { api, mutate, useApi } from '@/lib/api'
 import { apiDel } from './admin-ui'
-import { AdminCard, EmptyState, FieldLabel, Money, TableShell, type AdminProvider } from './admin-ui'
+import { AdminCard, EmptyState, FieldLabel, Money, TableShell, type AdminCategory, type AdminProvider } from './admin-ui'
 
 type ProvForm = { name: string; apiUrl: string; apiKey: string; markup: string; status: string; balance: string }
 const EMPTY: ProvForm = { name: '', apiUrl: 'https://', apiKey: '', markup: '20', status: 'ACTIVE', balance: '0' }
 
+type TestResult = { ok: boolean; balance?: number; currency?: string; error?: string }
+
 export function ProvidersSection() {
   const { data, loading, refresh } = useApi<{ providers: AdminProvider[] }>('/api/admin/providers')
+  const { data: catData } = useApi<{ categories: AdminCategory[] }>('/api/admin/categories')
   const [editing, setEditing] = useState<AdminProvider | 'new' | null>(null)
   const [form, setForm] = useState<ProvForm>(EMPTY)
   const [deleting, setDeleting] = useState<AdminProvider | null>(null)
 
+  // test connection
+  const [testing, setTesting] = useState<'form' | string | null>(null)
+  const [formTest, setFormTest] = useState<TestResult | null>(null)
+
+  // sync dialog
+  const [syncing, setSyncing] = useState<AdminProvider | null>(null)
+  const [syncMarkup, setSyncMarkup] = useState('20')
+  const [syncCategory, setSyncCategory] = useState('auto')
+  const [syncBusy, setSyncBusy] = useState(false)
+
+  // reset catalog
+  const [resetOpen, setResetOpen] = useState(false)
+  const [purgeOrders, setPurgeOrders] = useState(false)
+  const [resetBusy, setResetBusy] = useState(false)
+
   const openEdit = (p: AdminProvider) => {
     setForm({ name: p.name, apiUrl: p.apiUrl, apiKey: p.apiKey ?? '', markup: String(p.markup), status: p.status, balance: String(p.balance) })
+    setFormTest(null)
     setEditing(p)
   }
 
@@ -60,13 +81,71 @@ export function ProvidersSection() {
     if (ok) { setDeleting(null); refresh() }
   }
 
+  /** Test with stored credentials (provider row) or with current form values (unsaved) */
+  const testConnection = async (target: { id: string } | { apiUrl: string; apiKey: string }, tag: 'form' | string) => {
+    setTesting(tag)
+    try {
+      const res = await api.post<TestResult>('/api/admin/providers/test', target)
+      const msg = `Balance: $${res.balance} ${res.currency}`
+      if (tag === 'form') setFormTest({ ok: true, balance: res.balance, currency: res.currency })
+      else toast({ title: `${(tag && data?.providers.find((p) => p.id === tag)?.name) || 'Provider'} — ${msg}` })
+    } catch (e) {
+      const error = e instanceof Error ? e.message : 'Connection failed'
+      if (tag === 'form') setFormTest({ ok: false, error })
+      else toast({ title: error, variant: 'destructive' })
+    } finally {
+      setTesting(null)
+    }
+  }
+
+  const runSync = async () => {
+    if (!syncing) return
+    setSyncBusy(true)
+    try {
+      const res = await api.post<{ created: number; updated: number; skipped: number; categoriesCreated: number; capped: boolean }>(
+        '/api/admin/providers/sync',
+        { id: syncing.id, markup: parseFloat(syncMarkup) || 0, ...(syncCategory !== 'auto' ? { categoryId: syncCategory } : {}) },
+      )
+      toast({
+        title: `Synced: ${res.created} created, ${res.updated} updated, ${res.skipped} skipped (${res.categoriesCreated} categories created)`,
+        description: res.capped ? 'Provider returned more than 2000 services — import was capped.' : undefined,
+      })
+      setSyncing(null)
+      refresh()
+    } catch (e) {
+      toast({ title: e instanceof Error ? e.message : 'Sync failed', variant: 'destructive' })
+    } finally {
+      setSyncBusy(false)
+    }
+  }
+
+  const runReset = async () => {
+    setResetBusy(true)
+    try {
+      const res = await api.post<{ deleted: number; kept: number; ordersDeleted: number }>('/api/admin/catalog/reset', {
+        mode: 'services',
+        purgeOrders,
+      })
+      toast({
+        title: `Catalog reset: ${res.deleted} services deleted${res.kept ? `, ${res.kept} kept (have orders)` : ''}${purgeOrders ? `, ${res.ordersDeleted} orders purged` : ''}`,
+      })
+      setResetOpen(false)
+      setPurgeOrders(false)
+      refresh()
+    } catch (e) {
+      toast({ title: e instanceof Error ? e.message : 'Reset failed', variant: 'destructive' })
+    } finally {
+      setResetBusy(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <PanelPageHeader
         title="Providers"
         description="Upstream SMM APIs that feed your master catalog. Markup is added on top of provider prices."
         actions={
-          <Button onClick={() => { setForm(EMPTY); setEditing('new') }} className="h-9 rounded-full px-4 text-[13px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
+          <Button onClick={() => { setForm(EMPTY); setFormTest(null); setEditing('new') }} className="h-9 rounded-full px-4 text-[13px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
             <Plus className="mr-1 h-4 w-4" /> New provider
           </Button>
         }
@@ -113,6 +192,24 @@ export function ProvidersSection() {
                   <td className="px-3 py-3"><StatusBadge status={p.status} /></td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="outline" size="sm"
+                        className="h-8 rounded-full px-2.5 text-[11px] font-bold"
+                        disabled={testing === p.id}
+                        onClick={() => testConnection({ id: p.id }, p.id)}
+                        aria-label={`Test connection ${p.name}`}
+                      >
+                        {testing === p.id ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <PlugZap className="mr-1 h-3 w-3" />}
+                        Test
+                      </Button>
+                      <Button
+                        variant="outline" size="sm"
+                        className="h-8 rounded-full px-2.5 text-[11px] font-bold"
+                        onClick={() => { setSyncing(p); setSyncMarkup(String(p.markup)); setSyncCategory('auto') }}
+                        aria-label={`Sync services ${p.name}`}
+                      >
+                        <Download className="mr-1 h-3 w-3" /> Sync
+                      </Button>
                       <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => openEdit(p)} aria-label={`Edit ${p.name}`}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
@@ -153,11 +250,67 @@ export function ProvidersSection() {
                 </Select>
               </div>
             </div>
+            <div className="rounded-xl border border-dashed p-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[12px] font-semibold text-zinc-700 dark:text-zinc-200">Connection</span>
+                <Button
+                  variant="outline" size="sm" className="h-7 text-[11px] font-bold"
+                  disabled={testing === 'form' || !form.apiUrl.trim()}
+                  onClick={() => testConnection({ apiUrl: form.apiUrl.trim(), apiKey: form.apiKey.trim() }, 'form')}
+                >
+                  {testing === 'form' ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <PlugZap className="mr-1 h-3 w-3" />}
+                  Test connection
+                </Button>
+              </div>
+              {formTest && (
+                <p className={`mt-2 text-[12px] font-semibold ${formTest.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                  {formTest.ok ? `✓ Connected — balance $${formTest.balance} ${formTest.currency}` : `✕ ${formTest.error}`}
+                </p>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
             <Button onClick={save} disabled={!form.name.trim() || !form.apiUrl.trim()} style={{ background: 'var(--brand)' }}>
               {editing === 'new' ? 'Create' : 'Save changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sync services dialog */}
+      <Dialog open={!!syncing} onOpenChange={(o) => !o && setSyncing(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sync services — {syncing?.name}</DialogTitle>
+            <DialogDescription>Import or refresh this provider&apos;s full service list.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <FieldLabel hint="applied over provider prices">Markup %</FieldLabel>
+              <Input type="number" step="0.1" value={syncMarkup} onChange={(e) => setSyncMarkup(e.target.value)} />
+            </div>
+            <div>
+              <FieldLabel hint="optional">Category</FieldLabel>
+              <Select value={syncCategory} onValueChange={setSyncCategory}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent className="max-h-64">
+                  <SelectItem value="auto">Auto — one category per API category</SelectItem>
+                  {catData?.categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="rounded-xl border border-dashed p-3 text-[12px] text-zinc-500 dark:text-zinc-400">
+              Prices = provider price + {syncMarkup || 0}%. Services update automatically by ID; existing keep their IDs.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSyncing(null)}>Cancel</Button>
+            <Button onClick={runSync} disabled={syncBusy} style={{ background: 'var(--brand)' }} className="text-[var(--on-brand)]">
+              {syncBusy ? <RefreshCw className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
+              {syncBusy ? 'Syncing…' : 'Sync now'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -173,6 +326,56 @@ export function ProvidersSection() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction className="bg-rose-600 hover:bg-rose-700" onClick={doDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Danger zone — reset catalog */}
+      <AdminCard
+        title="Danger zone"
+        description="Irreversible catalog operations. Use with care."
+        className="border-rose-200 dark:border-rose-900/60"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-100">Reset catalog</p>
+            <p className="mt-0.5 max-w-lg text-[12px] text-zinc-500 dark:text-zinc-400">
+              Deletes <b>all services</b> from the master catalog <b>and every reseller&apos;s catalog</b>, returning the platform to zero. Categories are kept.
+            </p>
+          </div>
+          <Button variant="outline" className="shrink-0 border-rose-300 font-bold text-rose-600 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-400 dark:hover:bg-rose-950/40" onClick={() => setResetOpen(true)}>
+            <AlertTriangle className="mr-1.5 h-4 w-4" /> Reset catalog
+          </Button>
+        </div>
+      </AdminCard>
+
+      <AlertDialog open={resetOpen} onOpenChange={(o) => !o && setResetOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset the entire catalog?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes ALL services — the master catalog and every reseller&apos;s imported services. Your catalog starts from zero; services only come back via provider sync or imports. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <label className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-dashed p-3" onClick={() => setPurgeOrders((v) => !v)}>
+            <Checkbox checked={purgeOrders} onCheckedChange={(v) => setPurgeOrders(v === true)} aria-label="Also delete all orders" />
+            <span className="text-[13px] font-semibold text-zinc-700 dark:text-zinc-200">
+              Also delete all orders <span className="font-normal text-zinc-500 dark:text-zinc-400">(purge order history)</span>
+            </span>
+          </label>
+          {!purgeOrders && (
+            <p className="text-[12px] text-zinc-500 dark:text-zinc-400">Services linked to existing orders will be kept and reported.</p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 hover:bg-rose-700"
+              disabled={resetBusy}
+              onClick={(e) => { e.preventDefault(); runReset() }}
+            >
+              {resetBusy ? <RefreshCw className="mr-1.5 h-4 w-4 animate-spin" /> : <AlertTriangle className="mr-1.5 h-4 w-4" />}
+              {resetBusy ? 'Resetting…' : purgeOrders ? 'Delete everything' : 'Reset catalog'}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

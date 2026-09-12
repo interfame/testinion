@@ -137,7 +137,7 @@ export function GatewaysSection() {
     <div className="space-y-4">
       <PanelPageHeader
         title="Payment gateways"
-        description="Methods users see when adding funds. Configure provider API credentials here; resellers configure their own in their panel."
+        description="Methods users see when adding funds. Configure provider API credentials here; resellers configure their own in their panel. Gateways with credentials run real provider checkout (redirect + webhook auto-credit); those without work as manual review deposits."
         actions={
           <Button onClick={() => { setForm(EMPTY); setEditing('new') }} className="h-9 rounded-full px-4 text-[13px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
             <Plus className="mr-1 h-4 w-4" /> New gateway

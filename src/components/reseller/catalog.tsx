@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import {
   Plus, Percent, RefreshCw, Search, Pencil, Trash2, Copy, FolderTree, Layers, Server,
   Lock, ArrowUpDown, CheckCircle2, XCircle, Rocket, ArrowRight, ListOrdered, Unlock,
-  Wallet, ArrowDownToLine,
+  Wallet, ArrowDownToLine, PlugZap, Download,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
@@ -703,6 +703,45 @@ function Providers({ data, refresh, onNavigate }: { data: CatalogData | null; re
   const [unlocking, setUnlocking] = useState(false)
   const [needFunds, setNeedFunds] = useState(false)
 
+  // ── Provider test + sync (external SMM API v2) ──
+  const [testId, setTestId] = useState<string | null>(null)
+  const [syncProv, setSyncProv] = useState<Provider | null>(null)
+  const [syncMarkup, setSyncMarkup] = useState('20')
+  const [syncBusy, setSyncBusy] = useState(false)
+
+  const testProvider = async (p: Provider) => {
+    setTestId(p.id)
+    try {
+      const res = await api.post<{ balance: number; currency: string }>('/api/reseller/providers/test', { id: p.id })
+      toast({ title: `${p.name} — balance $${res.balance} ${res.currency}` })
+    } catch (e) {
+      toast({ title: e instanceof Error ? e.message : 'Connection failed', variant: 'destructive' })
+    } finally {
+      setTestId(null)
+    }
+  }
+
+  const runSync = async () => {
+    if (!syncProv) return
+    setSyncBusy(true)
+    try {
+      const res = await api.post<{ created: number; updated: number; skipped: number; categoriesCreated: number; capped: boolean }>(
+        '/api/reseller/providers/sync',
+        { id: syncProv.id, markup: parseFloat(syncMarkup) || 0 },
+      )
+      toast({
+        title: `Synced: ${res.created} created, ${res.updated} updated, ${res.skipped} skipped (${res.categoriesCreated} categories created) ✅`,
+        description: res.capped ? 'Provider returned more than 2000 services — import was capped.' : undefined,
+      })
+      setSyncProv(null)
+      refreshProviders()
+    } catch (e) {
+      toast({ title: e instanceof Error ? e.message : 'Sync failed', variant: 'destructive' })
+    } finally {
+      setSyncBusy(false)
+    }
+  }
+
   // ── Import wizard state machine (0 = closed, 1..3 = steps) ──
   const [wizardStep, setWizardStep] = useState<0 | 1 | 2 | 3>(0)
   const [selectedCats, setSelectedCats] = useState<Set<string>>(new Set())
@@ -939,21 +978,38 @@ function Providers({ data, refresh, onNavigate }: { data: CatalogData | null; re
                   </div>
                   <p className="mt-3 text-sm font-extrabold">{p.name}</p>
                   <p className="truncate text-[12px] text-zinc-400 dark:text-zinc-500">{p.apiUrl}</p>
-                  <div className="mt-3 flex items-center justify-between">
+                  <div className="mt-3 flex items-center justify-between gap-2">
                     <span className="text-[12px] text-zinc-500 dark:text-zinc-400">{p._count?.services ?? 0} linked services</span>
-                    <div className="flex gap-1 opacity-0 transition group-hover:opacity-100">
-                      <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setEdit(p)}>
-                        <Pencil className="mr-1 h-3 w-3" /> Edit
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline" size="sm" className="h-7 text-[11px] font-bold"
+                        disabled={testId === p.id}
+                        onClick={() => testProvider(p)}
+                        aria-label={`Test connection ${p.name}`}
+                      >
+                        {testId === p.id ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <PlugZap className="mr-1 h-3 w-3" />} Test
                       </Button>
                       <Button
-                        variant="outline" size="sm" className="h-7 text-[11px] text-rose-600 dark:text-rose-400"
-                        onClick={async () => {
-                          const res = await mutate(() => fetch('/api/reseller/providers', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: p.id }) }).then((r) => r.json()), { success: 'Provider removed' })
-                          if (res) refreshProviders()
-                        }}
+                        variant="outline" size="sm" className="h-7 text-[11px] font-bold"
+                        onClick={() => { setSyncProv(p); setSyncMarkup(String(p.markup)) }}
+                        aria-label={`Sync services ${p.name}`}
                       >
-                        <Trash2 className="mr-1 h-3 w-3" />
+                        <Download className="mr-1 h-3 w-3" /> Sync
                       </Button>
+                      <div className="flex gap-1 opacity-0 transition group-hover:opacity-100">
+                        <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => setEdit(p)}>
+                          <Pencil className="mr-1 h-3 w-3" /> Edit
+                        </Button>
+                        <Button
+                          variant="outline" size="sm" className="h-7 text-[11px] text-rose-600 dark:text-rose-400"
+                          onClick={async () => {
+                            const res = await mutate(() => fetch('/api/reseller/providers', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: p.id }) }).then((r) => r.json()), { success: 'Provider removed' })
+                            if (res) refreshProviders()
+                          }}
+                        >
+                          <Trash2 className="mr-1 h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1198,6 +1254,28 @@ function Providers({ data, refresh, onNavigate }: { data: CatalogData | null; re
               {edit ? 'Save changes' : 'Connect provider'}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Sync external provider services (compact) ── */}
+      <Dialog open={!!syncProv} onOpenChange={(o) => { if (!o) setSyncProv(null) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sync services — {syncProv?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Markup % over provider prices</Label>
+              <Input type="number" step="0.1" value={syncMarkup} onChange={(e) => setSyncMarkup(e.target.value)} />
+            </div>
+            <p className="rounded-xl border border-dashed p-3 text-[12px] text-zinc-500 dark:text-zinc-400">
+              Prices = provider price + {syncMarkup || 0}%. Services update automatically by ID; existing keep their IDs.
+            </p>
+          </div>
+          <Button className="w-full font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }} disabled={syncBusy} onClick={runSync}>
+            {syncBusy ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+            {syncBusy ? 'Syncing…' : 'Sync now'}
+          </Button>
         </DialogContent>
       </Dialog>
     </>

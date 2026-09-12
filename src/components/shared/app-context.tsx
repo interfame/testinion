@@ -76,6 +76,8 @@ export type PublicSettings = {
   landing_theme: string
   landing_copy: string
   subdomain_base: string
+  /** Domain this instance is actually installed on, detected from the request */
+  app_host: string
   conversion_mode: string
   /** Referral program config (Admin → Settings → Referral program) */
   ref_enabled: string

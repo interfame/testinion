@@ -20,7 +20,8 @@ import { AdminCard, AdminDate, EmptyState, Money, TableShell, type AdminPlatform
 export function PlatformsSection() {
   const { t } = useI18n()
   const { publicSettings } = useApp()
-  const base = publicSettings?.subdomain_base || 'growthrush.io'
+  // Real domain the platform is installed on (detected from the request server-side)
+  const base = publicSettings?.app_host || publicSettings?.subdomain_base || 'growthrush.io'
   const { data, loading, refresh } = useApi<{ platforms: AdminPlatform[] }>('/api/admin/platforms')
 
   const act = async (p: AdminPlatform, action: 'suspend' | 'activate' | 'approve_domain' | 'reject_domain') => {

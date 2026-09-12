@@ -3,14 +3,25 @@ import { jsonOk, handle } from '@/lib/auth'
 import { getReferralConfig } from '@/lib/referral'
 import { sanitizeConfig, type LandingConfig } from '@/lib/landing-config'
 
-/** Public storefront data by slug: branding + catalog + FAQs + blog teaser + stats
+/** Public storefront data by slug OR custom domain: branding + catalog + FAQs + blog teaser + stats
  *  (for storefront previews — no auth needed). */
 export async function GET(req: Request) {
   return handle(async () => {
-    const slug = new URL(req.url).searchParams.get('slug')
-    if (!slug) return jsonOk({ platform: null })
-    const platform = await db.platform.findUnique({
-      where: { slug },
+    const raw = (new URL(req.url).searchParams.get('slug') ?? '').toLowerCase().trim()
+    if (!raw) return jsonOk({ platform: null })
+    // "slug" accepts either the platform slug, a full custom domain or a subdomain host
+    const hostish = raw.replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '')
+    const domainCandidate = hostish.includes('.') ? hostish : null
+    const slugCandidate = domainCandidate ? domainCandidate.split('.')[0] : hostish
+    const platform = await db.platform.findFirst({
+      where: {
+        status: 'ACTIVE',
+        OR: [
+          { slug: slugCandidate },
+          { slug: hostish },
+          ...(domainCandidate ? [{ customDomain: domainCandidate }] : []),
+        ],
+      },
       select: {
         id: true, name: true, slug: true, tagline: true, heroTitle: true, heroSubtitle: true,
         heroCta: true, theme: true, accent: true, logoUrl: true, status: true,

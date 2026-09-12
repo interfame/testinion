@@ -47,11 +47,24 @@ async function engineConfig() {
   return { enabled: map.engine_enabled !== '0', speed, partialRate }
 }
 
-export async function POST(req: NextRequest) {
+/**
+ * Auth helper — accepts the CRON_SECRET via (any of):
+ *   · `x-cron-secret` header              → generic cron workers (cron-job.org, cPanel, VPS…)
+ *   · `Authorization: Bearer ...` header  → Vercel Cron
+ *   · `?secret=...` query param           → cron services that cannot send headers
+ */
+function authorize(req: NextRequest): boolean {
   const expected = process.env.CRON_SECRET || 'gr-cron-dev-secret'
   const headerSecret = req.headers.get('x-cron-secret') ?? ''
   const bearer = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim() ?? ''
-  if (headerSecret !== expected && bearer !== expected) return jsonError('Unauthorized', 401)
+  const querySecret = new URL(req.url).searchParams.get('secret') ?? ''
+  return headerSecret === expected || bearer === expected || querySecret === expected
+}
+
+// cron-job.org (and many UI-only cron services) send a GET when you press
+// "Test run" — accept GET as well as POST so the endpoint never 405s.
+async function runTick(req: NextRequest) {
+  if (!authorize(req)) return jsonError('Unauthorized', 401)
 
   const cfg = await engineConfig()
   if (!cfg.enabled) return jsonOk({ disabled: true, at: new Date().toISOString() })
@@ -201,6 +214,14 @@ export async function POST(req: NextRequest) {
   }
 
   return jsonOk({ started: started.count, advanced, completed, partial, chatter, speed: cfg.speed, at: new Date().toISOString() })
+}
+
+export async function POST(req: NextRequest) {
+  return runTick(req)
+}
+
+export async function GET(req: NextRequest) {
+  return runTick(req)
 }
 
 // ───────────────────────────── CRM live chatter ─────────────────────────────

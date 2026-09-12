@@ -41,7 +41,10 @@ export function readToken(token: string): string | null {
   try {
     const [b64, sig] = token.split('.')
     const payload = Buffer.from(b64, 'base64url').toString()
-    if (sign(payload) !== sig) return null
+    const expected = Buffer.from(sign(payload))
+    const received = Buffer.from(sig ?? '')
+    // timing-safe comparison — never leak signature validity through latency
+    if (expected.length !== received.length || !timingSafeEqual(expected, received)) return null
     const [userId, ts] = payload.split('.')
     // 30 day expiry
     if (Date.now() - parseInt(ts) > 30 * 24 * 3600 * 1000) return null
@@ -58,6 +61,8 @@ export async function setSessionCookie(userId: string) {
     sameSite: 'lax',
     path: '/',
     maxAge: 30 * 24 * 3600,
+    // HTTPS-only in production deployments (Vercel etc.); relaxed on local dev
+    secure: process.env.NODE_ENV === 'production',
   })
 }
 
@@ -115,7 +120,8 @@ export async function requireRole(roles: string[]): Promise<SafeUser> {
   return user
 }
 
-// Wrap a handler catching thrown NextResponse (from require* helpers)
+// Wrap a handler catching thrown NextResponse (from require* helpers).
+// Internal errors never leak stack/Prisma details to the client.
 export async function handle(fn: () => Promise<Response>): Promise<Response> {
   try {
     return await fn()
@@ -123,7 +129,7 @@ export async function handle(fn: () => Promise<Response>): Promise<Response> {
     if (e instanceof Response) return e
     const msg = e instanceof Error ? e.message : 'Internal error'
     console.error('[api]', msg)
-    return jsonError(msg, 500)
+    return jsonError(process.env.NODE_ENV === 'production' ? 'Internal error — please try again' : msg, 500)
   }
 }
 

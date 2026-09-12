@@ -44,6 +44,7 @@ export function StorefrontPreview({ themeOverride }: { themeOverride?: string })
   const platform = app.user.platform
   const { data, loading } = useApi<Storefront>(platform ? `/api/storefront?slug=${platform.slug}` : null, [platform?.slug])
   const money = (v: number) => formatMoney(v, app.currencyOf(app.user.currency), app.lang as Lang)
+  const baseHost = app.publicSettings?.app_host || app.publicSettings?.subdomain_base || 'growthrush.io'
 
   if (loading) return <Skeleton className="h-[560px] w-full rounded-2xl" />
   if (!data?.platform) return <p className="rounded-2xl border border-dashed p-10 text-center text-sm text-zinc-400 dark:text-zinc-500">Storefront unavailable.</p>
@@ -63,7 +64,7 @@ export function StorefrontPreview({ themeOverride }: { themeOverride?: string })
         <div className="ml-2 flex flex-1 items-center gap-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800/60 px-3 py-1">
           <ShieldCheck className="h-3 w-3 text-emerald-500" />
           <code className="truncate text-[11px] text-zinc-500 dark:text-zinc-400">
-            {sf.domainType === 'CUSTOM' && sf.customDomain ? sf.customDomain : `${sf.slug}.growthrush.io`}
+            {sf.domainType === 'CUSTOM' && sf.customDomain ? sf.customDomain : `${sf.slug}.${baseHost}`}
           </code>
         </div>
         <Badge variant="outline" className="text-[10px] font-bold" style={{ color: theme.accent, borderColor: theme.accent }}>
@@ -406,12 +407,18 @@ function Domains() {
 
   const verify = async () => {
     setVerifying(true)
-    await new Promise((r) => setTimeout(r, 1500))
-    const res = await mutate(() => api.post('/api/reseller/domains'), { success: 'DNS verified — SSL active 🔒' })
+    const res = await mutate(() => api.post<{ ok: boolean; status?: string; message?: string; error?: string }>('/api/reseller/domains'), {
+      success: 'DNS verified — your domain is connected 🔒',
+    })
     setVerifying(false)
-    if (res) app.refresh()
+    if (res) {
+      if (res.ok === false) toast({ title: res.error || 'Verification failed', variant: 'destructive' })
+      else if (res.status && res.status !== 'ACTIVE' && res.message) toast({ title: res.message, variant: 'destructive' })
+      app.refresh()
+    }
   }
 
+  const baseHost = app.publicSettings?.app_host || app.publicSettings?.subdomain_base || 'growthrush.io'
   const money = (v: number) => formatMoney(v, app.currencyOf(app.user.currency), app.lang as Lang)
 
   return (
@@ -425,17 +432,18 @@ function Domains() {
           <div className="mt-3 flex items-center gap-2.5 rounded-xl border bg-zinc-50 dark:bg-zinc-900/60 p-4">
             <Globe className="h-5 w-5 text-zinc-400 dark:text-zinc-500" />
             <code className="min-w-0 flex-1 truncate text-sm font-extrabold">
-              {platform?.domainType === 'CUSTOM' && platform.customDomain ? platform.customDomain : `${platform?.slug}.growthrush.io`}
+              {platform?.domainType === 'CUSTOM' && platform.customDomain ? platform.customDomain : `${platform?.slug}.${baseHost}`}
             </code>
             <StatusBadge status={platform?.domainType === 'CUSTOM' ? platform.domainStatus : 'ACTIVE'} />
           </div>
-          {platform?.domainType === 'CUSTOM' && platform.domainStatus === 'PENDING' && (
+          {platform?.domainType === 'CUSTOM' && platform.customDomain && (
             <div className="mt-3 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40 p-3.5">
-              <p className="text-[12px] font-bold text-amber-800">DNS pending — add these records at your registrar:</p>
+              <p className="text-[12px] font-bold text-amber-800">{platform.domainStatus === 'PENDING' ? 'DNS pending — add these records at your registrar:' : 'DNS records expected at your registrar:'}</p>
               <div className="mt-2 space-y-1.5 font-mono text-[11px] text-amber-900">
-                <p className="rounded bg-white/70 dark:bg-zinc-900/70 px-2.5 py-1.5">A&nbsp;&nbsp;&nbsp;@ → 76.76.21.21</p>
-                <p className="rounded bg-white/70 dark:bg-zinc-900/70 px-2.5 py-1.5">CNAME www → custom.growthrush.io</p>
+                <p className="rounded bg-white/70 dark:bg-zinc-900/70 px-2.5 py-1.5">A&nbsp;&nbsp;&nbsp;@ (root) → 76.76.21.21</p>
+                <p className="rounded bg-white/70 dark:bg-zinc-900/70 px-2.5 py-1.5">CNAME www → cname.vercel-dns.com</p>
               </div>
+              <p className="mt-2 text-[11px] font-semibold text-amber-700">Also add the domain inside your Vercel project (Settings → Domains) so SSL is issued.</p>
               <Button size="sm" variant="outline" className="mt-2.5 font-bold" disabled={verifying} onClick={verify}>
                 {verifying ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />}
                 {verifying ? 'Checking DNS…' : 'Verify DNS'}
@@ -446,7 +454,7 @@ function Domains() {
             <ShieldCheck className="h-4 w-4 text-emerald-500" /> Free SSL certificate on every domain.
             <button
               className="ml-auto flex items-center gap-1 font-bold text-zinc-600 dark:text-zinc-300 hover:text-zinc-800 dark:hover:text-zinc-100"
-              onClick={() => { navigator.clipboard.writeText(platform?.domainType === 'CUSTOM' && platform.customDomain ? platform.customDomain : `${platform?.slug}.growthrush.io`); toast({ title: 'Copied!' }) }}
+              onClick={() => { navigator.clipboard.writeText(platform?.domainType === 'CUSTOM' && platform.customDomain ? platform.customDomain : `${platform?.slug}.${baseHost}`); toast({ title: 'Copied!' }) }}
             >
               <Copy className="h-3 w-3" /> Copy
             </button>
@@ -465,7 +473,7 @@ function Domains() {
                 <p className="text-[13px] font-extrabold">Subdomain</p>
                 <Badge className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400">FREE</Badge>
               </div>
-              <p className="mt-1 text-[11px] text-zinc-400 dark:text-zinc-500">{subdomain || 'yourbrand'}.growthrush.io</p>
+              <p className="mt-1 text-[11px] text-zinc-400 dark:text-zinc-500">{subdomain || 'yourbrand'}.{baseHost}</p>
             </button>
             <button
               onClick={() => setMode('CUSTOM')}
@@ -484,7 +492,7 @@ function Domains() {
               <Label className="text-[12px] font-bold">Subdomain</Label>
               <div className="mt-1.5 flex">
                 <Input value={subdomain} onChange={(e) => checkSlug(e.target.value)} className="rounded-r-none" />
-                <span className="flex items-center rounded-r-md border border-l-0 border-input bg-zinc-50 dark:bg-zinc-900/60 px-3 text-sm text-zinc-500 dark:text-zinc-400">.growthrush.io</span>
+                <span className="flex items-center rounded-r-md border border-l-0 border-input bg-zinc-50 dark:bg-zinc-900/60 px-3 text-sm text-zinc-500 dark:text-zinc-400">.{baseHost}</span>
               </div>
               {slugState === 'ok' && subdomain !== platform?.slug && <p className="mt-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">Available!</p>}
               {slugState === 'taken' && <p className="mt-1 text-[11px] font-bold text-rose-600 dark:text-rose-400">Taken — try another.</p>}

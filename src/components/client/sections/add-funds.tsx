@@ -2,10 +2,10 @@
 
 // Client portal — Add Funds (gateways, deposits, saved cards)
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Bitcoin, CheckCircle2, CircleDollarSign, CreditCard, Clock3, Landmark,
-  Loader2, Lock, Plus, ShieldCheck, Sparkles, Ticket, Trash2, Wallet, XCircle,
+  Loader2, Lock, Plus, RefreshCw, ShieldCheck, Sparkles, Ticket, Trash2, Wallet, XCircle,
 } from 'lucide-react'
 import { useApp } from '@/components/shared/app-context'
 import { useI18n } from '@/lib/i18n'
@@ -37,6 +37,17 @@ const GATEWAY_ICON: Record<string, typeof CreditCard> = {
   MANUAL: CircleDollarSign,
 }
 
+// POST /api/funds result (real payment engine): either a gateway redirect
+// (PayPal/MercadoPago checkout or crypto invoice), manual instructions for
+// review, or the legacy instant shapes kept for compatibility.
+type FundPost = FundPostResult & {
+  redirect?: string
+  manual?: boolean
+  instructions?: string
+  crypto?: boolean
+}
+type VerifyPost = { status: 'paid' | 'pending' | 'failed' | 'unknown'; credited?: boolean; balance?: number }
+
 export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void }) {
   const { user, setUser, refresh } = useApp()
   const { t } = useI18n()
@@ -46,8 +57,12 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
   const [gatewayId, setGatewayId] = useState<string>('')
   const [amount, setAmount] = useState<string>('')
   const [submitting, setSubmitting] = useState(false)
+  const [redirecting, setRedirecting] = useState(false)
   const [awaitApproval, setAwaitApproval] = useState(false)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
+  const [manualInfo, setManualInfo] = useState<{ depositId: string; method: string; instructions: string } | null>(null)
+  const [cryptoPendingId, setCryptoPendingId] = useState<string | null>(null)
+  const [checking, setChecking] = useState(false)
 
   // Saved methods state
   const [addOpen, setAddOpen] = useState(false)
@@ -76,6 +91,35 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
   const fee = gateway ? Math.round(amountNum * (gateway.feePercent / 100) * 100) / 100 : 0
   const total = Math.round((amountNum + fee) * 100) / 100
 
+  // Re-check a deposit with the provider (PayPal order / MP payment / crypto invoice).
+  async function verifyDeposit(depositId: string) {
+    setChecking(true)
+    const res = await mutate(
+      () => api.post<VerifyPost>('/api/funds/verify', { depositId }),
+      { silent: true },
+    )
+    setChecking(false)
+    if (!res) {
+      toast({ title: 'Could not verify the payment yet — try again in a moment', variant: 'destructive' })
+      return
+    }
+    if (res.status === 'paid') {
+      setSuccessMsg('Payment confirmed — balance credited.')
+      setAwaitApproval(false)
+      setCryptoPendingId(null)
+      if (typeof res.balance === 'number') setUser({ ...user, balance: res.balance })
+      toast({ title: 'Payment confirmed — balance credited ✅' })
+    } else if (res.status === 'failed') {
+      toast({ title: 'The payment was not completed', variant: 'destructive' })
+    } else {
+      setAwaitApproval(true)
+      toast({ title: 'Payment still processing… it is credited automatically once confirmed.' })
+    }
+    reloadFunds()
+    refresh()
+    onRefresh?.()
+  }
+
   async function submitDeposit() {
     if (!gateway || amountNum <= 0) {
       toast({ title: 'Enter a valid amount and method', variant: 'destructive' })
@@ -83,12 +127,32 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
     }
     setSubmitting(true)
     const res = await mutate(
-      () => api.post<FundPostResult>('/api/funds', { gatewayId: gateway.id, amount: amountNum }),
+      () => api.post<FundPost>('/api/funds', { gatewayId: gateway.id, amount: amountNum }),
       { silent: true },
     )
     setSubmitting(false)
     if (!res) return
-    if (res.pending) {
+    setAmount('')
+    if (res.redirect) {
+      // Real gateway checkout — full navigation away from the panel.
+      setRedirecting(true)
+      toast({ title: res.message ?? 'Redirecting to checkout…' })
+      window.location.href = res.redirect
+      return
+    }
+    setManualInfo(null)
+    setCryptoPendingId(null)
+    if (res.manual) {
+      // Manual method: show the payment instructions; credited after approval.
+      setManualInfo({
+        depositId: res.deposit?.id ?? '',
+        method: res.deposit?.method ?? gateway.name,
+        instructions: res.instructions ?? '',
+      })
+      setAwaitApproval(true)
+      setSuccessMsg(null)
+      toast({ title: res.message ?? 'Deposit created — follow the instructions' })
+    } else if (res.pending) {
       setAwaitApproval(true)
       setSuccessMsg(null)
       toast({ title: res.message ?? 'Deposit submitted — awaiting approval' })
@@ -98,11 +162,52 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
       if (typeof res.balance === 'number') setUser({ ...user, balance: res.balance })
       toast({ title: res.message ?? 'Funds credited!' })
     }
-    setAmount('')
+    if (res.crypto && res.deposit?.id) setCryptoPendingId(res.deposit.id)
     reloadFunds()
     refresh()
     onRefresh?.()
   }
+
+  // Auto-poll the newest pending crypto deposit (invoice paid check) every 12s, max 10 tries.
+  useEffect(() => {
+    if (!cryptoPendingId) return
+    let tries = 0
+    const id = setInterval(async () => {
+      tries += 1
+      if (tries > 10) {
+        setCryptoPendingId(null)
+        return
+      }
+      const res = await api
+        .post<VerifyPost>('/api/funds/verify', { depositId: cryptoPendingId })
+        .catch(() => null)
+      if (!res || res.status !== 'paid') return
+      setCryptoPendingId(null)
+      setSuccessMsg('Payment confirmed — balance credited.')
+      setAwaitApproval(false)
+      if (typeof res.balance === 'number') setUser({ ...user, balance: res.balance })
+      toast({ title: 'Payment confirmed — balance credited ✅' })
+      reloadFunds()
+      refresh()
+      onRefresh?.()
+    }, 12_000)
+    return () => clearInterval(id)
+  }, [cryptoPendingId])
+
+  // Coming back from a gateway checkout (?funds=<depositId> | cancel) — verify + clean URL.
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search)
+    const f = sp.get('funds')
+    if (!f) return
+    window.history.replaceState(null, '', window.location.pathname)
+    if (f === 'cancel') {
+      toast({ title: 'Payment canceled — no charge was made' })
+      return
+    }
+    // Deferred so the mount render is not blocked (and set-state lands after paint).
+    const timer = setTimeout(() => void verifyDeposit(f), 0)
+    return () => clearTimeout(timer)
+  }, [])
 
   async function redeemPromo() {
     if (!promo.trim()) return
@@ -187,6 +292,36 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
                 </p>
               </div>
             </div>
+          )}
+          {manualInfo && (
+            <Card>
+              <CardHead icon={Landmark} title="How to complete your deposit" sub={manualInfo.method} />
+              <pre className="whitespace-pre-wrap rounded-xl border border-zinc-200 bg-zinc-50 p-4 font-sans text-[12.5px] leading-relaxed text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-200">
+                {manualInfo.instructions}
+              </pre>
+              <p className="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-amber-600 dark:text-amber-400">
+                <Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                Pending approval — the funds are credited to your wallet once the deposit is reviewed.
+              </p>
+            </Card>
+          )}
+          {cryptoPendingId && (
+            <Card>
+              <CardHead icon={Bitcoin} title="Crypto payment pending" sub="Checking the payment automatically — usually confirmed in minutes" />
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 min-h-[32px] gap-1 rounded-full text-[12px] font-bold"
+                  disabled={checking}
+                  onClick={() => verifyDeposit(cryptoPendingId)}
+                >
+                  {checking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                  Check status now
+                </Button>
+                <span className="text-[11px] text-zinc-400 dark:text-zinc-500">Deposit #{cryptoPendingId.slice(-6)}</span>
+              </div>
+            </Card>
           )}
           {successMsg && (
             <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/40 p-4">
@@ -288,17 +423,17 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
 
               <BrandButton
                 className="min-h-[44px] w-full text-[14px]"
-                disabled={!gateway || amountNum <= 0 || submitting}
+                disabled={!gateway || amountNum <= 0 || submitting || redirecting}
                 onClick={submitDeposit}
               >
-                {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
-                {submitting ? 'Processing…' : `Deposit ${m(total)}`}
+                {submitting || redirecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
+                {redirecting ? 'Opening checkout…' : submitting ? 'Processing…' : `Deposit ${m(total)}`}
               </BrandButton>
               <p className="flex items-start gap-1.5 text-[11.5px] leading-relaxed text-zinc-400 dark:text-zinc-500">
                 <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 {isPlatformUser
                   ? 'Deposits on this storefront are reviewed and credited after approval.'
-                  : 'Sandbox gateway — funds are credited instantly for demo purposes.'}
+                  : 'Real gateway checkout — payments are verified by the provider; manual methods are credited after approval.'}
               </p>
             </div>
           </Card>

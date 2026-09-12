@@ -4,12 +4,20 @@ import { setSessionCookie, hashPassword, generateApiKey, jsonError, jsonOk, hand
 import { notify } from '@/lib/notify'
 import { getReferralConfig, usdLabel } from '@/lib/referral'
 import { sendTemplateEmail, generateVerifyCode, brandNameOf } from '@/lib/email'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
   return handle(async () => {
+    // Abuse guard: max 5 signups per hour per IP (welcome-credit farming)
+    const ipLimit = rateLimit(`register:ip:${clientIp(req)}`, 5, 60 * 60_000)
+    if (!ipLimit.allowed) {
+      return jsonError(`Too many signups from this network — try again in ${Math.ceil(ipLimit.retryAfterSec / 60)} minute(s)`, 429)
+    }
+
     const { name, email, password, currency, language, storefrontSlug, ref } = await req.json()
     if (!name || !email || !password) return jsonError('All fields are required')
     if (typeof password !== 'string' || password.length < 6) return jsonError('Password must be at least 6 characters')
+    if (typeof name !== 'string' || name.trim().length < 2 || name.length > 60) return jsonError('Enter your full name')
     const cleanEmail = String(email).toLowerCase().trim()
     const exists = await db.user.findUnique({ where: { email: cleanEmail } })
     if (exists) return jsonError('An account with this email already exists')

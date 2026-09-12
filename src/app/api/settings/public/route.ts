@@ -2,8 +2,12 @@ import { db } from '@/lib/db'
 import { jsonOk, handle } from '@/lib/auth'
 
 /** Public branding + landing content + theme + currencies (no auth needed). */
-export async function GET() {
+export async function GET(req: Request) {
   return handle(async () => {
+    // The domain this instance is actually installed on — the UI uses it to
+    // build real storefront URLs (https://slug.<app_host>) instead of guessing.
+    const hostHeader = req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? ''
+    const appHost = hostHeader.split(':')[0].split(',')[0].trim().toLowerCase()
     const settings = await db.setting.findMany()
     const map: Record<string, string> = {}
     for (const s of settings) map[s.key] = s.value
@@ -22,6 +26,8 @@ export async function GET() {
         landing_theme: map.landing_theme || 'rush',
         landing_copy: map.landing_copy || '{}',
         subdomain_base: map.subdomain_base || 'growthrush.io',
+        // Real install domain detected from the request (falls back to the DB setting)
+        app_host: appHost || map.subdomain_base || 'growthrush.io',
         conversion_mode: map.conversion_mode || 'manual',
         ref_enabled: map.ref_enabled ?? '1',
         ref_bonus_amount: map.ref_bonus_amount ?? '1',

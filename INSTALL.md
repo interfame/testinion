@@ -39,7 +39,7 @@ No necesitas escribir ni un comando: todo se hace desde el navegador.
 
 **3. Primer acceso:** entra con `admin@growthrush.io` / `admin123` (**¡cambia la contraseña en Cuenta → Seguridad!**). El registro público está abierto (la verificación por email se activa desde Admin → Email y notificaciones).
 
-**4. Cron del motor de pedidos:** en [cron-job.org](https://cron-job.org) (gratis) crea un job cada 1 minuto → `POST https://tu-app.vercel.app/api/cron/tick` con el header `x-cron-secret: TU_CRON_SECRET`.
+**4. Cron del motor de pedidos:** en [cron-job.org](https://cron-job.org) (gratis) crea un job cada 1 minuto → `https://tu-app.vercel.app/api/cron/tick?secret=TU_CRON_SECRET`. El endpoint acepta GET y POST (el botón "Test run" de cron-job.org ya no da 405); también valen el header `x-cron-secret` o `Authorization: Bearer`.
 
 > Si prefieres la terminal o un hosting propio (cPanel/VPS), sigue los pasos de abajo.
 
@@ -170,7 +170,10 @@ node index.ts        # o: bun index.ts
 
 5. **Cron del motor de pedidos** (importante):
    - **Opción gratis (recomendada):** job cada 1 minuto en [cron-job.org](https://cron-job.org) →
-     `POST https://tu-proyecto.vercel.app/api/cron/tick` con header `x-cron-secret: TU_CRON_SECRET`.
+     `https://tu-proyecto.vercel.app/api/cron/tick?secret=TU_CRON_SECRET`.
+     El endpoint acepta **GET y POST** (el botón "Test run" de cron-job.org ya no da 405) y
+     autoriza con el header `x-cron-secret: TU_CRON_SECRET`, con `Authorization: Bearer` o con
+     el query param `?secret=` — usa el que prefieras.
    - **Opción Vercel Cron (plan Pro):** añade `vercel.json` a la raíz:
 
      ```json
@@ -187,6 +190,41 @@ node index.ts        # o: bun index.ts
 
 7. **Tras el primer deploy:** entra con `admin@growthrush.io` / `admin123` (¡cambia la contraseña!) y
    revisa **Admin → Ajustes** (motor de pedidos, verificación de email, pasarelas).
+
+### Conectar un proveedor API real e importar servicios en masa (con tu %)
+
+1. **Admin → Proveedores** (revendedor: **Mis proveedores**, requiere el add-on External API) →
+   **Añadir proveedor** con la API URL + API key del proveedor (cualquier API estándar SMM Panel v2:
+   JustAnotherPanel, N1Panel, etc.) → **Test connection** muestra su saldo.
+2. **Sync** en la tarjeta del proveedor → elige tu margen % (o una categoría fija) → todos sus
+   servicios se importan con precio = precio del proveedor + tu %. Repite **Sync** cuando quieras
+   refrescar precios/disponibilidad — se emparejan por ID, nunca se duplican.
+3. **Catálogo en cero:** la plataforma se entrega sin servicios. Si quieres vaciarlo de nuevo:
+   **Admin → Proveedores → Danger zone → Reset catalog** (con o sin borrar historial de pedidos).
+   También puedes pegar en el SQL Editor de Neon: `DELETE FROM "Order"; DELETE FROM "Service";`
+
+### Subdominios y dominios propios (tiendas white-label)
+
+- La app **detecta automáticamente el dominio donde está instalada** — las URLs de tienda que ves
+  en los paneles (ej. `https://slug.tu-dominio.com`) son siempre reales.
+- **Subdominios** (`cliente.tu-dominio.com`): añade en tu registrador un DNS wildcard
+  `* A 76.76.21.21` (o `* CNAME cname.vercel-dns.com`) y añade el dominio wildcard en
+  **Vercel → Settings → Domains** (requiere plan Pro de Vercel). Después funciona solo.
+- **Dominio propio** (cliente/revendedor): se introduce en **Website → Domains**; se muestran los
+  registros DNS (A `76.76.21.21` / CNAME `cname.vercel-dns.com`) y el botón **Verify DNS** hace una
+  comprobación DNS-over-HTTPS REAL y pasa el estado a ACTIVE cuando resuelve. El dominio también
+  debe añadirse en el proyecto de Vercel para emitir el SSL.
+- Cualquier tienda siempre es accesible vía `https://tu-dominio/?storefront=slug` aunque falte el DNS.
+
+### Pasarelas de pago reales
+
+- **Admin → Pasarelas** (y cada revendedor en **Finanzas → Métodos de pago**): configura las
+  credenciales reales (PayPal REST, MercadoPago, Cryptomus, CoinPayments…).
+- Con credenciales configuradas el depósito va al checkout real del proveedor (redirección +
+  webhook firmado). **Nunca se acredita dinero automáticamente.**
+- Sin credenciales (Pix, Payoneer o cualquier método manual): el depósito queda **PENDIENTE con
+  instrucciones** y se acredita solo al aprobarlo en la cola de depósitos (Admin o dueño de la
+  plataforma). Los webhooks verifican firma HMAC/md5 sobre el cuerpo exacto.
 
 ---
 
@@ -210,12 +248,25 @@ Everything from the browser:
 
 1. **Neon.tech** → create account/project → open the **SQL Editor**:
    - Open **`prisma/postgres-schema.sql`** on GitHub → **“Copy raw file”** → paste into the SQL Editor → **Run** (creates the 35 tables).
-   - Same with **`prisma/seed.postgres.sql`** → paste → **Run** (demo catalog: 172 services, plans, gateways, demo users, FAQs, blog, CRM, settings).
+   - Same with **`prisma/seed.postgres.sql`** → paste → **Run** (demo users, plans, gateways, categories, FAQs, blog, CRM, settings — the SERVICE catalog is intentionally empty: import real services from your provider API in Admin → Providers → **Sync**).
 2. **Vercel** → [vercel.com/new](https://vercel.com/new) → **Import** the repo → in **Build and Output Settings** override the Build Command with:
    `npx prisma generate --schema prisma/schema.postgres.prisma && next build`
    → add env vars `DATABASE_URL` (Neon **pooled** string) and `CRON_SECRET` (long random string) → **Deploy**.
 3. Log in with `admin@growthrush.io` / `admin123` (change the password immediately).
-4. Order-engine cron: [cron-job.org](https://cron-job.org) every 1 min → `POST https://your-app.vercel.app/api/cron/tick` with header `x-cron-secret: YOUR_SECRET`.
+4. Order-engine cron: [cron-job.org](https://cron-job.org) every 1 min → `https://your-app.vercel.app/api/cron/tick?secret=YOUR_SECRET` (GET or POST; header `x-cron-secret` also accepted — the built-in “Test run” button works).
+
+### Connect a real provider API & mass-import services (with your %)
+
+1. **Admin → Providers** (resellers: **My Providers**, needs the External API add-on) → **Add provider** with the provider's API URL + API key (any standard SMM Panel API v2: JustAnotherPanel, N1Panel, etc.) → **Test connection** shows their balance.
+2. **Sync** on the provider card → choose your markup % (or a fixed category) → all their services are imported with prices = provider price + your %. Re-run **Sync** anytime to refresh prices/availability — services are matched by ID, never duplicated.
+3. **Start from zero:** the catalog ships empty. To wipe it again (Admin → Providers → Danger zone → **Reset catalog**; optional purge of order history).
+
+### Subdomains & custom domains (white-label stores)
+
+- The app **auto-detects the domain it is installed on** — store URLs shown in the panels (e.g. `https://slug.your-domain.com`) are always real.
+- **Subdomains** (`client.your-domain.com`): add a wildcard DNS record `* A 76.76.21.21` (or `* CNAME cname.vercel-dns.com`) at your registrar and add the wildcard domain in **Vercel → Settings → Domains**. Works automatically after that.
+- **Custom domains** (reseller buys/plans): the reseller enters the domain in **Website → Domains**; DNS instructions (A `76.76.21.21` / CNAME `cname.vercel-dns.com`) are displayed and the **Verify DNS** button performs a REAL DNS-over-HTTPS lookup and flips the status to ACTIVE when records resolve. The domain must also be added to the Vercel project for SSL.
+- Any store is always reachable via `https://your-domain/?storefront=slug` even without DNS.
 
 ### Requirements
 
@@ -245,9 +296,9 @@ Everything from the browser:
    - **Build Command:** `npx prisma generate --schema prisma/schema.postgres.prisma && next build`
    - **Env vars:** `DATABASE_URL` (Neon pooled string) · `CRON_SECRET` (long random string) ·
      optional `NEXT_PUBLIC_REALTIME_URL`.
-4. **Cron:** free option — cron-job.org every 1 min → `POST https://your-app.vercel.app/api/cron/tick`
-   with header `x-cron-secret`; or Vercel Cron (Pro) via `vercel.json` (`Authorization: Bearer` is
-   accepted automatically). Vercel Hobby plan limits built-in crons to once per day.
+4. **Cron:** free option — cron-job.org every 1 min → `https://your-app.vercel.app/api/cron/tick?secret=YOUR_SECRET`
+   (GET or POST; header `x-cron-secret` and `Authorization: Bearer` also accepted). Vercel Hobby
+   limits built-in crons to once per day.
 5. **Realtime (optional):** host `mini-services/realtime` on Railway/Render and set
    `NEXT_PUBLIC_REALTIME_URL`. Without it, the UI falls back to polling automatically.
 

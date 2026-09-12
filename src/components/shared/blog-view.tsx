@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import { useApi } from '@/lib/api'
 import { themeVars } from '@/lib/themes'
 import { formatDate } from '@/lib/format'
+import { sanitizeHtml } from '@/lib/sanitize'
 import { useApp } from '@/components/shared/app-context'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -222,7 +223,7 @@ function ArticleView({ platform, slug, lang, onBack }: {
         </div>
       )}
 
-      <article className="prose prose-sm sm:prose-base dark:prose-invert mt-8 max-w-none" dangerouslySetInnerHTML={{ __html: post.body }} />
+      <article className="prose prose-sm sm:prose-base dark:prose-invert mt-8 max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.body) }} />
 
       {/* Share hint */}
       <div className="mt-10 flex flex-col items-start gap-3 rounded-2xl border p-5 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: 'color-mix(in srgb, var(--brand) 35%, transparent)', background: 'color-mix(in srgb, var(--brand) 7%, transparent)' }}>
