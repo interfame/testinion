@@ -8,19 +8,21 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { LANGS, type Lang } from '@/lib/i18n'
+import { useI18n } from '@/lib/i18n'
 import { formatMoney } from '@/lib/format'
 import { useApp } from '@/components/shared/app-context'
 
 /** Balance pill shown in panel topbars */
 export function BalanceChip({ onAddFunds }: { onAddFunds?: () => void }) {
   const { user, currencyOf } = useApp()
+  const { t } = useI18n()
   return (
     <div className="flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 py-1 pl-3 pr-1 shadow-sm">
       <Wallet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
       <span className="text-[13px] font-extrabold tabular-nums">{formatMoney(user.balance, currencyOf(user.currency))}</span>
       {onAddFunds && (
         <Button size="sm" onClick={onAddFunds} className="h-6 rounded-full px-2.5 text-[11px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
-          <Zap className="mr-1 h-3 w-3" /> Top up
+          <Zap className="mr-1 h-3 w-3" /> {t('chip.topUp')}
         </Button>
       )}
     </div>
@@ -30,6 +32,7 @@ export function BalanceChip({ onAddFunds }: { onAddFunds?: () => void }) {
 /** Currency selector (multi-currency display conversion) */
 export function CurrencyChip() {
   const { user, setUser, currencies } = useApp()
+  const { t } = useI18n()
   const current = currencies.find((c) => c.code === user.currency) ?? currencies[0]
   if (!current) return null
   return (
@@ -41,7 +44,7 @@ export function CurrencyChip() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="max-h-72 overflow-y-auto">
-        <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Currency</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{t('auth.currency')}</DropdownMenuLabel>
         {currencies.map((c) => (
           <DropdownMenuItem
             key={c.code}
@@ -60,6 +63,7 @@ export function CurrencyChip() {
 /** Language selector (multi-language) */
 export function LanguageChip() {
   const { lang, setLang, user, setUser, refresh } = useApp()
+  const { t } = useI18n()
   const meta = LANGS.find((l) => l.code === lang) ?? LANGS[0]
   return (
     <DropdownMenu>
@@ -70,7 +74,7 @@ export function LanguageChip() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Language</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{t('legal.language')}</DropdownMenuLabel>
         {LANGS.map((l) => (
           <DropdownMenuItem
             key={l.code}
@@ -94,6 +98,7 @@ export function LanguageChip() {
 /** Copyable API key field */
 export function CopyField({ value, label }: { value: string; label?: string }) {
   const [copied, setCopied] = useState(false)
+  const { t } = useI18n()
   return (
     <div className="flex items-center gap-2">
       <code className="flex-1 truncate rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 px-3 py-2 text-[12px] text-zinc-700 dark:text-zinc-200">
@@ -106,7 +111,7 @@ export function CopyField({ value, label }: { value: string; label?: string }) {
           setCopied(true)
           setTimeout(() => setCopied(false), 1500)
         }}
-        aria-label="Copy to clipboard"
+        aria-label={t('chip.copyAria')}
       >
         {copied ? <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
       </Button>

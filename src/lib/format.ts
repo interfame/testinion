@@ -21,7 +21,17 @@ export function convert(usd: number, currency: CurrencyInfo | undefined): number
 export function formatMoney(usd: number, currency: CurrencyInfo | undefined, lang: Lang = 'en'): string {
   const c = currency ?? FALLBACK[0]
   const value = convert(usd, c)
-  const decimals = c.rate > 50 ? 0 : 2
+  // Smart decimals: big-rate currencies stay integer; otherwise 2 decimals,
+  // stretched to 4 when the value carries meaningful sub-cent precision
+  // (e.g. provider costs like $0.0255 must not render as $0.03).
+  let decimals = c.rate > 50 ? 0 : 2
+  if (decimals === 2) {
+    const rounded2 = Math.round(value * 100) / 100
+    const farFrom2 = Math.abs(value - rounded2) > 0.005
+    const subCentNoise = Math.abs((Math.abs(value) * 100) % 1)
+    const hasSubCentPrecision = Math.abs(value) < 1 && subCentNoise > 1e-9 && subCentNoise < 1 - 1e-9
+    if (farFrom2 || hasSubCentPrecision) decimals = 4
+  }
   const formatted = new Intl.NumberFormat(lang === 'es' ? 'es-AR' : lang === 'pt' ? 'pt-BR' : 'en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,

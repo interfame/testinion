@@ -110,6 +110,7 @@ export function SpinnerLine({ label }: { label?: string }) {
 
 /** Dark code block with copy button */
 export function CodeBlock({ code, className }: { code: string; className?: string }) {
+  const { t } = useI18n()
   const [copied, setCopied] = useState(false)
   return (
     <div className={cn('group relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950', className)}>
@@ -122,7 +123,7 @@ export function CodeBlock({ code, className }: { code: string; className?: strin
           setCopied(true)
           setTimeout(() => setCopied(false), 1500)
         }}
-        aria-label="Copy code"
+        aria-label={t('coupon.copy')}
         className="absolute right-2.5 top-2.5 rounded-lg border border-zinc-700 bg-zinc-900 p-1.5 text-zinc-400 dark:text-zinc-500 transition hover:text-white"
       >
         {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}

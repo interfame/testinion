@@ -50,9 +50,9 @@ export default function ServicesSection({ onOrder }: { onOrder: (categoryId: str
   function serviceBadges(s: CatalogService) {
     return (
       <span className="flex flex-wrap gap-1">
-        {s.refill && <Pill tone="emerald"><Repeat className="h-2.5 w-2.5" /> Refill</Pill>}
-        {s.dripfeed && <Pill tone="sky"><Droplets className="h-2.5 w-2.5" /> Drip</Pill>}
-        {!s.cancel && <Pill tone="rose"><Ban className="h-2.5 w-2.5" /> No cancel</Pill>}
+        {s.refill && <Pill tone="emerald"><Repeat className="h-2.5 w-2.5" /> {t('client.refill')}</Pill>}
+        {s.dripfeed && <Pill tone="sky"><Droplets className="h-2.5 w-2.5" /> {t('cord.dripfeed')}</Pill>}
+        {!s.cancel && <Pill tone="rose"><Ban className="h-2.5 w-2.5" /> {t('csvc.noCancel')}</Pill>}
       </span>
     )
   }
@@ -61,7 +61,7 @@ export default function ServicesSection({ onOrder }: { onOrder: (categoryId: str
     <div className="mx-auto max-w-[1200px] p-4 sm:p-6 lg:p-8">
       <PanelPageHeader
         title={t('common.services')}
-        description={`${totalServices} services · showing ${shown} — prices per 1000, charged in USD.`}
+        description={t('csvc.desc').replace('{total}', String(totalServices)).replace('{shown}', String(shown))}
       />
 
       {/* Toolbar */}
@@ -74,7 +74,7 @@ export default function ServicesSection({ onOrder }: { onOrder: (categoryId: str
               <Input
                 id="svc-search"
                 className="min-h-[40px] pl-9"
-                placeholder="Search by service name or ID…"
+                placeholder={t('csvc.searchPh')}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
@@ -84,11 +84,11 @@ export default function ServicesSection({ onOrder }: { onOrder: (categoryId: str
             <Label>{t('common.category')}</Label>
             <Select value={catFilter} onValueChange={setCatFilter}>
               <SelectTrigger className="min-h-[40px] w-full">
-                <SelectValue placeholder="All categories" />
+                <SelectValue placeholder={t('csvc.allCategories')} />
               </SelectTrigger>
               <SelectContent className="max-h-72">
                 <SelectItem value="all">
-                  <span className="flex items-center gap-2"><LayoutGrid className="h-4 w-4 text-zinc-400 dark:text-zinc-500" /> All categories</span>
+                  <span className="flex items-center gap-2"><LayoutGrid className="h-4 w-4 text-zinc-400 dark:text-zinc-500" /> {t('csvc.allCategories')}</span>
                 </SelectItem>
                 {catalog.categories.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
@@ -110,8 +110,8 @@ export default function ServicesSection({ onOrder }: { onOrder: (categoryId: str
       ) : groups.length === 0 ? (
         <EmptyState
           icon={Search}
-          title="No services found"
-          message="Try a different search term or category."
+          title={t('csvc.noneTitle')}
+          message={t('csvc.noneDesc')}
         />
       ) : (
         <div className="space-y-4">
@@ -125,7 +125,7 @@ export default function ServicesSection({ onOrder }: { onOrder: (categoryId: str
                 <SocialLogo icon={c.icon} size={22} />
                 <h2 className="text-[14px] font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">{c.name}</h2>
                 <span className="rounded-full bg-white dark:bg-zinc-900 px-2 py-0.5 text-[11px] font-bold text-zinc-500 dark:text-zinc-400 shadow-sm">
-                  {c.services.length} services
+                  {t('csvc.count').replace('{n}', String(c.services.length))}
                 </span>
               </div>
 
@@ -135,9 +135,9 @@ export default function ServicesSection({ onOrder }: { onOrder: (categoryId: str
                     <tr className="border-b border-zinc-200 dark:border-zinc-800 text-[11px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
                       <th className="px-4 py-2.5 sm:px-6">ID</th>
                       <th className="px-3 py-2.5">{t('common.service')}</th>
-                      <th className="px-3 py-2.5 text-right">Rate / 1000</th>
-                      <th className="px-3 py-2.5 text-right">Min – Max</th>
-                      <th className="hidden px-3 py-2.5 md:table-cell">Features</th>
+                      <th className="px-3 py-2.5 text-right">{t('cord.rate1k')}</th>
+                      <th className="px-3 py-2.5 text-right">{t('csvc.minMax')}</th>
+                      <th className="hidden px-3 py-2.5 md:table-cell">{t('csvc.features')}</th>
                       <th className="px-4 py-2.5 text-right sm:px-6">{t('common.actions')}</th>
                     </tr>
                   </thead>
@@ -172,6 +172,7 @@ function ServiceRow({ s, m, expanded, onToggle, onOrder, badges }: {
   onOrder: () => void
   badges: ReactNode
 }) {
+  const { t } = useI18n()
   return (
     <>
       <tr className="border-b border-zinc-100 dark:border-zinc-800/70 transition hover:bg-zinc-50/70 dark:hover:bg-zinc-900/50">
@@ -195,7 +196,7 @@ function ServiceRow({ s, m, expanded, onToggle, onOrder, badges }: {
             style={{ background: 'var(--brand)' }}
             onClick={onOrder}
           >
-            <ShoppingBag className="mr-1 h-3 w-3" /> Order
+            <ShoppingBag className="mr-1 h-3 w-3" /> {t('csvc.order')}
           </Button>
         </td>
       </tr>
@@ -204,15 +205,15 @@ function ServiceRow({ s, m, expanded, onToggle, onOrder, badges }: {
           <td colSpan={6} className="px-4 py-3 sm:px-6">
             <div className="flex flex-col gap-2 md:flex-row md:items-start md:gap-6">
               <div className="md:max-w-xl">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Description</p>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{t('cord.description')}</p>
                 <p className="mt-0.5 whitespace-pre-line text-[12.5px] leading-relaxed text-zinc-600 dark:text-zinc-300">
-                  {s.description || 'No description provided for this service.'}
+                  {s.description || t('csvc.noDesc')}
                 </p>
               </div>
               <div className="flex flex-wrap gap-1.5 md:ml-auto">
-                <Pill tone={s.refill ? 'emerald' : 'zinc'}><Repeat className="h-2.5 w-2.5" /> Refill {s.refill ? '✓' : '✗'}</Pill>
-                <Pill tone={s.dripfeed ? 'sky' : 'zinc'}><Droplets className="h-2.5 w-2.5" /> Drip-feed {s.dripfeed ? '✓' : '✗'}</Pill>
-                <Pill tone={s.cancel ? 'amber' : 'zinc'}><Ban className="h-2.5 w-2.5" /> Cancel {s.cancel ? '✓' : '✗'}</Pill>
+                <Pill tone={s.refill ? 'emerald' : 'zinc'}><Repeat className="h-2.5 w-2.5" /> {t('client.refill')} {s.refill ? '✓' : '✗'}</Pill>
+                <Pill tone={s.dripfeed ? 'sky' : 'zinc'}><Droplets className="h-2.5 w-2.5" /> {t('cord.dripfeed')} {s.dripfeed ? '✓' : '✗'}</Pill>
+                <Pill tone={s.cancel ? 'amber' : 'zinc'}><Ban className="h-2.5 w-2.5" /> {t('cord.cancelPill')} {s.cancel ? '✓' : '✗'}</Pill>
                 <Pill tone="violet">{s.type.replace(/_/g, ' ')}</Pill>
               </div>
             </div>

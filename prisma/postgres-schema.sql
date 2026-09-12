@@ -118,6 +118,7 @@ CREATE TABLE "Service" (
     "name" TEXT NOT NULL,
     "type" TEXT NOT NULL DEFAULT 'DEFAULT',
     "rate" DOUBLE PRECISION NOT NULL,
+    "cost" DOUBLE PRECISION,
     "min" INTEGER NOT NULL DEFAULT 100,
     "max" INTEGER NOT NULL DEFAULT 100000,
     "description" TEXT,

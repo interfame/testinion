@@ -13,9 +13,48 @@ import { NotificationBell } from '@/components/shared/notifications'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { CommandPalette, PaletteTrigger, PaletteTriggerMobile, type ServiceSearch } from '@/components/shared/command-palette'
 import { useRealtimeBridge } from '@/lib/realtime-client'
+import { useI18n, type DictKey } from '@/lib/i18n'
+
+/** Status enum → i18n key (falls back to the raw enum, underscores spaced) */
+export const STATUS_KEYS: Record<string, DictKey> = {
+  PENDING: 'status.PENDING', IN_PROGRESS: 'status.IN_PROGRESS', PROCESSING: 'status.PROCESSING',
+  COMPLETED: 'status.COMPLETED', PARTIAL: 'status.PARTIAL', CANCELED: 'status.CANCELED',
+  OPEN: 'status.OPEN', ANSWERED: 'status.ANSWERED', CLOSED: 'status.CLOSED',
+  ACTIVE: 'status.ACTIVE', SUSPENDED: 'status.SUSPENDED', BANNED: 'status.BANNED',
+  APPROVED: 'status.APPROVED', REJECTED: 'status.REJECTED', PAUSED: 'status.PAUSED',
+  EXPIRED: 'status.EXPIRED', EXHAUSTED: 'status.EXHAUSTED',
+  CONNECTED: 'status.CONNECTED', DISCONNECTED: 'status.DISCONNECTED', AI: 'status.AI', HANDED: 'status.HANDED',
+}
+
+/** User/staff role enum → i18n key */
+export const ROLE_KEYS: Record<string, DictKey> = {
+  CLIENT: 'admin.role.CLIENT', RESELLER: 'admin.role.RESELLER', SUPER_ADMIN: 'admin.role.SUPER_ADMIN',
+  ADMIN: 'admin.role.ADMIN', SUPPORT: 'admin.role.SUPPORT', FINANCE: 'admin.role.FINANCE', CONTENT: 'admin.role.CONTENT',
+}
+
+/** Hook: translate a status/role enum, falling back to the spaced raw value */
+export function useEnumLabel(keys: Record<string, DictKey> = STATUS_KEYS) {
+  const { t } = useI18n()
+  return (value: string) => {
+    const k = keys[value]
+    return k ? t(k) : value.replace(/_/g, ' ')
+  }
+}
 
 export type NavItem = { key: string; label: string; icon: LucideIcon; badge?: number; dot?: boolean }
 export type NavSection = { title?: string; items: NavItem[] }
+
+function LogoutButton({ onLogout }: { onLogout: () => void }) {
+  const { t } = useI18n()
+  return (
+    <Button
+      variant="ghost" size="icon" onClick={onLogout} title={t('auth.logout')} aria-label={t('auth.logout')}
+      className="h-7 w-7 shrink-0 text-white/50 hover:bg-white/10 hover:text-white"
+    >
+      <LogOut className="h-3.5 w-3.5" />
+    </Button>
+  )
+}
 
 export type PanelShellProps = {
   nav: NavSection[]
@@ -34,6 +73,20 @@ export type PanelShellProps = {
   accent?: string
   /** optional service search wired into the ⌘K palette (client portal) */
   serviceSearch?: ServiceSearch
+}
+
+function MobileMenuButton() {
+  const { t } = useI18n()
+  return (
+    <Button variant="outline" size="icon" className="fixed left-3 top-2.5 z-50 h-9 w-9 lg:hidden" aria-label={t('shell.openMenu')}>
+      <Menu className="h-4 w-4" />
+    </Button>
+  )
+}
+
+function NavTitle() {
+  const { t } = useI18n()
+  return <>{t('shell.navigation')}</>
 }
 
 export function PanelShell({
@@ -123,12 +176,7 @@ export function PanelShell({
           <p className="truncate text-[12px] font-semibold text-white">{user.name}</p>
           <p className="truncate text-[10px] text-white/45">{user.email}</p>
         </div>
-        <Button
-          variant="ghost" size="icon" onClick={onLogout} title="Log out" aria-label="Log out"
-          className="h-7 w-7 shrink-0 text-white/50 hover:bg-white/10 hover:text-white"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-        </Button>
+        <LogoutButton onLogout={onLogout} />
       </div>
     </div>
   )
@@ -146,12 +194,10 @@ export function PanelShell({
           use the resolved theme hex instead of var(--brand-dark) */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetTrigger asChild>
-          <Button variant="outline" size="icon" className="fixed left-3 top-2.5 z-50 h-9 w-9 lg:hidden" aria-label="Open menu">
-            <Menu className="h-4 w-4" />
-          </Button>
+          <MobileMenuButton />
         </SheetTrigger>
         <SheetContent side="left" className="w-64 border-white/10 p-0" style={{ background: themeOf(themeKey).dark }}>
-          <SheetTitle className="sr-only">Navigation</SheetTitle>
+          <SheetTitle className="sr-only"><NavTitle /></SheetTitle>
           <div className="flex h-full flex-col">
             {brandBlock}
             {navList}
@@ -164,15 +210,7 @@ export function PanelShell({
       <div className="flex min-h-screen w-full flex-col lg:pl-60">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-zinc-200/80 bg-white/85 dark:bg-zinc-900/80 pl-16 pr-3 backdrop-blur lg:pl-5">
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            {onExit && (
-              <button
-                onClick={onExit}
-                className="flex shrink-0 items-center gap-1 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2.5 py-1 text-[11px] font-bold text-zinc-500 dark:text-zinc-400 transition hover:bg-zinc-50 dark:hover:bg-zinc-900/60 hover:text-zinc-800 dark:hover:text-zinc-100"
-                title="Back to site"
-              >
-                <ChevronLeft className="h-3 w-3" /> Site
-              </button>
-            )}
+            {onExit && <ExitButton onExit={onExit} />}
             {topbarLeft}
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -195,11 +233,25 @@ export function PanelShell({
   )
 }
 
+function ExitButton({ onExit }: { onExit: () => void }) {
+  const { t } = useI18n()
+  return (
+    <button
+      onClick={onExit}
+      className="flex shrink-0 items-center gap-1 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2.5 py-1 text-[11px] font-bold text-zinc-500 dark:text-zinc-400 transition hover:bg-zinc-50 dark:hover:bg-zinc-900/60 hover:text-zinc-800 dark:hover:text-zinc-100"
+      title={t('legal.back')}
+    >
+      <ChevronLeft className="h-3 w-3" /> {t('shell.site')}
+    </button>
+  )
+}
+
 /** Tiny pill showing the realtime link state (websocket up = pulsing LIVE). */
 export function LiveChip({ up }: { up: boolean }) {
+  const { t } = useI18n()
   return (
     <span
-      title={up ? 'Realtime connected — notifications and order updates arrive instantly' : 'Realtime offline — polling fallback active'}
+      title={up ? t('shell.rtUp') : t('shell.rtDown')}
       className={cn(
         'hidden h-9 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-extrabold uppercase tracking-wide sm:flex',
         up
@@ -211,7 +263,7 @@ export function LiveChip({ up }: { up: boolean }) {
         {up && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
         <span className={cn('relative inline-flex h-1.5 w-1.5 rounded-full', up ? 'bg-emerald-500' : 'bg-zinc-400')} />
       </span>
-      {up ? 'Live' : 'Off'}
+      {up ? t('shell.live') : t('shell.off')}
     </span>
   )
 }
@@ -281,9 +333,10 @@ export const statusColor: Record<string, string> = {
 }
 
 export function StatusBadge({ status }: { status: string }) {
+  const label = useEnumLabel()
   return (
     <span className={cn('inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-bold', statusColor[status] ?? 'bg-zinc-100 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800')}>
-      {status === 'IN_PROGRESS' ? 'IN PROGRESS' : status.replace(/_/g, ' ')}
+      {label(status)}
     </span>
   )
 }

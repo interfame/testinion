@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/select'
 import { PanelPageHeader } from '@/components/shared/panel-shell'
 import { PageWrap } from './crm-shared'
+import { useI18n } from '@/lib/i18n'
 import {
   CHANNEL_TYPES,
   CardsSkeleton,
@@ -74,6 +75,7 @@ const EMPTY_FORM: AgentForm = {
 }
 
 export default function CrmAgents({ platformId }: { platformId: string }) {
+  const { t } = useI18n()
   const { data, loading, refresh } = useApi<{ agents: CrmAgent[] }>('/api/reseller/crm/agents', [platformId])
   const agents = data?.agents ?? []
 
@@ -108,9 +110,9 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
     const payload = { ...form }
     const res = editing
       ? await mutate(() => api.patch('/api/reseller/crm/agents', { id: editing.id, ...payload }), {
-          success: 'Agent updated',
+          success: t('crm.agentUpdated'),
         })
-      : await mutate(() => api.post('/api/reseller/crm/agents', payload), { success: 'Agent created' })
+      : await mutate(() => api.post('/api/reseller/crm/agents', payload), { success: t('crm.agentCreated') })
     setSaving(false)
     if (res) {
       setCreateOpen(false)
@@ -124,18 +126,18 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
   }
 
   async function remove(a: CrmAgent) {
-    await mutate(() => api.del(`/api/reseller/crm/agents?id=${a.id}`), { success: `${a.name} deleted` })
+    await mutate(() => api.del(`/api/reseller/crm/agents?id=${a.id}`), { success: t('crm.deleted').replace('{name}', a.name) })
     refresh()
   }
 
   return (
     <PageWrap>
       <PanelPageHeader
-        title="AI Agents"
-        description="Autonomous bots that sell and support across your channels. Assign them to specific channels or let them cover everything."
+        title={t('reseller.aiAgents')}
+        description={t('crm.agentsDesc')}
         actions={
           <Button onClick={openCreate} className="rounded-xl text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
-            <Plus className="h-4 w-4" /> New agent
+            <Plus className="h-4 w-4" /> {t('crm.newAgent')}
           </Button>
         }
       />
@@ -145,11 +147,11 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
       ) : agents.length === 0 ? (
         <EmptyState
           icon={Bot}
-          title="No AI agents yet"
-          description="Create your first agent, give it a prompt and knowledge base, and it will start answering customers on its assigned channels."
+          title={t('crm.agentsEmpty')}
+          description={t('crm.agentsEmptySub')}
         >
           <Button onClick={openCreate} className="rounded-xl text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
-            <Plus className="h-4 w-4" /> Create agent
+            <Plus className="h-4 w-4" /> {t('crm.createAgent')}
           </Button>
         </EmptyState>
       ) : (
@@ -177,16 +179,16 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
                   </div>
                   <p className="mt-0.5 font-mono text-[11.5px] text-zinc-500 dark:text-zinc-400">{a.model}</p>
                 </div>
-                <Switch checked={a.active} onCheckedChange={(v) => toggleActive(a, v)} aria-label={`Toggle ${a.name}`} />
+                <Switch checked={a.active} onCheckedChange={(v) => toggleActive(a, v)} aria-label={t('crm.toggleAria').replace('{name}', a.name)} />
               </div>
 
               <p className="mt-3 line-clamp-2 min-h-[32px] text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-                {a.prompt || 'No prompt set.'}
+                {a.prompt || t('crm.noPrompt')}
               </p>
 
               <div className="mt-2 flex flex-wrap gap-1">
                 {parseArr(a.channels).length === 0 ? (
-                  <span className="text-[11px] text-zinc-400 dark:text-zinc-500">All channels</span>
+                  <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{t('crm.allChannels')}</span>
                 ) : (
                   parseArr(a.channels).map((ch) => (
                     <span
@@ -202,7 +204,7 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
               <div className="mt-4 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800/70 pt-3">
                 <span className="flex items-center gap-1.5 text-[11.5px] font-semibold text-zinc-500 dark:text-zinc-400">
                   <Sparkles className="h-3.5 w-3.5 text-violet-500" />
-                  {a.resolved.toLocaleString('en-US')} chats resolved
+                  {a.resolved.toLocaleString('en-US')} {t('crm.chatsResolved')}
                 </span>
                 <div className="flex items-center gap-1">
                   <Button
@@ -210,13 +212,13 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
                     size="icon"
                     className="h-8 w-8 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200"
                     onClick={() => openEdit(a)}
-                    aria-label={`Edit ${a.name}`}
+                    aria-label={t('crm.editAria').replace('{name}', a.name)}
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
                   <ConfirmDelete
-                    title={`Delete ${a.name}?`}
-                    description="Conversations stay, but this agent stops answering immediately."
+                    title={t('crm.delQ').replace('{name}', a.name)}
+                    description={t('crm.delAgentDesc')}
                     onConfirm={() => remove(a)}
                   />
                 </div>
@@ -230,15 +232,15 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto rounded-2xl sm:max-w-lg [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-300/70">
           <DialogHeader>
-            <DialogTitle>{editing ? `Edit ${editing.name}` : 'New AI agent'}</DialogTitle>
+            <DialogTitle>{editing ? t('crm.editName').replace('{name}', editing.name) : t('crm.newAgent')}</DialogTitle>
             <DialogDescription>
-              Prompt + knowledge base drive answers. Assign channels to control where it replies.
+              {t('crm.agentFormDesc')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3.5 py-1">
             <div className="grid gap-3.5 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="ag-name">Name</Label>
+                <Label htmlFor="ag-name">{t('rcat.name')}</Label>
                 <Input
                   id="ag-name"
                   value={form.name}
@@ -248,7 +250,7 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Provider</Label>
+                <Label>{t('crm.provider')}</Label>
                 <Select
                   value={form.provider}
                   onValueChange={(v) => setForm((f) => ({ ...f, provider: v, model: DEFAULT_MODELS[v] ?? f.model }))}
@@ -267,7 +269,7 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ag-model">Model</Label>
+              <Label htmlFor="ag-model">{t('crm.model')}</Label>
               <Input
                 id="ag-model"
                 value={form.model}
@@ -276,7 +278,7 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ag-prompt">System prompt</Label>
+              <Label htmlFor="ag-prompt">{t('crm.prompt')}</Label>
               <Textarea
                 id="ag-prompt"
                 rows={4}
@@ -287,7 +289,7 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ag-knowledge">Knowledge base</Label>
+              <Label htmlFor="ag-knowledge">{t('crm.knowledge')}</Label>
               <Textarea
                 id="ag-knowledge"
                 rows={3}
@@ -299,7 +301,7 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
             </div>
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <Label>Temperature</Label>
+                <Label>{t('crm.temperature')}</Label>
                 <span className="rounded-md bg-zinc-100 dark:bg-zinc-800/60 px-1.5 py-0.5 font-mono text-[11px] font-bold text-zinc-600 dark:text-zinc-300">
                   {form.temperature.toFixed(1)}
                 </span>
@@ -310,11 +312,11 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
                 max={1}
                 step={0.1}
                 onValueChange={([v]) => setForm((f) => ({ ...f, temperature: v }))}
-                aria-label="Temperature"
+                aria-label={t('crm.temperature')}
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Channels</Label>
+              <Label>{t('crm.channelsLabel')}</Label>
               <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 p-2.5 sm:grid-cols-3">
                 {CHANNEL_TYPES.map((t) => {
                   const checked = form.channels.includes(t)
@@ -343,7 +345,7 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
           </div>
           <DialogFooter>
             <Button variant="outline" className="rounded-xl" onClick={() => setCreateOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               onClick={save}
@@ -351,7 +353,7 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
               className="rounded-xl text-[var(--on-brand)]"
               style={{ background: 'var(--brand)' }}
             >
-              {editing ? 'Save changes' : 'Create agent'}
+              {editing ? t('rcat.saveChanges') : t('crm.createAgent')}
             </Button>
           </DialogFooter>
         </DialogContent>

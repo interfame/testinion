@@ -11,6 +11,8 @@ export type GatewayField = {
   kind?: 'text' | 'select'
   options?: string[]
   hint?: string
+  /** Optional fields never block isConfigured() / connect validation (default: required). */
+  required?: boolean
 }
 
 export type GatewayProvider = {
@@ -28,7 +30,7 @@ export const GATEWAY_PROVIDERS: Record<string, GatewayProvider> = {
     tagline: 'Global wallet & card checkout (REST API v2)',
     icon: 'wallet',
     fields: [
-      { key: 'email', label: 'Business email', placeholder: 'billing@yourstore.com' },
+      { key: 'email', label: 'Business email', placeholder: 'billing@yourstore.com', required: false },
       { key: 'clientId', label: 'Client ID', placeholder: 'AeA1QIZX…', hint: 'Developer → Apps & Credentials' },
       { key: 'clientSecret', label: 'Client secret', secret: true, placeholder: 'EGnHDxD_qRPd…' },
       { key: 'mode', label: 'Mode', kind: 'select', options: ['SANDBOX', 'LIVE'] },
@@ -41,8 +43,13 @@ export const GATEWAY_PROVIDERS: Record<string, GatewayProvider> = {
     icon: 'card',
     fields: [
       { key: 'accessToken', label: 'Access token', secret: true, placeholder: 'APP_USR-…', hint: 'Tus integraciones → Credenciales de producción' },
-      { key: 'publicKey', label: 'Public key', placeholder: 'APP_USR_…' },
-      { key: 'webhookSecret', label: 'Webhook secret', secret: true, placeholder: 'Firma del webhook' },
+      {
+        key: 'currency', label: 'Currency', kind: 'select', required: false,
+        options: ['USD', 'ARS', 'BRL', 'MXN', 'COP', 'CLP', 'PEN', 'UYU'],
+        hint: 'Moneda con la que se cobra en MercadoPago (el monto se cobra 1:1 en esta moneda)',
+      },
+      { key: 'publicKey', label: 'Public key', placeholder: 'APP_USR_…', required: false },
+      { key: 'webhookSecret', label: 'Webhook secret', secret: true, required: false, hint: 'Opcional: MP verifica pagos consultando la API' },
     ],
   },
   PIX: {
@@ -64,7 +71,7 @@ export const GATEWAY_PROVIDERS: Record<string, GatewayProvider> = {
     fields: [
       { key: 'merchantId', label: 'Merchant ID', placeholder: 'UUID del comercio' },
       { key: 'apiKey', label: 'API key', secret: true, placeholder: '****' },
-      { key: 'webhookSecret', label: 'Webhook secret', secret: true },
+      { key: 'webhookSecret', label: 'Webhook secret', secret: true, required: false },
     ],
   },
   COINPAYMENT: {
@@ -84,10 +91,12 @@ export const GATEWAY_PROVIDERS: Record<string, GatewayProvider> = {
     tagline: 'Cross-border payouts & receiving accounts',
     icon: 'landmark',
     fields: [
-      { key: 'payoneerId', label: 'Payoneer account ID', placeholder: '1042…' },
-      { key: 'email', label: 'Account email', placeholder: 'finance@yourstore.com' },
-      { key: 'apiUser', label: 'API user', placeholder: 'Program Partner API' },
-      { key: 'apiPassword', label: 'API password', secret: true },
+      // Payoneer has no automated integration — every field is optional and the
+      // gateway always behaves as a manual-instructions method.
+      { key: 'payoneerId', label: 'Payoneer account ID', placeholder: '1042…', required: false },
+      { key: 'email', label: 'Account email', placeholder: 'finance@yourstore.com', required: false },
+      { key: 'apiUser', label: 'API user', placeholder: 'Program Partner API', required: false },
+      { key: 'apiPassword', label: 'API password', secret: true, required: false },
     ],
   },
 }
@@ -110,11 +119,29 @@ export function parseConfig(json?: string | null): Record<string, string> {
   }
 }
 
-/** True when every non-optional-ish credential has a value. */
+/**
+ * True when every REQUIRED credential has a value. Selects are never required
+ * (they carry UI defaults) and fields flagged `required: false` are optional —
+ * e.g. MercadoPago runs real checkout with just the access token (+ currency).
+ */
 export function isConfigured(code: string, config: Record<string, unknown>): boolean {
   const p = GATEWAY_PROVIDERS[code]
   if (!p) return Object.keys(config).length > 0
-  return p.fields.every((f) => f.kind === 'select' || String(config[f.key] ?? '').trim().length > 0)
+  return p.fields.every(
+    (f) =>
+      f.required === false ||
+      f.kind === 'select' ||
+      String(config[f.key] ?? '').trim().length > 0,
+  )
+}
+
+/** Required credential fields still missing from a config (connect validation). */
+export function missingRequired(code: string, config: Record<string, string>): GatewayField[] {
+  const p = GATEWAY_PROVIDERS[code]
+  if (!p) return []
+  return p.fields.filter(
+    (f) => f.required !== false && f.kind !== 'select' && !String(config[f.key] ?? '').trim(),
+  )
 }
 
 /** Mask secret fields so credentials never leave the server in clear text. */

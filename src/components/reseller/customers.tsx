@@ -20,7 +20,7 @@ import { useApi, api, mutate } from '@/lib/api'
 import { useRealtimeEvents } from '@/lib/realtime-client'
 import { formatMoney, formatDateTime } from '@/lib/format'
 import { downloadCsv, csvName } from '@/lib/csv'
-import type { Lang } from '@/lib/i18n'
+import { useI18n, type Lang } from '@/lib/i18n'
 
 type Client = { id: string; name: string; email: string; balance: number; status: string; createdAt: string; spent: number; _count: { orders: number } }
 type Order = { id: string; serviceName: string; link: string; quantity: number; charge: number; status: string; remains: number; createdAt: string; user: { name: string; email: string } }
@@ -39,6 +39,7 @@ export default function ResellerCustomers({ section }: { section: string }) {
 
 function Clients() {
   const app = useApp()
+  const { t } = useI18n()
   const { data, loading, refresh } = useApi<{ clients: Client[] }>('/api/reseller/clients')
   const [q, setQ] = useState('')
   const [adjust, setAdjust] = useState<Client | null>(null)
@@ -53,22 +54,22 @@ function Clients() {
     if (!adjust) return
     const res = await mutate(
       () => api.patch('/api/reseller/clients', { id: adjust.id, action: 'adjust', amount: parseFloat(amount), note }),
-      { success: `Balance updated for ${adjust.name}` }
+      { success: t('rcus.balanceUpdated').replace('{name}', adjust.name) }
     )
     if (res) { setAdjust(null); setAmount(''); setNote(''); refresh() }
   }
 
   const setStatus = async (c: Client, status: string) => {
-    const res = await mutate(() => api.patch('/api/reseller/clients', { id: c.id, action: 'status', status }), { success: 'Client updated' })
+    const res = await mutate(() => api.patch('/api/reseller/clients', { id: c.id, action: 'status', status }), { success: t('rcus.clientUpdated') })
     if (res) refresh()
   }
 
   return (
     <>
-      <PanelPageHeader title="My Clients" description={`${data?.clients.length ?? 0} registered on your storefront`} />
+      <PanelPageHeader title={t('reseller.myClients')} description={t('rcus.clientsDesc').replace('{x}', String(data?.clients.length ?? 0))} />
       <div className="relative mb-4 max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
-        <Input className="pl-9" placeholder="Search clients…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <Input className="pl-9" placeholder={t('rcus.searchClients')} value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
 
       <div className="overflow-hidden rounded-2xl border bg-white dark:bg-zinc-900">
@@ -76,12 +77,12 @@ function Clients() {
           <table className="w-full min-w-[720px] text-left text-[13px]">
             <thead>
               <tr className="border-b bg-zinc-50/60 dark:bg-zinc-900/40 text-[11px] uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-                <th className="px-4 py-3 font-bold">Client</th>
-                <th className="px-4 py-3 font-bold">Balance</th>
-                <th className="px-4 py-3 font-bold">Orders</th>
-                <th className="px-4 py-3 font-bold">Spent</th>
-                <th className="px-4 py-3 font-bold">Status</th>
-                <th className="px-4 py-3 text-right font-bold">Actions</th>
+                <th className="px-4 py-3 font-bold">{t('admin.role.CLIENT')}</th>
+                <th className="px-4 py-3 font-bold">{t('common.balance')}</th>
+                <th className="px-4 py-3 font-bold">{t('common.orders')}</th>
+                <th className="px-4 py-3 font-bold">{t('rcus.spent')}</th>
+                <th className="px-4 py-3 font-bold">{t('common.status')}</th>
+                <th className="px-4 py-3 text-right font-bold">{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -105,14 +106,14 @@ function Clients() {
                   <td className="px-4 py-2.5">
                     <div className="flex justify-end gap-1">
                       <Button variant="outline" size="sm" className="h-7 text-[11px] font-bold" onClick={() => setAdjust(c)}>
-                        <Wallet className="mr-1 h-3 w-3" /> Adjust
+                        <Wallet className="mr-1 h-3 w-3" /> {t('rcus.adjust')}
                       </Button>
                       {c.status === 'ACTIVE' ? (
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500" title="Suspend" onClick={() => setStatus(c, 'SUSPENDED')}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500" title={t('rcus.suspend')} onClick={() => setStatus(c, 'SUSPENDED')}>
                           <Ban className="h-3.5 w-3.5" />
                         </Button>
                       ) : (
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-500" title="Activate" onClick={() => setStatus(c, 'ACTIVE')}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-500" title={t('rcus.activate')} onClick={() => setStatus(c, 'ACTIVE')}>
                           <CheckCircle2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
@@ -120,7 +121,7 @@ function Clients() {
                   </td>
                 </tr>
               ))}
-              {!clients.length && <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">No clients yet — share your storefront link!</td></tr>}
+              {!clients.length && <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">{t('rcus.noClients')}</td></tr>}
             </tbody>
           </table>
         </div>
@@ -128,18 +129,18 @@ function Clients() {
 
       <Dialog open={!!adjust} onOpenChange={(o) => !o && setAdjust(null)}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Adjust balance — {adjust?.name}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('rcus.adjustTitle').replace('{name}', adjust?.name ?? '')}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <p className="rounded-lg bg-zinc-50 dark:bg-zinc-900/60 px-3 py-2 text-[12px] text-zinc-500 dark:text-zinc-400">
-              Current balance: <b className="text-zinc-800 dark:text-zinc-100">{adjust ? formatMoney(adjust.balance, app.currencyOf(app.user.currency), app.lang as Lang) : ''}</b>
+              {t('rcus.currentBalance')} <b className="text-zinc-800 dark:text-zinc-100">{adjust ? formatMoney(adjust.balance, app.currencyOf(app.user.currency), app.lang as Lang) : ''}</b>
             </p>
             <div className="space-y-1.5">
-              <Label>Amount (negative to debit)</Label>
-              <Input type="number" step="0.01" placeholder="e.g. 25 or -10" value={amount} onChange={(e) => setAmount(e.target.value)} />
+              <Label>{t('rcus.amountHint')}</Label>
+              <Input type="number" step="0.01" placeholder={t('rcus.amountPh')} value={amount} onChange={(e) => setAmount(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Note</Label>
-              <Input placeholder="Reason (shown to client)" value={note} onChange={(e) => setNote(e.target.value)} />
+              <Label>{t('rcus.note')}</Label>
+              <Input placeholder={t('rcus.notePh')} value={note} onChange={(e) => setNote(e.target.value)} />
             </div>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1 font-bold text-emerald-600 dark:text-emerald-400" onClick={() => setAmount('10')}>+10</Button>
@@ -147,7 +148,7 @@ function Clients() {
               <Button variant="outline" className="flex-1 font-bold text-rose-600 dark:text-rose-400" onClick={() => setAmount('-10')}>-10</Button>
             </div>
             <Button className="w-full font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }} disabled={!amount || !parseFloat(amount)} onClick={doAdjust}>
-              Apply adjustment
+              {t('rcus.apply')}
             </Button>
           </div>
         </DialogContent>
@@ -160,6 +161,7 @@ function Clients() {
 
 function Orders() {
   const app = useApp()
+  const { t } = useI18n()
   const [status, setStatus] = useState('ALL')
   const { data, loading, refresh } = useApi<{ orders: Order[] }>(`/api/reseller/orders?status=${status}`, [status])
   // Realtime: instant refresh when the delivery engine touches an order
@@ -174,15 +176,15 @@ function Orders() {
   return (
     <>
       <PanelPageHeader
-        title="Orders"
-        description="All orders placed on your storefront"
+        title={t('common.orders')}
+        description={t('rcus.ordersDesc')}
         actions={
           <Button
             variant="outline" className="min-h-[40px] gap-1.5"
             onClick={() =>
               downloadCsv(
                 csvName('storefront-orders'),
-                ['Date', 'Client', 'Email', 'Service', 'Link', 'Quantity', 'Remains', 'Charge (USD)', 'Status'],
+                [t('common.date'), t('admin.role.CLIENT'), t('auth.email'), t('common.service'), t('common.link'), t('common.quantity'), t('rcus.csvRemains'), t('corders.chargeUsd'), t('common.status')],
                 (data?.orders ?? []).map((o) => [
                   new Date(o.createdAt).toISOString(),
                   o.user.name,
@@ -198,18 +200,18 @@ function Orders() {
             }
             disabled={!data?.orders.length}
           >
-            <Download className="h-3.5 w-3.5" /> Export CSV
+            <Download className="h-3.5 w-3.5" /> {t('common.exportCsv')}
           </Button>
         }
       />
       <Tabs value={status} onValueChange={setStatus} className="mb-4">
         <TabsList className="flex-wrap">
-          <TabsTrigger value="ALL">All</TabsTrigger>
-          <TabsTrigger value="PENDING">Pending</TabsTrigger>
-          <TabsTrigger value="IN_PROGRESS">In progress</TabsTrigger>
-          <TabsTrigger value="COMPLETED">Completed</TabsTrigger>
-          <TabsTrigger value="PARTIAL">Partial</TabsTrigger>
-          <TabsTrigger value="CANCELED">Canceled</TabsTrigger>
+          <TabsTrigger value="ALL">{t('common.all')}</TabsTrigger>
+          <TabsTrigger value="PENDING">{t('status.PENDING')}</TabsTrigger>
+          <TabsTrigger value="IN_PROGRESS">{t('status.IN_PROGRESS')}</TabsTrigger>
+          <TabsTrigger value="COMPLETED">{t('status.COMPLETED')}</TabsTrigger>
+          <TabsTrigger value="PARTIAL">{t('status.PARTIAL')}</TabsTrigger>
+          <TabsTrigger value="CANCELED">{t('status.CANCELED')}</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -218,13 +220,13 @@ function Orders() {
           <table className="w-full min-w-[860px] text-left text-[13px]">
             <thead>
               <tr className="border-b bg-zinc-50/60 dark:bg-zinc-900/40 text-[11px] uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-                <th className="px-4 py-3 font-bold">Date</th>
-                <th className="px-4 py-3 font-bold">Client</th>
-                <th className="px-4 py-3 font-bold">Service</th>
-                <th className="px-4 py-3 font-bold">Qty</th>
-                <th className="px-4 py-3 font-bold">Charge</th>
-                <th className="px-4 py-3 font-bold">Status</th>
-                <th className="px-4 py-3 text-right font-bold">Actions</th>
+                <th className="px-4 py-3 font-bold">{t('common.date')}</th>
+                <th className="px-4 py-3 font-bold">{t('admin.role.CLIENT')}</th>
+                <th className="px-4 py-3 font-bold">{t('common.service')}</th>
+                <th className="px-4 py-3 font-bold">{t('admin.o.qty')}</th>
+                <th className="px-4 py-3 font-bold">{t('common.charge')}</th>
+                <th className="px-4 py-3 font-bold">{t('common.status')}</th>
+                <th className="px-4 py-3 text-right font-bold">{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -244,33 +246,33 @@ function Orders() {
                   </td>
                   <td className="px-4 py-2.5">
                     <p className="font-semibold">{o.quantity.toLocaleString()}</p>
-                    <p className="text-[11px] text-zinc-400 dark:text-zinc-500">remains {o.remains.toLocaleString()}</p>
+                    <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{t('rcus.remains').replace('{x}', o.remains.toLocaleString())}</p>
                   </td>
                   <td className="px-4 py-2.5 font-extrabold">{money(o.charge)}</td>
                   <td className="px-4 py-2.5"><StatusBadge status={o.status} /></td>
                   <td className="px-4 py-2.5">
                     <Select
                       value={o.status}
-                      onValueChange={(v) => update(o.id, { status: v }, `Order → ${v}`)}
+                      onValueChange={(v) => update(o.id, { status: v }, t('rcus.orderTo').replace('{x}', v))}
                     >
                       <SelectTrigger className="h-8 w-36 text-[12px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="PENDING">PENDING</SelectItem>
-                        <SelectItem value="IN_PROGRESS">IN PROGRESS</SelectItem>
-                        <SelectItem value="COMPLETED">COMPLETED</SelectItem>
-                        <SelectItem value="PARTIAL">PARTIAL</SelectItem>
-                        <SelectItem value="CANCELED">CANCELED</SelectItem>
+                        <SelectItem value="PENDING">{t('status.PENDING')}</SelectItem>
+                        <SelectItem value="IN_PROGRESS">{t('status.IN_PROGRESS')}</SelectItem>
+                        <SelectItem value="COMPLETED">{t('status.COMPLETED')}</SelectItem>
+                        <SelectItem value="PARTIAL">{t('status.PARTIAL')}</SelectItem>
+                        <SelectItem value="CANCELED">{t('status.CANCELED')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </td>
                 </tr>
               ))}
-              {data && !data.orders.length && <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">No orders in this view.</td></tr>}
+              {data && !data.orders.length && <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">{t('rcus.noOrders')}</td></tr>}
             </tbody>
           </table>
         </div>
       </div>
-      <p className="mt-2 text-[11px] text-zinc-400 dark:text-zinc-500">Tip: setting an order to CANCELED does not refund the client — use the refund via balance adjust.</p>
+      <p className="mt-2 text-[11px] text-zinc-400 dark:text-zinc-500">{t('rcus.tip')}</p>
     </>
   )
 }
@@ -279,6 +281,7 @@ function Orders() {
 
 function Tickets() {
   const app = useApp()
+  const { t } = useI18n()
   const { data, loading, refresh } = useApi<{ clientTickets: Ticket[]; myTickets: Ticket[] }>('/api/reseller/tickets')
   const [openTicket, setOpenTicket] = useState<Ticket | null>(null)
   const [reply, setReply] = useState('')
@@ -298,9 +301,9 @@ function Tickets() {
       const updated = fresh.clientTickets.find((t) => t.id === openTicket.id)
       if (updated) setOpenTicket(updated)
       refresh()
-      toast({ title: 'Reply sent ✅' })
+      toast({ title: t('rcus.replySent') })
     } catch (e) {
-      toast({ title: e instanceof Error ? e.message : 'Error', variant: 'destructive' })
+      toast({ title: e instanceof Error ? e.message : t('rcus.error'), variant: 'destructive' })
     } finally {
       setSending(false)
     }
@@ -308,35 +311,35 @@ function Tickets() {
 
   const closeTicket = async () => {
     if (!openTicket) return
-    await mutate(() => api.patch('/api/tickets/reply', { ticketId: openTicket.id, status: 'CLOSED' }), { success: 'Ticket closed' })
+    await mutate(() => api.patch('/api/tickets/reply', { ticketId: openTicket.id, status: 'CLOSED' }), { success: t('rcus.ticketClosed') })
     setOpenTicket(null)
     refresh()
   }
 
   return (
     <>
-      <PanelPageHeader title="Tickets" description="Support requests from your clients" />
+      <PanelPageHeader title={t('common.tickets')} description={t('rcus.ticketsDesc')} />
       <div className="overflow-hidden rounded-2xl border bg-white dark:bg-zinc-900">
         <div className="divide-y">
-          {tickets.map((t) => (
-            <button key={t.id} onClick={() => setOpenTicket(t)} className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-zinc-50 dark:hover:bg-zinc-900/60">
+          {tickets.map((tk) => (
+            <button key={tk.id} onClick={() => setOpenTicket(tk)} className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-zinc-50 dark:hover:bg-zinc-900/60">
               <span className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)' }}>
                 <LifeBuoy className="h-4 w-4" style={{ color: 'var(--brand)' }} />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-bold">{t.subject}</p>
-                <p className="truncate text-[11px] text-zinc-400 dark:text-zinc-500">{t.user.name} · {t.messages.length} messages · {formatDateTime(t.updatedAt, app.lang as Lang)}</p>
+                <p className="truncate text-[13px] font-bold">{tk.subject}</p>
+                <p className="truncate text-[11px] text-zinc-400 dark:text-zinc-500">{tk.user.name} · {t('rcus.messages').replace('{x}', String(tk.messages.length))} · {formatDateTime(tk.updatedAt, app.lang as Lang)}</p>
               </div>
               <div className="flex items-center gap-2">
-                {t.priority !== 'normal' && <Badge variant="outline" className="text-[10px] uppercase">{t.priority}</Badge>}
-                <StatusBadge status={t.status} />
+                {tk.priority !== 'normal' && <Badge variant="outline" className="text-[10px] uppercase">{tk.priority}</Badge>}
+                <StatusBadge status={tk.status} />
               </div>
             </button>
           ))}
           {!tickets.length && (
             <div className="p-10 text-center">
               <LifeBuoy className="mx-auto h-8 w-8 text-zinc-300 dark:text-zinc-600" />
-              <p className="mt-2 text-sm text-zinc-400 dark:text-zinc-500">No tickets from your clients yet.</p>
+              <p className="mt-2 text-sm text-zinc-400 dark:text-zinc-500">{t('rcus.noTickets')}</p>
             </div>
           )}
         </div>
@@ -345,7 +348,7 @@ function Tickets() {
       {/* My tickets to GrowthRush support */}
       {!!data?.myTickets.length && (
         <>
-          <p className="mb-2 mt-6 text-sm font-extrabold">My tickets to GrowthRush</p>
+          <p className="mb-2 mt-6 text-sm font-extrabold">{t('rcus.myTickets')}</p>
           <div className="overflow-hidden rounded-2xl border bg-white dark:bg-zinc-900">
             <div className="divide-y">
               {data.myTickets.map((t) => (
@@ -375,7 +378,7 @@ function Tickets() {
                 <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${m.isStaff ? 'text-[var(--on-brand)]' : 'bg-zinc-100 dark:bg-zinc-800/60 text-zinc-800 dark:text-zinc-100'}`}
                   style={m.isStaff ? { background: 'var(--brand)' } : undefined}
                 >
-                  <p className="mb-0.5 text-[10px] font-bold opacity-70">{m.isStaff ? 'Support Team' : m.senderName} · {formatDateTime(m.createdAt, app.lang as Lang)}</p>
+                  <p className="mb-0.5 text-[10px] font-bold opacity-70">{m.isStaff ? t('rcus.supportTeam') : m.senderName} · {formatDateTime(m.createdAt, app.lang as Lang)}</p>
                   {m.body}
                 </div>
               </div>
@@ -383,16 +386,16 @@ function Tickets() {
           </div>
           {openTicket?.status !== 'CLOSED' ? (
             <div className="border-t pt-3">
-              <Textarea rows={2} placeholder="Type your reply…" value={reply} onChange={(e) => setReply(e.target.value)} />
+              <Textarea rows={2} placeholder={t('rcus.replyPh')} value={reply} onChange={(e) => setReply(e.target.value)} />
               <div className="mt-2 flex gap-2">
                 <Button className="flex-1 font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }} disabled={sending || !reply.trim()} onClick={send}>
-                  <Send className="mr-1.5 h-3.5 w-3.5" /> Send reply
+                  <Send className="mr-1.5 h-3.5 w-3.5" /> {t('rcus.sendReply')}
                 </Button>
-                <Button variant="outline" className="font-bold" onClick={closeTicket}>Close ticket</Button>
+                <Button variant="outline" className="font-bold" onClick={closeTicket}>{t('rcus.closeTicket')}</Button>
               </div>
             </div>
           ) : (
-            <p className="border-t pt-3 text-center text-[12px] text-zinc-400 dark:text-zinc-500">This ticket is closed.</p>
+            <p className="border-t pt-3 text-center text-[12px] text-zinc-400 dark:text-zinc-500">{t('rcus.closed')}</p>
           )}
         </DialogContent>
       </Dialog>

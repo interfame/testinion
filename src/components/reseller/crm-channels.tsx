@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/select'
 import { PanelPageHeader, StatusBadge } from '@/components/shared/panel-shell'
 import { PageWrap } from './crm-shared'
+import { useI18n } from '@/lib/i18n'
 import {
   CHANNEL_TYPES,
   CardsSkeleton,
@@ -79,6 +80,7 @@ const GUIDE_STEPS: Record<string, string[]> = {
 
 export default function CrmChannels({ platformId }: { platformId: string }) {
   const { lang } = useApp()
+  const { t } = useI18n()
   const { data, loading, refresh } = useApi<{ channels: CrmChannel[] }>('/api/reseller/crm/channels', [platformId])
   const channels = data?.channels ?? []
 
@@ -92,7 +94,7 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
     setBusyId(c.id)
     await mutate(
       () => api.patch('/api/reseller/crm/channels', { id: c.id, status: next }),
-      { success: next === 'CONNECTED' ? `${c.name} connected (simulated)` : `${c.name} disconnected` },
+      { success: next === 'CONNECTED' ? t('crm.connected').replace('{name}', c.name) : t('crm.disconnected').replace('{name}', c.name) },
     )
     setBusyId(null)
     refresh()
@@ -101,7 +103,7 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
   async function create() {
     if (!form.name.trim()) return
     const res = await mutate(() => api.post('/api/reseller/crm/channels', form), {
-      success: 'Channel created — connect it to go live',
+      success: t('crm.chanCreated'),
     })
     if (res) {
       setCreateOpen(false)
@@ -111,18 +113,18 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
   }
 
   async function remove(c: CrmChannel) {
-    await mutate(() => api.del(`/api/reseller/crm/channels?id=${c.id}`), { success: `${c.name} deleted` })
+    await mutate(() => api.del(`/api/reseller/crm/channels?id=${c.id}`), { success: t('crm.deleted').replace('{name}', c.name) })
     refresh()
   }
 
   return (
     <PageWrap>
       <PanelPageHeader
-        title="Channels"
-        description="Connect WhatsApp, Instagram, Telegram and more — every chat lands in one inbox."
+        title={t('reseller.channels')}
+        description={t('crm.chanDesc')}
         actions={
           <Button onClick={() => setCreateOpen(true)} className="rounded-xl text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
-            <Plus className="h-4 w-4" /> Add channel
+            <Plus className="h-4 w-4" /> {t('crm.addChannel')}
           </Button>
         }
       />
@@ -132,8 +134,8 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
       ) : channels.length === 0 ? (
         <EmptyState
           icon={Radio}
-          title="No channels connected"
-          description="Add your first channel to start receiving customer conversations from every platform in a single inbox."
+          title={t('crm.chanEmpty')}
+          description={t('crm.chanEmptySub')}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -153,7 +155,7 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
                 </div>
                 <h3 className="mt-3 text-[15px] font-bold text-zinc-900 dark:text-zinc-50">{c.name}</h3>
                 <p className="truncate text-[12.5px] text-zinc-500 dark:text-zinc-400">{c.handle ?? meta.label}</p>
-                <p className="mt-1 text-[11px] text-zinc-400 dark:text-zinc-500">Added {formatDate(c.createdAt, lang)}</p>
+                <p className="mt-1 text-[11px] text-zinc-400 dark:text-zinc-500">{t('crm.added').replace('{x}', formatDate(c.createdAt, lang))}</p>
                 <div className="mt-4 flex items-center gap-2 border-t border-zinc-100 dark:border-zinc-800/70 pt-3">
                   <Button
                     size="sm"
@@ -167,7 +169,7 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
                     )}
                     style={connected ? undefined : { background: 'var(--brand)' }}
                   >
-                    {connected ? 'Disconnect' : 'Connect'}
+                    {connected ? t('rfin.disconnectCta2') : t('rfin.connectCta')}
                   </Button>
                   <Button
                     size="sm"
@@ -175,11 +177,11 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
                     className="h-8 rounded-lg text-xs font-bold"
                     onClick={() => setGuide(c)}
                   >
-                    <BookOpen className="h-3.5 w-3.5" /> Guide
+                    <BookOpen className="h-3.5 w-3.5" /> {t('crm.guide')}
                   </Button>
                   <ConfirmDelete
-                    title={`Delete ${c.name}?`}
-                    description="The channel will be removed from your workspace. Past conversations are kept."
+                    title={t('crm.delQ').replace('{name}', c.name)}
+                    description={t('crm.delChanDesc')}
                     onConfirm={() => remove(c)}
                   />
                 </div>
@@ -195,10 +197,10 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-left">
               {guide && <ChannelIcon type={guide.type} size={20} />}
-              {guide?.name} — setup guide
+              {guide?.name} — {t('crm.guideWord')}
             </DialogTitle>
             <DialogDescription className="text-left">
-              Follow these steps to link the channel. The demo environment simulates the handshake.
+              {t('crm.guideDesc')}
             </DialogDescription>
           </DialogHeader>
           <ol className="space-y-3 py-1">
@@ -217,7 +219,7 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
           </ol>
           <DialogFooter>
             <Button variant="outline" className="rounded-xl" onClick={() => setGuide(null)}>
-              Got it
+              {t('crm.gotIt')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -227,12 +229,12 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="rounded-2xl sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add a channel</DialogTitle>
-            <DialogDescription>New channels start disconnected until you complete the handshake.</DialogDescription>
+            <DialogTitle>{t('crm.addChan')}</DialogTitle>
+            <DialogDescription>{t('crm.addChanDesc')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3.5 py-1">
             <div className="space-y-1.5">
-              <Label htmlFor="ch-type">Type</Label>
+              <Label htmlFor="ch-type">{t('rcat.type')}</Label>
               <Select value={form.type} onValueChange={(v) => setForm((f) => ({ ...f, type: v }))}>
                 <SelectTrigger id="ch-type" className="w-full rounded-xl">
                   <SelectValue />
@@ -249,7 +251,7 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ch-name">Name</Label>
+              <Label htmlFor="ch-name">{t('rcat.name')}</Label>
               <Input
                 id="ch-name"
                 value={form.name}
@@ -259,7 +261,7 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ch-handle">Handle</Label>
+              <Label htmlFor="ch-handle">{t('crm.handle')}</Label>
               <Input
                 id="ch-handle"
                 value={form.handle}
@@ -271,7 +273,7 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
           </div>
           <DialogFooter>
             <Button variant="outline" className="rounded-xl" onClick={() => setCreateOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               className="rounded-xl text-[var(--on-brand)]"
@@ -279,7 +281,7 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
               onClick={create}
               disabled={!form.name.trim()}
             >
-              <Settings2 className="h-4 w-4" /> Create channel
+              <Settings2 className="h-4 w-4" /> {t('crm.createChan')}
             </Button>
           </DialogFooter>
         </DialogContent>

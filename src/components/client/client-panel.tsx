@@ -130,7 +130,7 @@ function ClientPanelInner({ user, onRefresh, onLogout }: {
       ],
     },
     {
-      title: 'Support',
+      title: t('common.support'),
       items: [
         { key: 'transactions', label: t('common.transactions'), icon: ReceiptText },
         { key: 'tickets', label: t('common.tickets'), icon: LifeBuoy, badge: openTickets || undefined },

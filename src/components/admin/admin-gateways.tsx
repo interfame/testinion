@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { PanelPageHeader } from '@/components/shared/panel-shell'
 import { api, mutate, useApi } from '@/lib/api'
+import { useI18n } from '@/lib/i18n'
 import { GATEWAY_PROVIDERS, PROVIDER_CODES } from '@/lib/gateways'
 import { apiDel } from './admin-ui'
 import { FieldLabel, type AdminGateway } from './admin-ui'
@@ -57,6 +58,7 @@ const EMPTY: GwForm = {
 }
 
 export function GatewaysSection() {
+  const { t } = useI18n()
   const { data, loading, refresh } = useApi<{ gateways: AdminGateway[] }>('/api/admin/gateways')
   const [editing, setEditing] = useState<AdminGateway | 'new' | null>(null)
   const [form, setForm] = useState<GwForm>(EMPTY)
@@ -136,8 +138,8 @@ export function GatewaysSection() {
   return (
     <div className="space-y-4">
       <PanelPageHeader
-        title="Payment gateways"
-        description="Methods users see when adding funds. Configure provider API credentials here; resellers configure their own in their panel. Gateways with credentials run real provider checkout (redirect + webhook auto-credit); those without work as manual review deposits."
+        title={t('landing.feat.gateways.title')}
+        description={t('admin.gw.desc')}
         actions={
           <Button onClick={() => { setForm(EMPTY); setEditing('new') }} className="h-9 rounded-full px-4 text-[13px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
             <Plus className="mr-1 h-4 w-4" /> New gateway
@@ -244,23 +246,34 @@ export function GatewaysSection() {
             )}
 
             {form.code === 'CUSTOM' && (
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <FieldLabel>Type</FieldLabel>
-                  <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
-                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {GATEWAY_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div><FieldLabel>Fee %</FieldLabel><Input type="number" step="0.1" value={form.feePercent} onChange={(e) => setForm({ ...form, feePercent: e.target.value })} /></div>
-                <div><FieldLabel>Sort</FieldLabel><Input type="number" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: e.target.value })} /></div>
+              <div>
+                <FieldLabel hint="how it's categorised">Type</FieldLabel>
+                <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {GATEWAY_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             )}
+
+            {/* Commission + sort — for provider gateways AND custom methods */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <FieldLabel>Commission %</FieldLabel>
+                <Input type="number" step="0.1" value={form.feePercent} onChange={(e) => setForm({ ...form, feePercent: e.target.value })} />
+              </div>
+              <div>
+                <FieldLabel>Sort</FieldLabel>
+                <Input type="number" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: e.target.value })} />
+              </div>
+              <p className="col-span-2 text-[11px] leading-snug text-zinc-400 dark:text-zinc-500">
+                Commission charged to the user on each deposit — added to the total automatically at checkout.
+              </p>
+            </div>
             <div>
               <FieldLabel hint="shown at checkout">Instructions</FieldLabel>
-              <Textarea rows={4} value={form.instructions} onChange={(e) => setForm({ ...form, instructions: e.target.value })} placeholder="Send USDT to TVh7x… then paste your TXID as reference." />
+              <Textarea rows={4} value={form.instructions} onChange={(e) => setForm({ ...form, instructions: e.target.value })} placeholder={t('admin.gw.instructionsPh')} />
             </div>
             <div className="flex items-center gap-2">
               <Switch id="gw-enabled" checked={form.enabled} onCheckedChange={(c) => setForm({ ...form, enabled: c })} />

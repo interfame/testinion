@@ -82,7 +82,7 @@ export function CouponBanner({ code, value, moneyLabel, dark = false, notchClass
       {/* Dismiss */}
       <button
         onClick={() => setDismissed(true)}
-        aria-label="Dismiss promotion"
+        aria-label={t('coupon.dismiss')}
         className={`shrink-0 rounded-full p-1.5 transition ${
           dark ? 'text-white/50 hover:bg-white/10 hover:text-white' : 'text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-200'
         }`}

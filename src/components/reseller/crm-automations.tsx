@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/select'
 import { PanelPageHeader } from '@/components/shared/panel-shell'
 import { PageWrap } from './crm-shared'
+import { useI18n, type DictKey } from '@/lib/i18n'
 import {
   CardsSkeleton,
   ConfirmDelete,
@@ -45,18 +46,26 @@ const TRIGGER_BADGE: Record<string, string> = {
   HANDOFF: 'bg-sky-100 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-900/60',
 }
 
-const TRIGGER_HINT: Record<string, string> = {
-  KEYWORD: 'Comma-separated keywords, e.g. price,precios,cost',
-  WELCOME: 'Runs when a brand-new contact messages you',
-  AWAY_HOURS: 'Active window, e.g. 21:00-09:00',
-  NO_REPLY: 'Minutes without a reply before firing, e.g. 10',
-  HANDOFF: 'Runs when an agent hands the chat to a teammate',
+const TRIGGER_LABEL: Record<string, DictKey> = {
+  KEYWORD: 'crm.trgKeyword',
+  WELCOME: 'crm.trgWelcome',
+  AWAY_HOURS: 'crm.trgAway',
+  NO_REPLY: 'crm.trgNoReply',
+  HANDOFF: 'crm.trgHandoff',
+}
+
+const TRIGGER_HINT: Record<string, DictKey> = {
+  KEYWORD: 'crm.hKeyword',
+  WELCOME: 'crm.hWelcome',
+  AWAY_HOURS: 'crm.hAway',
+  NO_REPLY: 'crm.hNoReply',
+  HANDOFF: 'crm.hHandoff',
 }
 
 const ACTION_TYPES = [
-  { value: 'send_message', label: 'Send message' },
-  { value: 'add_label', label: 'Add label' },
-  { value: 'assign', label: 'Assign to agent' },
+  { value: 'send_message', labelKey: 'crm.actSend' as DictKey },
+  { value: 'add_label', labelKey: 'crm.actLabel' as DictKey },
+  { value: 'assign', labelKey: 'crm.actAssign' as DictKey },
 ]
 
 const ACTION_ICON: Record<string, typeof MessageSquare> = {
@@ -76,6 +85,7 @@ const EMPTY_FORM: Form = {
 }
 
 export default function CrmAutomations({ platformId }: { platformId: string }) {
+  const { t } = useI18n()
   const { data, loading, refresh } = useApi<{ automations: CrmAutomation[] }>(
     '/api/reseller/crm/automations',
     [platformId],
@@ -109,9 +119,9 @@ export default function CrmAutomations({ platformId }: { platformId: string }) {
     setSaving(true)
     const res = editing
       ? await mutate(() => api.patch('/api/reseller/crm/automations', { id: editing.id, ...form }), {
-          success: 'Automation updated',
+          success: t('crm.autoUpdated'),
         })
-      : await mutate(() => api.post('/api/reseller/crm/automations', form), { success: 'Automation created' })
+      : await mutate(() => api.post('/api/reseller/crm/automations', form), { success: t('crm.autoCreated') })
     setSaving(false)
     if (res) {
       setOpen(false)
@@ -125,18 +135,18 @@ export default function CrmAutomations({ platformId }: { platformId: string }) {
   }
 
   async function remove(a: CrmAutomation) {
-    await mutate(() => api.del(`/api/reseller/crm/automations?id=${a.id}`), { success: `${a.name} deleted` })
+    await mutate(() => api.del(`/api/reseller/crm/automations?id=${a.id}`), { success: t('crm.deleted').replace('{name}', a.name) })
     refresh()
   }
 
   return (
     <PageWrap>
       <PanelPageHeader
-        title="Automations"
-        description="If-this-then-that rules for your inbox: welcome new contacts, answer keywords, cover away hours and escalate silence."
+        title={t('reseller.automations')}
+        description={t('crm.autosDesc')}
         actions={
           <Button onClick={openCreate} className="rounded-xl text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
-            <Plus className="h-4 w-4" /> New automation
+            <Plus className="h-4 w-4" /> {t('crm.newAutomation')}
           </Button>
         }
       />
@@ -146,11 +156,11 @@ export default function CrmAutomations({ platformId }: { platformId: string }) {
       ) : automations.length === 0 ? (
         <EmptyState
           icon={Workflow}
-          title="No automations yet"
-          description="Automate the boring parts: greet new leads, reply to common keywords and never leave a customer hanging."
+          title={t('crm.autosEmpty')}
+          description={t('crm.autosEmptySub')}
         >
           <Button onClick={openCreate} className="rounded-xl text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
-            <Plus className="h-4 w-4" /> Create automation
+            <Plus className="h-4 w-4" /> {t('crm.createAutomation')}
           </Button>
         </EmptyState>
       ) : (
@@ -172,7 +182,7 @@ export default function CrmAutomations({ platformId }: { platformId: string }) {
                           TRIGGER_BADGE[a.trigger] ?? 'bg-zinc-100 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800',
                         )}
                       >
-                        {a.trigger.replace(/_/g, ' ')}
+                        {t(TRIGGER_LABEL[a.trigger] ?? 'crm.trgKeyword')}
                       </span>
                       {a.matchValue && (
                         <code className="max-w-[180px] truncate rounded-md bg-zinc-100 dark:bg-zinc-800/60 px-1.5 py-0.5 text-[10.5px] font-bold text-zinc-500 dark:text-zinc-400">
@@ -181,12 +191,12 @@ export default function CrmAutomations({ platformId }: { platformId: string }) {
                       )}
                     </div>
                   </div>
-                  <Switch checked={a.active} onCheckedChange={(v) => toggleActive(a, v)} aria-label={`Toggle ${a.name}`} />
+                  <Switch checked={a.active} onCheckedChange={(v) => toggleActive(a, v)} aria-label={t('crm.toggleAria').replace('{name}', a.name)} />
                 </div>
 
                 <div className="mt-3 space-y-1.5">
                   {actions.length === 0 ? (
-                    <p className="text-[11.5px] text-zinc-400 dark:text-zinc-500">No actions configured.</p>
+                    <p className="text-[11.5px] text-zinc-400 dark:text-zinc-500">{t('crm.noActions')}</p>
                   ) : (
                     actions.map((act, i) => {
                       const Icon = ACTION_ICON[act.type] ?? Zap
@@ -197,7 +207,7 @@ export default function CrmAutomations({ platformId }: { platformId: string }) {
                         >
                           <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--brand)' }} />
                           <span className="truncate font-semibold text-zinc-700 dark:text-zinc-200">
-                            {ACTION_TYPES.find((t) => t.value === act.type)?.label ?? act.type}
+                            {t(ACTION_TYPES.find((at) => at.value === act.type)?.labelKey ?? 'crm.actSend')}
                           </span>
                           {act.value && <span className="truncate text-zinc-500 dark:text-zinc-400">· {act.value}</span>}
                         </div>
@@ -208,7 +218,7 @@ export default function CrmAutomations({ platformId }: { platformId: string }) {
 
                 <div className="mt-4 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800/70 pt-3">
                   <span className="text-[11.5px] font-semibold text-zinc-500 dark:text-zinc-400">
-                    {a.runs.toLocaleString('en-US')} runs
+                    {a.runs.toLocaleString('en-US')} {t('crm.runs')}
                   </span>
                   <div className="flex items-center gap-1">
                     <Button
@@ -216,13 +226,13 @@ export default function CrmAutomations({ platformId }: { platformId: string }) {
                       size="icon"
                       className="h-8 w-8 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200"
                       onClick={() => openEdit(a)}
-                      aria-label={`Edit ${a.name}`}
+                      aria-label={t('crm.editAria').replace('{name}', a.name)}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <ConfirmDelete
-                      title={`Delete ${a.name}?`}
-                      description="The automation stops firing immediately. Past runs are kept in stats."
+                      title={t('crm.delQ').replace('{name}', a.name)}
+                      description={t('crm.delAutoDesc')}
                       onConfirm={() => remove(a)}
                     />
                   </div>
@@ -237,51 +247,51 @@ export default function CrmAutomations({ platformId }: { platformId: string }) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto rounded-2xl sm:max-w-lg [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-300/70">
           <DialogHeader>
-            <DialogTitle>{editing ? `Edit ${editing.name}` : 'New automation'}</DialogTitle>
-            <DialogDescription>When the trigger fires, every action below runs in order.</DialogDescription>
+            <DialogTitle>{editing ? t('crm.editName').replace('{name}', editing.name) : t('crm.newAutomation')}</DialogTitle>
+            <DialogDescription>{t('crm.autoFormDesc')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3.5 py-1">
             <div className="space-y-1.5">
-              <Label htmlFor="au-name">Name</Label>
+              <Label htmlFor="au-name">{t('rcat.name')}</Label>
               <Input
                 id="au-name"
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="Welcome new contacts"
+                placeholder={t('crm.phAutoName')}
                 className="rounded-xl"
               />
             </div>
             <div className="grid gap-3.5 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label>Trigger</Label>
+                <Label>{t('crm.trigger')}</Label>
                 <Select value={form.trigger} onValueChange={(v) => setForm((f) => ({ ...f, trigger: v }))}>
                   <SelectTrigger className="w-full rounded-xl">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {TRIGGERS.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {t.replace(/_/g, ' ')}
+                    {TRIGGERS.map((tr) => (
+                      <SelectItem key={tr} value={tr}>
+                        {t(TRIGGER_LABEL[tr] ?? 'crm.trgKeyword')}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="au-match">Match value</Label>
+                <Label htmlFor="au-match">{t('crm.matchValue')}</Label>
                 <Input
                   id="au-match"
                   value={form.matchValue}
                   onChange={(e) => setForm((f) => ({ ...f, matchValue: e.target.value }))}
-                  placeholder={TRIGGER_HINT[form.trigger] ?? 'Value'}
+                  placeholder={TRIGGER_HINT[form.trigger] ? t(TRIGGER_HINT[form.trigger]) : t('admin.bl.value')}
                   className="rounded-xl"
                 />
-                <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{TRIGGER_HINT[form.trigger]}</p>
+                <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{t(TRIGGER_HINT[form.trigger])}</p>
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label>Actions</Label>
+              <Label>{t('crm.actionsLabel')}</Label>
               <div className="space-y-2">
                 {form.actions.map((act, i) => (
                   <div key={i} className="flex items-center gap-2">
@@ -298,9 +308,9 @@ export default function CrmAutomations({ platformId }: { platformId: string }) {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {ACTION_TYPES.map((t) => (
-                          <SelectItem key={t.value} value={t.value} className="text-xs">
-                            {t.label}
+                        {ACTION_TYPES.map((at) => (
+                          <SelectItem key={at.value} value={at.value} className="text-xs">
+                            {t(at.labelKey)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -315,10 +325,10 @@ export default function CrmAutomations({ platformId }: { platformId: string }) {
                       }
                       placeholder={
                         act.type === 'send_message'
-                          ? 'Message text…'
+                          ? t('crm.phMsg')
                           : act.type === 'add_label'
-                            ? 'Label name…'
-                            : 'Teammate name…'
+                            ? t('crm.phLabelName')
+                            : t('crm.phTeammate')
                       }
                       className="h-8 flex-1 rounded-lg text-xs"
                     />
@@ -327,7 +337,7 @@ export default function CrmAutomations({ platformId }: { platformId: string }) {
                       size="icon"
                       className="h-8 w-8 shrink-0 text-zinc-400 dark:text-zinc-500 hover:text-rose-600 dark:hover:text-rose-400"
                       onClick={() => setForm((f) => ({ ...f, actions: f.actions.filter((_, j) => j !== i) }))}
-                      aria-label="Remove action"
+                      aria-label={t('crm.rmAction')}
                       disabled={form.actions.length === 1}
                     >
                       <X className="h-4 w-4" />
@@ -343,13 +353,13 @@ export default function CrmAutomations({ platformId }: { platformId: string }) {
                   setForm((f) => ({ ...f, actions: [...f.actions, { type: 'send_message', value: '' }] }))
                 }
               >
-                <Plus className="h-3.5 w-3.5" /> Add action
+                <Plus className="h-3.5 w-3.5" /> {t('crm.addAction')}
               </Button>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" className="rounded-xl" onClick={() => setOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               onClick={save}
@@ -357,7 +367,7 @@ export default function CrmAutomations({ platformId }: { platformId: string }) {
               className="rounded-xl text-[var(--on-brand)]"
               style={{ background: 'var(--brand)' }}
             >
-              {editing ? 'Save changes' : 'Create automation'}
+              {editing ? t('rcat.saveChanges') : t('crm.createAutomation')}
             </Button>
           </DialogFooter>
         </DialogContent>

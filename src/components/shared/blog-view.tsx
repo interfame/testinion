@@ -10,13 +10,13 @@ import { themeVars } from '@/lib/themes'
 import { formatDate } from '@/lib/format'
 import { sanitizeHtml } from '@/lib/sanitize'
 import { useApp } from '@/components/shared/app-context'
+import { useI18n, type Lang } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   ArrowLeft, ArrowRight, CalendarDays, Check, ChevronLeft, Copy,
   Link2, Newspaper, Sparkles, Zap,
 } from 'lucide-react'
-import type { Lang } from '@/lib/i18n'
 
 type PostCard = { id: string; title: string; slug: string; excerpt: string | null; cover: string | null; publishedAt: string }
 type PostFull = PostCard & { body: string }
@@ -49,6 +49,7 @@ function ListView({ data, loading, lang, onOpen }: {
   lang: Lang
   onOpen: (slug: string) => void
 }) {
+  const { t } = useI18n()
   const posts = data?.posts ?? []
   const featured = posts[0]
   const rest = posts.slice(1)
@@ -69,14 +70,14 @@ function ListView({ data, loading, lang, onOpen }: {
         />
         <div className="relative mx-auto max-w-6xl px-4 py-14 text-center sm:px-6 sm:py-20">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs font-semibold text-white/80 backdrop-blur">
-            <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--brand-2)' }} /> The GrowthRush journal
+            <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--brand-2)' }} /> {t('rblog.badge')}
           </span>
           <h1 className="mx-auto mt-5 max-w-3xl font-black tracking-tight text-4xl leading-[1.05] sm:text-5xl">
-            Insights, guides &{' '}
-            <span className="bg-gradient-to-r from-[var(--brand)] to-[var(--brand-2)] bg-clip-text text-transparent">growth playbooks</span>
+            {t('rblog.hero1')}{' '}
+            <span className="bg-gradient-to-r from-[var(--brand)] to-[var(--brand-2)] bg-clip-text text-transparent">{t('rblog.hero2')}</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/60 sm:text-base">
-            Everything we learn running social media marketing at scale — published for you.
+            {t('rblog.heroSub')}
           </p>
         </div>
       </section>
@@ -94,8 +95,8 @@ function ListView({ data, loading, lang, onOpen }: {
             <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl" style={{ background: 'color-mix(in srgb, var(--brand) 12%, transparent)' }}>
               <Newspaper className="h-6 w-6" style={{ color: 'var(--brand)' }} />
             </span>
-            <h2 className="mt-4 text-lg font-extrabold">No posts yet</h2>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Come back soon — new articles are on the way.</p>
+            <h2 className="mt-4 text-lg font-extrabold">{t('rblog.noneTitle')}</h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('rblog.noneDesc')}</p>
           </div>
         ) : (
           <>
@@ -110,7 +111,7 @@ function ListView({ data, loading, lang, onOpen }: {
                 </div>
                 <div className="flex flex-col justify-center gap-3 p-6 sm:p-8">
                   <span className="w-fit rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
-                    Latest
+                    {t('rblog.latest')}
                   </span>
                   <h2 className="text-2xl font-black leading-tight tracking-tight sm:text-3xl">{featured.title}</h2>
                   {featured.excerpt && <p className="line-clamp-3 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{featured.excerpt}</p>}
@@ -119,7 +120,7 @@ function ListView({ data, loading, lang, onOpen }: {
                       <CalendarDays className="h-3.5 w-3.5" /> {formatDate(featured.publishedAt, lang)}
                     </span>
                     <Button size="sm" className="rounded-full px-4 text-[12px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
-                      Read more <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                      {t('rblog.readMore')} <ArrowRight className="ml-1 h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
@@ -147,7 +148,7 @@ function ListView({ data, loading, lang, onOpen }: {
                       <h3 className="text-[15px] font-extrabold leading-snug">{p.title}</h3>
                       {p.excerpt && <p className="line-clamp-2 text-[12.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">{p.excerpt}</p>}
                       <span className="mt-auto inline-flex items-center gap-1 pt-2 text-[12px] font-bold" style={{ color: 'var(--brand)' }}>
-                        Read more <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                        {t('rblog.readMore')} <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                       </span>
                     </div>
                   </article>
@@ -169,7 +170,7 @@ function ArticleView({ platform, slug, lang, onBack }: {
   lang: Lang
   onBack: () => void
 }) {
-  const scope = useApp()
+  const { t } = useI18n()
   const { data, loading, error } = useApi<ArticleResp>(`/api/blog?platform=${encodeURIComponent(platform)}&post=${encodeURIComponent(slug)}`, [slug, platform])
   const [copied, setCopied] = useState(false)
   const post = data?.post
@@ -197,9 +198,9 @@ function ArticleView({ platform, slug, lang, onBack }: {
     return (
       <div className="mx-auto max-w-md px-4 py-20 text-center">
         <Newspaper className="mx-auto h-10 w-10 text-zinc-300 dark:text-zinc-600" />
-        <h2 className="mt-4 text-xl font-extrabold">Post not found</h2>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">It may have been unpublished.</p>
-        <Button variant="outline" className="mt-6" onClick={onBack}><ArrowLeft className="mr-1.5 h-4 w-4" /> Back to all posts</Button>
+        <h2 className="mt-4 text-xl font-extrabold">{t('rblog.notFound')}</h2>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('rblog.notFoundDesc')}</p>
+        <Button variant="outline" className="mt-6" onClick={onBack}><ArrowLeft className="mr-1.5 h-4 w-4" /> {t('rblog.backAll')}</Button>
       </div>
     )
   }
@@ -207,7 +208,7 @@ function ArticleView({ platform, slug, lang, onBack }: {
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
       <Button variant="ghost" size="sm" className="mb-6 -ml-2 font-bold" onClick={onBack}>
-        <ArrowLeft className="mr-1 h-4 w-4" /> All posts
+        <ArrowLeft className="mr-1 h-4 w-4" /> {t('rblog.all')}
       </Button>
 
       <h1 className="text-3xl font-black leading-[1.1] tracking-tight sm:text-4xl">{post.title}</h1>
@@ -232,18 +233,18 @@ function ArticleView({ platform, slug, lang, onBack }: {
             <Zap className="h-4 w-4" />
           </span>
           <div>
-            <p className="text-[13px] font-extrabold">Enjoyed the read?</p>
-            <p className="text-[12px] text-zinc-500 dark:text-zinc-400">Share it with a friend who needs it.</p>
+            <p className="text-[13px] font-extrabold">{t('rblog.shareTitle')}</p>
+            <p className="text-[12px] text-zinc-500 dark:text-zinc-400">{t('rblog.shareDesc')}</p>
           </div>
         </div>
         <Button variant="outline" size="sm" className="gap-1.5 rounded-full font-bold" onClick={share}>
           {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Link2 className="h-3.5 w-3.5" />}
-          {copied ? 'Link copied' : 'Copy link'}
+          {copied ? t('rblog.copied') : t('rblog.copyLink')}
         </Button>
       </div>
 
       <p className="mt-8 text-center text-[11.5px] text-zinc-400 dark:text-zinc-500">
-        {scope.lang === 'es' ? 'Publicado en' : scope.lang === 'pt' ? 'Publicado em' : 'Published on'} {data?.platform?.name ?? 'GrowthRush'}
+        {t('rblog.publishedOn')} {data?.platform?.name ?? 'GrowthRush'}
       </p>
     </main>
   )
@@ -254,6 +255,7 @@ function ArticleView({ platform, slug, lang, onBack }: {
 export default function BlogView({ slug }: { slug: string | null }) {
   const scopeParam = slug ?? 'master'
   const { lang } = useApp()
+  const { t } = useI18n()
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
   const { data, loading } = useApi<BlogResp>(`/api/blog?platform=${encodeURIComponent(scopeParam)}`, [scopeParam])
 
@@ -270,7 +272,7 @@ export default function BlogView({ slug }: { slug: string | null }) {
       <header className="sticky top-0 z-40 border-b border-zinc-200/70 bg-white/85 backdrop-blur dark:border-zinc-800/80 dark:bg-zinc-950/85">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Button variant="ghost" size="sm" className="-ml-2 font-bold" onClick={() => window.dispatchEvent(new Event('gr:exit'))}>
-            <ChevronLeft className="mr-0.5 h-4 w-4" /> Back
+            <ChevronLeft className="mr-0.5 h-4 w-4" /> {t('buy.back')}
           </Button>
           <div className="flex items-center gap-2">
             {data?.platform?.logoUrl ? (

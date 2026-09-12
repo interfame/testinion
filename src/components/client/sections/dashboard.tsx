@@ -118,7 +118,7 @@ export default function DashboardSection({ onNavigate }: { onNavigate: (key: str
           {activity.map((a) => {
             const pct = a.orders === 0 ? 0 : Math.max(12, Math.round((a.orders / maxDayOrders) * 100))
             return (
-              <div key={a.key} className="group relative flex h-full flex-1 flex-col justify-end" title={`${a.label} — ${a.orders} ${a.orders === 1 ? 'order' : 'orders'}${a.spend ? ` · ${m(a.spend)}` : ''}`}>
+              <div key={a.key} className="group relative flex h-full flex-1 flex-col justify-end" title={`${a.label} — ${a.orders === 1 ? t('cdash.orderOne').replace('{n}', String(a.orders)) : t('cdash.orderMany').replace('{n}', String(a.orders))}${a.spend ? ` · ${m(a.spend)}` : ''}`}>
                 <div
                   className={`w-full rounded-t-md transition-all duration-300 group-hover:opacity-100 ${a.orders === 0 ? 'h-[4px] bg-zinc-200 dark:bg-zinc-800' : 'bg-gradient-to-t from-[var(--brand-dark)] to-[var(--brand)] opacity-85'}`}
                   style={a.orders > 0 ? { height: `${pct}%` } : undefined}
@@ -202,7 +202,7 @@ export default function DashboardSection({ onNavigate }: { onNavigate: (key: str
           ) : latest.length === 0 ? (
             <EmptyState
               icon={ShoppingBag}
-              title="No orders yet"
+              title={t('admin.dash.noOrdersYet')}
               message={t('client.noOrders')}
               action={<BrandButton size="sm" onClick={() => onNavigate('new-order')}><Zap className="mr-1 h-3.5 w-3.5" /> {t('common.newOrder')}</BrandButton>}
             />

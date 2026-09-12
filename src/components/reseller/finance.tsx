@@ -24,7 +24,7 @@ import { useApi, api, mutate } from '@/lib/api'
 import { useRealtimeEvents } from '@/lib/realtime-client'
 import { GATEWAY_PROVIDERS } from '@/lib/gateways'
 import { formatMoney, formatDate, formatDateTime } from '@/lib/format'
-import type { Lang } from '@/lib/i18n'
+import { useI18n, type DictKey, type Lang } from '@/lib/i18n'
 
 type Tx = { id: string; type: string; amount: number; description: string; method: string | null; createdAt: string }
 type Gateway = { id: string; name: string; type: string; feePercent: number; instructions: string | null }
@@ -51,6 +51,7 @@ export default function ResellerFinance({ section, onNavigate }: { section: stri
 
 function PlanBilling({ onNavigate }: { onNavigate: (k: string) => void }) {
   const app = useApp()
+  const { t } = useI18n()
   const { data, loading, refresh } = useApi<PlanInfo & { plans?: Plan[] }>('/api/platform/mine')
   const { data: plansData } = useApi<{ plans: Plan[] }>('/api/plans')
   const { data: fundsData, refresh: refreshFunds } = useApi<{ transactions: Tx[] }>('/api/funds')
@@ -67,19 +68,19 @@ function PlanBilling({ onNavigate }: { onNavigate: (k: string) => void }) {
     if (!switching || !platform) return
     const price = switching.monthlyPrice
     if (app.user.balance < price) {
-      toast({ title: `You need ${money(price)} — add funds first`, variant: 'destructive' })
+      toast({ title: t('rfin.needFunds').replace('{money}', money(price)), variant: 'destructive' })
       return
     }
     const res = await mutate(
       () => api.patch('/api/platform/mine', { changePlan: switching.id }),
-      { success: `Plan changed to ${switching.name}! 🎉` }
+      { success: t('rfin.planChanged').replace('{name}', switching.name) }
     )
     if (res) { refresh(); refreshFunds(); app.refresh(); setSwitching(null) }
   }
 
   return (
     <>
-      <PanelPageHeader title="Plan & Billing" description="Your white-label platform subscription" />
+      <PanelPageHeader title={t('reseller.planBilling')} description={t('rfin.billingDesc')} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Current plan */}
@@ -90,34 +91,34 @@ function PlanBilling({ onNavigate }: { onNavigate: (k: string) => void }) {
                 <Crown className="h-6 w-6" />
               </span>
               <div>
-                <p className="text-lg font-extrabold">{plan?.name} plan</p>
-                <p className="text-[12px] text-zinc-500 dark:text-zinc-400">{platform?.name} · monthly subscription</p>
+                <p className="text-lg font-extrabold">{t('rfin.planNamed').replace('{name}', plan?.name ?? '')}</p>
+                <p className="text-[12px] text-zinc-500 dark:text-zinc-400">{t('rfin.monthlySub').replace('{name}', platform?.name ?? '')}</p>
               </div>
             </div>
-            <Badge className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400">ACTIVE</Badge>
+            <Badge className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400">{t('rfin.badgeActive')}</Badge>
           </div>
           <div className="mt-5 grid gap-4 sm:grid-cols-3">
             <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/60 p-3.5">
-              <p className="text-[11px] font-bold uppercase text-zinc-400 dark:text-zinc-500">Monthly</p>
+              <p className="text-[11px] font-bold uppercase text-zinc-400 dark:text-zinc-500">{t('rfin.monthly')}</p>
               <p className="mt-1 text-xl font-black">{money(platform?.monthlyFee ?? 0)}</p>
             </div>
             <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/60 p-3.5">
-              <p className="text-[11px] font-bold uppercase text-zinc-400 dark:text-zinc-500">Next billing</p>
+              <p className="text-[11px] font-bold uppercase text-zinc-400 dark:text-zinc-500">{t('rfin.nextBilling')}</p>
               <p className="mt-1 text-sm font-extrabold">{platform?.nextBilling ? formatDate(platform.nextBilling, app.lang as Lang) : '—'}</p>
             </div>
             <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/60 p-3.5">
-              <p className="text-[11px] font-bold uppercase text-zinc-400 dark:text-zinc-500">External API add-on</p>
+              <p className="text-[11px] font-bold uppercase text-zinc-400 dark:text-zinc-500">{t('rfin.externalAddon')}</p>
               <p className="mt-1 flex items-center gap-1.5 text-sm font-extrabold">
                 {platform?.externalApi ? (
-                  <><CheckCircle2 className="h-4 w-4 text-emerald-500" /> Enabled</>
+                  <><CheckCircle2 className="h-4 w-4 text-emerald-500" /> {t('rfin.enabled')}</>
                 ) : (
-                  <><XCircle className="h-4 w-4 text-zinc-300 dark:text-zinc-600" /> Disabled</>
+                  <><XCircle className="h-4 w-4 text-zinc-300 dark:text-zinc-600" /> {t('rfin.disabled')}</>
                 )}
               </p>
             </div>
           </div>
           <div className="mt-5">
-            <p className="mb-2 text-[12px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Included features</p>
+            <p className="mb-2 text-[12px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{t('rfin.includedFeatures')}</p>
             <div className="flex flex-wrap gap-1.5">
               {plan ? (JSON.parse(plan.features || '[]') as string[]).map((f) => (
                 <Badge key={f} variant="outline" className="text-[11px] font-semibold"><Check className="mr-1 h-3 w-3 text-emerald-500" />{f}</Badge>
@@ -129,22 +130,22 @@ function PlanBilling({ onNavigate }: { onNavigate: (k: string) => void }) {
         {/* External API upsell */}
         <div className={`rounded-2xl border p-6 ${platform?.externalApi ? 'border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40' : 'border-dashed bg-white dark:bg-zinc-900'}`}>
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400"><Zap className="h-5 w-5" /></span>
-          <p className="mt-3 text-sm font-extrabold">External API connector</p>
+          <p className="mt-3 text-sm font-extrabold">{t('rfin.externalConnector')}</p>
           <p className="mt-1 text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
             {platform?.externalApi
-              ? 'Active — you can connect third-party SMM providers in My Providers.'
-              : `Connect providers outside GrowthRush. +${money(plan?.externalApiPrice ?? 25)}/month.`}
+              ? t('rfin.externalActive')
+              : t('rfin.externalUpsell').replace('{money}', money(plan?.externalApiPrice ?? 25))}
           </p>
           {!platform?.externalApi && (
             <Button size="sm" className="mt-4 w-full font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }} onClick={() => onNavigate('integrations')}>
-              Enable add-on
+              {t('rfin.enableAddon')}
             </Button>
           )}
         </div>
       </div>
 
       {/* Change plan */}
-      <p className="mb-3 mt-7 text-sm font-extrabold">Change plan</p>
+      <p className="mb-3 mt-7 text-sm font-extrabold">{t('rfin.changePlan')}</p>
       <div className="grid gap-3 sm:grid-cols-3">
         {(plansData?.plans ?? []).map((p) => {
           const current = plan?.id === p.id
@@ -152,15 +153,15 @@ function PlanBilling({ onNavigate }: { onNavigate: (k: string) => void }) {
             <div key={p.id} className={`rounded-2xl border-2 bg-white dark:bg-zinc-900 p-4 ${current ? 'border-emerald-400' : 'border-zinc-200 dark:border-zinc-800'}`}>
               <div className="flex items-center justify-between">
                 <p className="text-[12px] font-extrabold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{p.name}</p>
-                {current && <Badge className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400">CURRENT</Badge>}
+                {current && <Badge className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400">{t('rst.current')}</Badge>}
               </div>
-              <p className="mt-1 text-2xl font-black">{money(p.monthlyPrice)}<span className="text-[12px] font-semibold text-zinc-400 dark:text-zinc-500">/mo</span></p>
+              <p className="mt-1 text-2xl font-black">{money(p.monthlyPrice)}<span className="text-[12px] font-semibold text-zinc-400 dark:text-zinc-500">{t('rfin.perMonth')}</span></p>
               <Button
                 variant="outline" size="sm" className="mt-3 w-full font-bold"
                 disabled={current}
                 onClick={() => setSwitching(p)}
               >
-                {current ? 'Active' : 'Switch to this plan'}
+                {current ? t('rcat.active') : t('rfin.switchTo')}
               </Button>
             </div>
           )
@@ -168,7 +169,7 @@ function PlanBilling({ onNavigate }: { onNavigate: (k: string) => void }) {
       </div>
 
       {/* Billing history */}
-      <p className="mb-2 mt-7 text-sm font-extrabold">Billing history</p>
+      <p className="mb-2 mt-7 text-sm font-extrabold">{t('rfin.billingHistory')}</p>
       <div className="overflow-hidden rounded-2xl border bg-white dark:bg-zinc-900">
         <div className="divide-y">
           {billingHistory.map((t) => (
@@ -183,7 +184,7 @@ function PlanBilling({ onNavigate }: { onNavigate: (k: string) => void }) {
               </span>
             </div>
           ))}
-          {!billingHistory.length && <p className="p-6 text-center text-sm text-zinc-400 dark:text-zinc-500">No billing events yet.</p>}
+          {!billingHistory.length && <p className="p-6 text-center text-sm text-zinc-400 dark:text-zinc-500">{t('rfin.noBilling')}</p>}
         </div>
       </div>
 
@@ -191,14 +192,14 @@ function PlanBilling({ onNavigate }: { onNavigate: (k: string) => void }) {
       <AlertDialog open={!!switching} onOpenChange={(o) => !o && setSwitching(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Switch to {switching?.name} plan?</AlertDialogTitle>
+            <AlertDialogTitle>{t('rfin.switchQ').replace('{name}', switching?.name ?? '')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Your card/balance will be charged {switching ? money(switching.monthlyPrice) : ''} today and your plan features update immediately. Portal designs outside the new plan will be locked.
+              {t('rfin.switchDesc').replace('{money}', switching ? money(switching.monthlyPrice) : '')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction style={{ background: 'var(--brand)' }} onClick={changePlan}>Confirm switch</AlertDialogAction>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction style={{ background: 'var(--brand)' }} onClick={changePlan}>{t('rfin.confirmSwitch')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -210,6 +211,7 @@ function PlanBilling({ onNavigate }: { onNavigate: (k: string) => void }) {
 
 function AddFunds() {
   const app = useApp()
+  const { t } = useI18n()
   const { data, refresh } = useApi<{ gateways: Gateway[] }>('/api/funds')
   const [amount, setAmount] = useState('100')
   const [gatewayId, setGatewayId] = useState<string | null>(null)
@@ -224,7 +226,7 @@ function AddFunds() {
     setBusy(true)
     const res = await mutate(
       () => api.post<{ balance: number; message: string }>('/api/funds', { amount: parseFloat(amount), gatewayId: gateway.id }),
-      { success: 'Funds added to your wallet! 💰' }
+      { success: t('rfin.fundsAdded') }
     )
     setBusy(false)
     if (res) { app.refresh(); refresh() }
@@ -232,10 +234,10 @@ function AddFunds() {
 
   return (
     <>
-      <PanelPageHeader title="Add Funds" description="Top up your GrowthRush wallet (platform fees, add-ons and balance for your own purchases)." />
+      <PanelPageHeader title={t('reseller.addFunds')} description={t('rfin.addFundsDesc')} />
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border bg-white dark:bg-zinc-900 p-6">
-          <Label className="text-[13px] font-bold">Amount (USD)</Label>
+          <Label className="text-[13px] font-bold">{t('rfin.amountUsd')}</Label>
           <Input className="mt-1.5 text-lg font-extrabold" type="number" min={5} value={amount} onChange={(e) => setAmount(e.target.value)} />
           <div className="mt-3 flex gap-2">
             {[25, 50, 100, 250, 500].map((a) => (
@@ -244,7 +246,7 @@ function AddFunds() {
               </Button>
             ))}
           </div>
-          <p className="mt-5 text-[13px] font-bold">Payment method</p>
+          <p className="mt-5 text-[13px] font-bold">{t('rfin.paymentMethod')}</p>
           <div className="mt-2 space-y-2">
             {(data?.gateways ?? []).map((g) => (
               <button
@@ -255,7 +257,7 @@ function AddFunds() {
                 }`}
               >
                 <span className="text-[13px] font-bold">{g.name}</span>
-                <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{g.feePercent > 0 ? `+${g.feePercent}% fee` : 'No fees'}</span>
+                <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{g.feePercent > 0 ? t('rfin.feePct').replace('{n}', String(g.feePercent)) : t('rfin.noFees')}</span>
               </button>
             ))}
           </div>
@@ -263,15 +265,15 @@ function AddFunds() {
             <p className="mt-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 p-3 text-[12px] text-zinc-500 dark:text-zinc-400">{gateway.instructions}</p>
           )}
           <div className="mt-4 space-y-1.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 p-3 text-[12px] text-zinc-500 dark:text-zinc-400">
-            <p className="flex justify-between"><span>Amount</span><b>{money(parseFloat(amount) || 0)}</b></p>
-            {fee > 0 && <p className="flex justify-between"><span>Processing fee</span><b>{money(fee)}</b></p>}
-            <p className="flex justify-between border-t pt-1.5 text-[13px] text-zinc-800 dark:text-zinc-100"><span className="font-bold">You receive</span><b>{money((parseFloat(amount) || 0) + fee)}</b></p>
+            <p className="flex justify-between"><span>{t('common.amount')}</span><b>{money(parseFloat(amount) || 0)}</b></p>
+            {fee > 0 && <p className="flex justify-between"><span>{t('rfin.processingFee')}</span><b>{money(fee)}</b></p>}
+            <p className="flex justify-between border-t pt-1.5 text-[13px] text-zinc-800 dark:text-zinc-100"><span className="font-bold">{t('rfin.youReceive')}</span><b>{money((parseFloat(amount) || 0) + fee)}</b></p>
           </div>
           <Button className="mt-4 w-full font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }} disabled={busy || !parseFloat(amount)} onClick={deposit}>
             {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wallet className="mr-2 h-4 w-4" />}
-            Deposit {money((parseFloat(amount) || 0) + fee)}
+            {t('rfin.depositCta').replace('{money}', money((parseFloat(amount) || 0) + fee))}
           </Button>
-          <p className="mt-2 text-center text-[11px] text-zinc-400 dark:text-zinc-500">Sandbox gateway — instant credit for demo purposes.</p>
+          <p className="mt-2 text-center text-[11px] text-zinc-400 dark:text-zinc-500">{t('rfin.sandboxNote')}</p>
         </div>
 
         <RecentTransactions />
@@ -282,11 +284,12 @@ function AddFunds() {
 
 function RecentTransactions() {
   const app = useApp()
+  const { t } = useI18n()
   const { data } = useApi<{ transactions: Tx[] }>('/api/funds')
   const money = (v: number) => formatMoney(v, app.currencyOf(app.user.currency), app.lang as Lang)
   return (
     <div className="rounded-2xl border bg-white dark:bg-zinc-900">
-      <p className="border-b p-4 text-sm font-extrabold">Recent wallet activity</p>
+      <p className="border-b p-4 text-sm font-extrabold">{t('rfin.recentActivity')}</p>
       <div className="max-h-96 divide-y overflow-y-auto">
         {(data?.transactions ?? []).slice(0, 15).map((t) => (
           <div key={t.id} className="flex items-center gap-3 px-4 py-3">
@@ -327,17 +330,18 @@ const PROVIDER_ICONS: Record<string, typeof Wallet> = {
  *  MercadoPago, Pix, Cryptomus, CoinPayments, Payoneer) with your own API
  *  credentials, plus saved cards for faster checkout. */
 function PaymentMethods() {
+  const { t } = useI18n()
   const { data: fundsData, refresh: refreshCards } = useApi<{ methods: Method[] }>('/api/funds')
   return (
     <div className="space-y-5">
       <PanelPageHeader
-        title="My Payment Methods"
-        description="Connect your own payment gateways so clients pay straight into YOUR accounts."
+        title={t('reseller.paymentMethods')}
+        description={t('rfin.pmDesc')}
       />
       <Tabs defaultValue="gateways">
         <TabsList className="rounded-full">
-          <TabsTrigger value="gateways" className="rounded-full px-4"><Plug className="mr-1.5 h-3.5 w-3.5" /> Payment gateways</TabsTrigger>
-          <TabsTrigger value="cards" className="rounded-full px-4"><WalletCards className="mr-1.5 h-3.5 w-3.5" /> Saved cards</TabsTrigger>
+          <TabsTrigger value="gateways" className="rounded-full px-4"><Plug className="mr-1.5 h-3.5 w-3.5" /> {t('rfin.tabGateways')}</TabsTrigger>
+          <TabsTrigger value="cards" className="rounded-full px-4"><WalletCards className="mr-1.5 h-3.5 w-3.5" /> {t('rfin.tabCards')}</TabsTrigger>
         </TabsList>
 
         {/* ── Gateways (6 providers) ── */}
@@ -355,6 +359,7 @@ function PaymentMethods() {
 }
 
 function PaymentGateways() {
+  const { t } = useI18n()
   const { data, refresh } = useApi<{ gateways: ProviderGateway[] }>('/api/reseller/gateways')
   const [editing, setEditing] = useState<{ code: string; gateway: ProviderGateway | null } | null>(null)
   const [values, setValues] = useState<Record<string, string>>({})
@@ -394,32 +399,32 @@ function PaymentGateways() {
       } else {
         await api.post('/api/reseller/gateways', { code: editing.code, feePercent: parseFloat(fee) || 0, enabled, config: payload })
       }
-      toast({ title: `${provider.name} connected to your platform 🎉` })
+      toast({ title: t('rfin.gwConnected').replace('{name}', provider.name) })
       setEditing(null)
       refresh()
     } catch (e) {
-      toast({ title: e instanceof Error ? e.message : 'Error', variant: 'destructive' })
+      toast({ title: e instanceof Error ? e.message : t('rfin.error'), variant: 'destructive' })
     } finally {
       setSaving(false)
     }
   }
 
   const toggle = async (gw: ProviderGateway, on: boolean) => {
-    const ok = await mutate(() => api.patch('/api/reseller/gateways', { id: gw.id, enabled: on }), { success: on ? 'Gateway enabled — clients can pay now' : 'Gateway paused' })
+    const ok = await mutate(() => api.patch('/api/reseller/gateways', { id: gw.id, enabled: on }), { success: on ? t('rfin.gwEnabled') : t('rfin.gwPaused') })
     if (ok) refresh()
   }
 
   const disconnect = async () => {
     if (!confirmDelete) return
-    const ok = await mutate(() => api.delBody('/api/reseller/gateways', { id: confirmDelete.id }), { success: 'Gateway disconnected' })
+    const ok = await mutate(() => api.delBody('/api/reseller/gateways', { id: confirmDelete.id }), { success: t('rfin.gwDisconnected') })
     if (ok) { setConfirmDelete(null); refresh() }
   }
 
   return (
     <>
       <div className="mb-3 rounded-xl border border-dashed bg-zinc-50 dark:bg-zinc-900/60 p-3 text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-        <p className="font-bold text-zinc-700 dark:text-zinc-200">Charge on your own accounts 💸</p>
-        <p>These gateways use YOUR API credentials — deposits from your storefront clients arrive directly to your PayPal, MercadoPago, Pix, crypto or Payoneer accounts, and you approve them in the Deposits queue. Secrets are stored encrypted and always shown masked.</p>
+        <p className="font-bold text-zinc-700 dark:text-zinc-200">{t('rfin.chargeOwn')}</p>
+        <p>{t('rfin.chargeOwnDesc')}</p>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {Object.values(GATEWAY_PROVIDERS).map((provider) => {
@@ -440,29 +445,29 @@ function PaymentGateways() {
                 </span>
                 {configured ? (
                   live
-                    ? <Badge className="border-0 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400"><span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" /> LIVE</Badge>
-                    : <Badge className="border-0 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400">PAUSED</Badge>
+                    ? <Badge className="border-0 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400"><span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" /> {t('rfin.badgeLive')}</Badge>
+                    : <Badge className="border-0 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400">{t('rfin.badgePaused')}</Badge>
                 ) : (
-                  <Badge variant="outline" className="text-zinc-400 dark:text-zinc-500">NOT CONFIGURED</Badge>
+                  <Badge variant="outline" className="text-zinc-400 dark:text-zinc-500">{t('rfin.badgeNotConfigured')}</Badge>
                 )}
               </div>
               <h3 className="mt-3 text-[15px] font-extrabold text-zinc-900 dark:text-zinc-50">{provider.name}</h3>
               <p className="mt-0.5 flex-1 text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">{provider.tagline}</p>
               <div className="mt-3 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800/70 pt-3">
                 <span className="text-[12px] font-semibold text-zinc-500 dark:text-zinc-400">
-                  Fee {gw?.feePercent ? `${gw.feePercent}%` : '—'}
+                  {t('rfin.commission')} {gw?.feePercent ? t('rfin.feeLabel').replace('{fee}', `${gw.feePercent}%`) : '—'}
                 </span>
                 <div className="flex items-center gap-1.5">
                   {configured && (
                     <>
-                      <Switch checked={live} onCheckedChange={(c) => toggle(gw!, c)} aria-label={`Toggle ${provider.name}`} />
-                      <Button variant="outline" size="icon" className="h-8 w-8 rounded-full text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40" onClick={() => setConfirmDelete(gw!)} aria-label={`Disconnect ${provider.name}`}>
+                      <Switch checked={live} onCheckedChange={(c) => toggle(gw!, c)} aria-label={t('rfin.toggleAria').replace('{name}', provider.name)} />
+                      <Button variant="outline" size="icon" className="h-8 w-8 rounded-full text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40" onClick={() => setConfirmDelete(gw!)} aria-label={t('rfin.disconnectAria').replace('{name}', provider.name)}>
                         <Unplug className="h-3.5 w-3.5" />
                       </Button>
                     </>
                   )}
                   <Button size="sm" variant="outline" className="h-8 rounded-full px-3 text-[12px] font-bold" onClick={() => open(provider.code)}>
-                    {configured ? 'Credentials' : 'Connect'}
+                    {configured ? t('rfin.credentialsCta') : t('rfin.connectCta')}
                   </Button>
                 </div>
               </div>
@@ -477,17 +482,17 @@ function PaymentGateways() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Plug className="h-4 w-4" style={{ color: 'var(--brand)' }} />
-              {editing?.gateway ? `Update ${GATEWAY_PROVIDERS[editing.code]?.name}` : `Connect ${GATEWAY_PROVIDERS[editing?.code ?? '']?.name}`}
+              {editing?.gateway ? t('rfin.updateNamed').replace('{name}', GATEWAY_PROVIDERS[editing.code]?.name ?? '') : t('rfin.connectNamed').replace('{name}', GATEWAY_PROVIDERS[editing?.code ?? '']?.name ?? '')}
             </DialogTitle>
             <DialogDescription>
-              {editing?.gateway ? 'Leave a secret blank to keep the stored value. Values shown are masked.' : `Enter your own ${GATEWAY_PROVIDERS[editing?.code ?? '']?.name} API credentials. Clients will see this method at checkout.`}
+              {editing?.gateway ? t('rfin.updateGwDesc') : t('rfin.connectGwDesc').replace('{name}', GATEWAY_PROVIDERS[editing?.code ?? '']?.name ?? '')}
             </DialogDescription>
           </DialogHeader>
           {editing && (
             <div className="space-y-3">
               {GATEWAY_PROVIDERS[editing.code].fields.map((f) => (
                 <div key={f.key}>
-                  <Label className="text-[12.5px] font-bold">{f.label}{f.secret && <span className="ml-1.5 text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400">secret</span>}</Label>
+                  <Label className="text-[12.5px] font-bold">{f.label}{f.secret && <span className="ml-1.5 text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400">{t('rfin.secret')}</span>}</Label>
                   {f.kind === 'select' ? (
                     <Select value={values[f.key] ?? ''} onValueChange={(v) => setValues({ ...values, [f.key]: v })}>
                       <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
@@ -513,21 +518,22 @@ function PaymentGateways() {
               ))}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-[12.5px] font-bold">Fee %</Label>
+                  <Label className="text-[12.5px] font-bold">{t('rfin.commission')}</Label>
                   <Input type="number" step="0.1" min="0" className="mt-1" value={fee} onChange={(e) => setFee(e.target.value)} />
+                  <p className="mt-1 text-[11px] leading-snug text-zinc-400 dark:text-zinc-500">{t('rfin.commissionHint')}</p>
                 </div>
                 <div className="flex items-end gap-2 pb-1.5">
                   <Switch id="gw-live" checked={enabled} onCheckedChange={setEnabled} />
-                  <Label htmlFor="gw-live" className="text-[12.5px] font-semibold text-zinc-700 dark:text-zinc-200">Enabled at checkout</Label>
+                  <Label htmlFor="gw-live" className="text-[12.5px] font-semibold text-zinc-700 dark:text-zinc-200">{t('rfin.enabledCheckout')}</Label>
                 </div>
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setEditing(null)}>{t('common.cancel')}</Button>
             <Button onClick={save} disabled={saving} style={{ background: 'var(--brand)', color: '#15180a' }}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {editing?.gateway ? 'Save changes' : 'Connect gateway'}
+              {editing?.gateway ? t('rcat.saveChanges') : t('rfin.connectGatewayCta')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -537,14 +543,14 @@ function PaymentGateways() {
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Disconnect {confirmDelete?.name}?</AlertDialogTitle>
+            <AlertDialogTitle>{t('rfin.disconnectQ').replace('{name}', confirmDelete?.name ?? '')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Clients will no longer see this payment method in your storefront. Stored credentials will be deleted.
+              {t('rfin.disconnectDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-rose-600 hover:bg-rose-700" onClick={disconnect}>Disconnect</AlertDialogAction>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction className="bg-rose-600 hover:bg-rose-700" onClick={disconnect}>{t('rfin.disconnectCta2')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -641,6 +647,7 @@ function SavedCards({ data, refresh }: { data?: { methods: Method[] } | null; re
 
 function Deposits() {
   const app = useApp()
+  const { t } = useI18n()
   const [tab, setTab] = useState('PENDING')
   const { data, loading, refresh } = useApi<{ deposits: Deposit[] }>(`/api/reseller/deposits?status=${tab}`, [tab])
   const money = (v: number) => formatMoney(v, app.currencyOf(app.user.currency), app.lang as Lang)
@@ -654,7 +661,7 @@ function Deposits() {
 
   return (
     <>
-      <PanelPageHeader title="Customer Deposits" description="Top-up requests from your storefront clients. Approve to credit their wallet." />
+      <PanelPageHeader title={t('reseller.deposits')} description={t('rfin.depDesc')} />
       <Tabs value={tab} onValueChange={setTab} className="mb-4">
         <TabsList>
           <TabsTrigger value="PENDING">Pending</TabsTrigger>
@@ -708,6 +715,7 @@ function Deposits() {
 
 function Transactions() {
   const app = useApp()
+  const { t } = useI18n()
   const [type, setType] = useState('ALL')
   const { data, loading } = useApi<{ transactions: Tx[] }>('/api/funds')
   const money = (v: number) => formatMoney(v, app.currencyOf(app.user.currency), app.lang as Lang)
@@ -718,11 +726,11 @@ function Transactions() {
 
   return (
     <>
-      <PanelPageHeader title="Transactions" description="Every movement of your GrowthRush wallet" />
+      <PanelPageHeader title={t('common.transactions')} description={t('rfin2.txDesc')} />
       <div className="mb-4 grid gap-4 sm:grid-cols-3">
-        <StatCard label="Money in" value={money(income)} icon={ArrowLeftRight} accent="#10b981" />
-        <StatCard label="Money out" value={money(outcome)} icon={ArrowLeftRight} accent="#e11d48" />
-        <StatCard label="Net" value={money(income - outcome)} icon={ArrowLeftRight} />
+        <StatCard label={t('ctx.moneyIn')} value={money(income)} icon={ArrowLeftRight} accent="#10b981" />
+        <StatCard label={t('ctx.moneyOut')} value={money(outcome)} icon={ArrowLeftRight} accent="#e11d48" />
+        <StatCard label={t('rfin2.net')} value={money(income - outcome)} icon={ArrowLeftRight} />
       </div>
       <Tabs value={type} onValueChange={setType} className="mb-4">
         <TabsList className="flex-wrap">
@@ -773,6 +781,7 @@ function Transactions() {
 
 function Support() {
   const app = useApp()
+  const { t } = useI18n()
   const { data, refresh } = useApi<{ tickets: Ticket[] }>('/api/tickets')
   const [openTicket, setOpenTicket] = useState<Ticket | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
@@ -799,8 +808,8 @@ function Support() {
   return (
     <>
       <PanelPageHeader
-        title="Support"
-        description="Tickets with the GrowthRush team (platform-level issues)"
+        title={t('reseller.support')}
+        description={t('rfin2.supportDesc')}
         actions={
           <Button size="sm" className="font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }} onClick={() => setCreateOpen(true)}>
             <Plus className="mr-1.5 h-4 w-4" /> New ticket
@@ -843,7 +852,7 @@ function Support() {
           </div>
           {openTicket?.status !== 'CLOSED' && (
             <div className="border-t pt-3">
-              <Textarea rows={2} placeholder="Type your message…" value={reply} onChange={(e) => setReply(e.target.value)} />
+              <Textarea rows={2} placeholder={t('rfin2.typeMsg')} value={reply} onChange={(e) => setReply(e.target.value)} />
               <Button className="mt-2 w-full font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }} disabled={!reply.trim()} onClick={sendReply}>Send</Button>
             </div>
           )}
@@ -854,7 +863,7 @@ function Support() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>New support ticket</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1.5"><Label>Subject</Label><Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Brief summary" /></div>
+            <div className="space-y-1.5"><Label>{t('client.ticketSubject')}</Label><Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder={t('rfin2.briefPh')} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Category</Label>
@@ -932,6 +941,7 @@ function randomCouponCode(): string {
 
 function ResellerCoupons() {
   const app = useApp()
+  const { t } = useI18n()
   const money = (v: number) => formatMoney(v, app.currencyOf(app.user.currency), app.lang as Lang)
   const { data, loading, refresh } = useApi<{ items: PlatformCoupon[]; totalGiven: number; clients: number }>('/api/reseller/coupons')
   // Live refresh — the backend emits a `coupon` event over the panel websocket
@@ -996,8 +1006,8 @@ function ResellerCoupons() {
   return (
     <div className="space-y-4">
       <PanelPageHeader
-        title="Promo coupons"
-        description="Bonus codes your own clients redeem in Add funds — instant wallet credit, one per account."
+        title={t('rfin2.couponTitle')}
+        description={t('rfin2.couponDesc')}
         actions={
           <Button onClick={() => { setForm((f) => ({ ...f, code: randomCouponCode() })); setAdding(true) }} className="h-9 rounded-full px-4 text-[13px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
             <Plus className="mr-1 h-4 w-4" /> New coupon
@@ -1054,7 +1064,7 @@ function ResellerCoupons() {
           </button>
         ))}
         <div className="ml-auto w-full sm:w-56">
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search code or note…" className="h-9 rounded-full text-[12.5px]" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('admin.cpn.search')} className="h-9 rounded-full text-[12.5px]" />
         </div>
       </div>
 
@@ -1094,14 +1104,14 @@ function ResellerCoupons() {
                       <button
                         onClick={() => setViewing(c)}
                         className="rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/60 px-2.5 py-1 font-mono text-[12px] font-extrabold tracking-wider text-zinc-800 dark:text-zinc-100 transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
-                        title="View redemptions"
+                        title={t('admin.cpn.viewRedemptions')}
                       >
                         {c.code}
                       </button>
                     </td>
                     <td className="px-3 py-3 font-extrabold tabular-nums text-emerald-600 dark:text-emerald-400">{money(c.value)}</td>
                     <td className="px-3 py-3">
-                      <button onClick={() => setViewing(c)} className="group min-w-[110px] text-left" title="View redemptions">
+                      <button onClick={() => setViewing(c)} className="group min-w-[110px] text-left" title={t('admin.cpn.viewRedemptions')}>
                         <p className="text-[12px] font-bold tabular-nums text-zinc-700 dark:text-zinc-200">
                           {c.usedCount}<span className="text-zinc-400 dark:text-zinc-500"> / {c.maxUses > 0 ? c.maxUses : '∞'} used</span>
                         </p>
@@ -1156,7 +1166,7 @@ function ResellerCoupons() {
                   placeholder="KAYA10"
                   className="min-h-[40px] font-mono font-extrabold tracking-wider"
                 />
-                <Button variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={() => setForm({ ...form, code: randomCouponCode() })} aria-label="Generate random code">
+                <Button variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={() => setForm({ ...form, code: randomCouponCode() })} aria-label={t('admin.cpn.ariaRandom')}>
                   <Dices className="h-4 w-4" />
                 </Button>
               </div>
@@ -1190,7 +1200,7 @@ function ResellerCoupons() {
                 <Label className="text-[12px] font-bold">Note</Label>
                 <span className="text-[10.5px] text-zinc-400 dark:text-zinc-500">optional</span>
               </div>
-              <Textarea rows={2} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="Campaign, channel, who gets it…" />
+              <Textarea rows={2} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder={t('admin.cpn.notePlaceholder')} />
             </div>
           </div>
           <DialogFooter>

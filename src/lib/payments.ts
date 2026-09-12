@@ -327,7 +327,7 @@ async function initiateMercadoPago(ctx: PaymentContext, cfg: Record<string, stri
     method: 'POST',
     headers: { Authorization: `Bearer ${cfg.accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      items: [{ title: 'Wallet top-up', quantity: 1, unit_price: ctx.total, currency_id: 'USD' }],
+      items: [{ title: 'Wallet top-up', quantity: 1, unit_price: ctx.total, currency_id: cfg.currency || 'USD' }],
       external_reference: ctx.depositId,
       back_urls: {
         success: `${ctx.baseUrl}/api/webhooks/mercadopago?return=1&deposit=${ctx.depositId}`,

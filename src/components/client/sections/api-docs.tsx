@@ -34,38 +34,38 @@ export default function ApiDocsSection({ onRegenerateKey }: { onRegenerateKey?: 
       <Card className="mb-4">
         <CardHead
           icon={KeyRound}
-          title="Your API key"
-          sub="Keep it secret — anyone with this key can spend your balance"
+          title={t('capi.keyTitle')}
+          sub={t('capi.keySub')}
           right={
             onRegenerateKey && (
               <Button variant="outline" size="sm" className="h-8 min-h-[32px] gap-1 rounded-full text-[12px] font-bold" onClick={onRegenerateKey}>
-                <RefreshCw className="h-3 w-3" /> Regenerate
+                <RefreshCw className="h-3 w-3" /> {t('cacc.regenerate')}
               </Button>
             )
           }
         />
         <CopyField value={user.apiKey} />
         <p className="mt-3 text-[12px] text-zinc-500 dark:text-zinc-400">
-          Endpoint: <code className="rounded-md bg-zinc-100 dark:bg-zinc-800/60 px-1.5 py-0.5 font-mono text-[11.5px] font-bold">POST {ENDPOINT}</code>
-          {' '}· All requests are HTTP POST with JSON body and return JSON. Replace the host in the examples with your panel URL.
+          {t('capi.endpoint')} <code className="rounded-md bg-zinc-100 dark:bg-zinc-800/60 px-1.5 py-0.5 font-mono text-[11.5px] font-bold">POST {ENDPOINT}</code>
+          {' '}· {t('capi.endpointDesc')}
         </p>
       </Card>
 
       <Tabs defaultValue="services" className="space-y-4">
         <TabsList className="h-auto flex-wrap justify-start gap-1 bg-white dark:bg-zinc-900 p-1 shadow-sm">
-          <TabsTrigger value="services" className="min-h-[32px] rounded-lg text-[12px] font-bold">Services</TabsTrigger>
-          <TabsTrigger value="add" className="min-h-[32px] rounded-lg text-[12px] font-bold">Add order</TabsTrigger>
-          <TabsTrigger value="status" className="min-h-[32px] rounded-lg text-[12px] font-bold">Order status</TabsTrigger>
-          <TabsTrigger value="balance" className="min-h-[32px] rounded-lg text-[12px] font-bold">Balance</TabsTrigger>
+          <TabsTrigger value="services" className="min-h-[32px] rounded-lg text-[12px] font-bold">{t('capi.tabServices')}</TabsTrigger>
+          <TabsTrigger value="add" className="min-h-[32px] rounded-lg text-[12px] font-bold">{t('capi.tabAdd')}</TabsTrigger>
+          <TabsTrigger value="status" className="min-h-[32px] rounded-lg text-[12px] font-bold">{t('capi.tabStatus')}</TabsTrigger>
+          <TabsTrigger value="balance" className="min-h-[32px] rounded-lg text-[12px] font-bold">{t('capi.tabBalance')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="services">
           <ActionDoc
             title="services"
-            desc="Fetch the full service list available to your account — id, category, rate, min/max and features."
+            desc={t('capi.servicesDesc')}
             params={[
-              { name: 'key', type: 'string', desc: 'Your API key', required: true },
-              { name: 'action', type: 'string', desc: 'Must be "services"', required: true },
+              { name: 'key', type: 'string', desc: t('capi.paramKey'), required: true },
+              { name: 'action', type: 'string', desc: t('capi.paramMust').replace('{a}', 'services'), required: true },
             ]}
             code={curl(`{"key":"${user.apiKey}","action":"services"}`)}
             response={`[
@@ -86,17 +86,17 @@ export default function ApiDocsSection({ onRegenerateKey }: { onRegenerateKey?: 
         <TabsContent value="add">
           <ActionDoc
             title="add"
-            desc="Place a new order. The charge is deducted from your wallet balance instantly."
+            desc={t('capi.addDesc')}
             params={[
-              { name: 'key', type: 'string', desc: 'Your API key', required: true },
-              { name: 'action', type: 'string', desc: 'Must be "add"', required: true },
-              { name: 'service', type: 'integer', desc: 'Service ID from the services call', required: true },
-              { name: 'link', type: 'string', desc: 'Target link (profile, post, video…)', required: true },
-              { name: 'quantity', type: 'integer', desc: 'Quantity between min and max', required: true },
-              { name: 'comments', type: 'string', desc: 'Custom comments, one per line (custom-comment services only)' },
-              { name: 'dripfeed', type: 'boolean', desc: 'Enable drip-feed (optional, service must support it)' },
-              { name: 'runs', type: 'integer', desc: 'Number of drip-feed runs (when dripfeed=true)' },
-              { name: 'interval', type: 'integer', desc: 'Minutes between runs (when dripfeed=true)' },
+              { name: 'key', type: 'string', desc: t('capi.paramKey'), required: true },
+              { name: 'action', type: 'string', desc: t('capi.paramMust').replace('{a}', 'add'), required: true },
+              { name: 'service', type: 'integer', desc: t('capi.paramService'), required: true },
+              { name: 'link', type: 'string', desc: t('capi.paramLink'), required: true },
+              { name: 'quantity', type: 'integer', desc: t('capi.paramQty'), required: true },
+              { name: 'comments', type: 'string', desc: t('capi.paramComments') },
+              { name: 'dripfeed', type: 'boolean', desc: t('capi.paramDrip') },
+              { name: 'runs', type: 'integer', desc: t('capi.paramRuns') },
+              { name: 'interval', type: 'integer', desc: t('capi.paramInterval') },
             ]}
             code={curl(`{"key":"${user.apiKey}","action":"add","service":101,"link":"https://instagram.com/yourprofile","quantity":1000}`)}
             response={`{ "order": 23501 }`}
@@ -106,11 +106,11 @@ export default function ApiDocsSection({ onRegenerateKey }: { onRegenerateKey?: 
         <TabsContent value="status">
           <ActionDoc
             title="status"
-            desc="Check the delivery status of one order (id) or all your recent orders (id=all)."
+            desc={t('capi.statusDesc')}
             params={[
-              { name: 'key', type: 'string', desc: 'Your API key', required: true },
-              { name: 'action', type: 'string', desc: 'Must be "status"', required: true },
-              { name: 'id', type: 'string', desc: 'Order ID, or "all" for every recent order', required: true },
+              { name: 'key', type: 'string', desc: t('capi.paramKey'), required: true },
+              { name: 'action', type: 'string', desc: t('capi.paramMust').replace('{a}', 'status'), required: true },
+              { name: 'id', type: 'string', desc: t('capi.paramId'), required: true },
             ]}
             code={curl(`{"key":"${user.apiKey}","action":"status","id":23501}`)}
             response={`{
@@ -126,10 +126,10 @@ export default function ApiDocsSection({ onRegenerateKey }: { onRegenerateKey?: 
         <TabsContent value="balance">
           <ActionDoc
             title="balance"
-            desc="Check your current wallet balance."
+            desc={t('capi.balanceDesc')}
             params={[
-              { name: 'key', type: 'string', desc: 'Your API key', required: true },
-              { name: 'action', type: 'string', desc: 'Must be "balance"', required: true },
+              { name: 'key', type: 'string', desc: t('capi.paramKey'), required: true },
+              { name: 'action', type: 'string', desc: t('capi.paramMust').replace('{a}', 'balance'), required: true },
             ]}
             code={curl(`{"key":"${user.apiKey}","action":"balance"}`)}
             response={`{ "balance": "42.50", "currency": "USD" }`}
@@ -138,12 +138,12 @@ export default function ApiDocsSection({ onRegenerateKey }: { onRegenerateKey?: 
       </Tabs>
 
       <Card className="mt-4">
-        <CardHead icon={Terminal} title="Response codes" sub="How to handle errors from the API" />
+        <CardHead icon={Terminal} title={t('capi.codesTitle')} sub={t('capi.codesSub')} />
         <div className="flex flex-wrap gap-2">
-          <Pill tone="emerald">200 — Success</Pill>
-          <Pill tone="amber">400 — Bad request / missing params</Pill>
-          <Pill tone="rose">401 — Invalid API key</Pill>
-          <Pill tone="zinc">429 — Rate limited</Pill>
+          <Pill tone="emerald">{t('capi.c200')}</Pill>
+          <Pill tone="amber">{t('capi.c400')}</Pill>
+          <Pill tone="rose">{t('capi.c401')}</Pill>
+          <Pill tone="zinc">{t('capi.c429')}</Pill>
         </div>
       </Card>
     </div>
@@ -157,6 +157,7 @@ function ActionDoc({ title, desc, params, code, response }: {
   code: string
   response: string
 }) {
+  const { t } = useI18n()
   return (
     <div className="space-y-4">
       <Card>
@@ -165,9 +166,9 @@ function ActionDoc({ title, desc, params, code, response }: {
           <table className="w-full text-left text-[13px]">
             <thead>
               <tr className="border-b border-zinc-200 dark:border-zinc-800 text-[11px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-                <th className="py-2.5 pr-3">Parameter</th>
-                <th className="py-2.5 pr-3">Type</th>
-                <th className="py-2.5">Description</th>
+                <th className="py-2.5 pr-3">{t('capi.parameter')}</th>
+                <th className="py-2.5 pr-3">{t('capi.type')}</th>
+                <th className="py-2.5">{t('cord.description')}</th>
               </tr>
             </thead>
             <tbody>
@@ -185,11 +186,11 @@ function ActionDoc({ title, desc, params, code, response }: {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-4 sm:p-4">
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Example request</p>
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{t('capi.exampleReq')}</p>
           <CodeBlock code={code} />
         </Card>
         <Card className="p-4 sm:p-4">
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Example response</p>
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{t('capi.exampleRes')}</p>
           <CodeBlock code={response} />
         </Card>
       </div>

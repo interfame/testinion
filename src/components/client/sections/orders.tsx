@@ -61,7 +61,7 @@ export default function OrdersSection({ onRefresh }: { onRefresh?: () => void })
     setBusyId(order.id)
     const res = await mutate(
       () => api.patch<OrderManageResult>('/api/orders/manage', { id: order.id, action }),
-      { success: action === 'cancel' ? 'Order canceled — balance refunded' : 'Refill requested — order re-queued' },
+      { success: action === 'cancel' ? t('corders.cancelOk') : t('corders.refillOk') },
     )
     setBusyId(null)
     setConfirm(null)
@@ -83,7 +83,7 @@ export default function OrdersSection({ onRefresh }: { onRefresh?: () => void })
   function exportCsv() {
     downloadCsv(
       csvName('orders'),
-      ['Date', 'Order ID', 'Service', 'Link', 'Quantity', 'Start count', 'Remains', 'Charge (USD)', 'Status'],
+      [t('common.date'), t('cord.orderId'), t('common.service'), t('common.link'), t('common.quantity'), t('client.startCount'), t('client.remains'), t('corders.chargeUsd'), t('common.status')],
       filtered.map((o) => [
         new Date(o.createdAt).toISOString(),
         o.id,
@@ -180,25 +180,25 @@ export default function OrdersSection({ onRefresh }: { onRefresh?: () => void })
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirm?.action === 'cancel' ? 'Cancel this order?' : 'Request a refill?'}
+              {confirm?.action === 'cancel' ? t('corders.cancelQ') : t('corders.refillQ')}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {confirm?.action === 'cancel'
-                ? `Order #${confirm.order.id.slice(0, 8)} will be stopped and ${m(confirm.order.charge)} refunded to your wallet. This cannot be undone.`
+                ? t('corders.cancelDesc').replace('{id}', confirm.order.id.slice(0, 8)).replace('{money}', m(confirm.order.charge))
                 : confirm
-                  ? `Order #${confirm.order.id.slice(0, 8)} will be re-queued for delivery at no extra cost. Make sure the link still complies with the service rules.`
+                  ? t('corders.refillDesc').replace('{id}', confirm.order.id.slice(0, 8))
                   : ''}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep it</AlertDialogCancel>
+            <AlertDialogCancel>{t('corders.keepIt')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); runAction() }}
               className="text-white"
               style={{ background: confirm?.action === 'cancel' ? '#e11d48' : 'var(--brand)' }}
             >
               {busyId ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
-              {confirm?.action === 'cancel' ? 'Yes, cancel order' : 'Yes, request refill'}
+              {confirm?.action === 'cancel' ? t('corders.cancelYes') : t('corders.refillYes')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -285,10 +285,10 @@ function OrderRow({ o, m, busy, expanded, onToggle, onCancel, onRefill }: {
         <tr className="border-b border-zinc-100 dark:border-zinc-800/70 bg-zinc-50/70 dark:bg-zinc-900/50">
           <td colSpan={8} className="px-4 py-3 sm:px-6">
             <div className="grid gap-3 text-[12.5px] sm:grid-cols-2 lg:grid-cols-4">
-              <Detail label="Order ID" value={`#${o.id}`} mono />
+              <Detail label={t('cord.orderId')} value={`#${o.id}`} mono />
               <Detail label={t('client.startCount')} value={o.startCount.toLocaleString()} />
               <Detail label={t('client.remains')} value={o.remains.toLocaleString()} />
-              <Detail label="Link" value={o.link} mono truncate />
+              <Detail label={t('common.link')} value={o.link} mono truncate />
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{t('client.delivered')}</p>
                 <div className="mt-1 flex items-center gap-2">
@@ -297,7 +297,7 @@ function OrderRow({ o, m, busy, expanded, onToggle, onCancel, onRefill }: {
                 </div>
               </div>
               {o.dripfeed && (
-                <Detail label="Drip-feed" value={`${o.dripRuns} runs every ${o.dripInterval} min`} />
+                <Detail label={t('cord.dripfeed')} value={t('corders.dripDesc').replace('{runs}', String(o.dripRuns)).replace('{min}', String(o.dripInterval))} />
               )}
               {o.comments && (
                 <div className="sm:col-span-2 lg:col-span-4">

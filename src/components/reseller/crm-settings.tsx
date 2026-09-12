@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PanelPageHeader } from '@/components/shared/panel-shell'
 import { PageWrap } from './crm-shared'
+import { useI18n } from '@/lib/i18n'
 
 type CrmSettingsData = { autoAssignAi: boolean; businessHours: string; awayMessage: string }
 
@@ -24,21 +25,22 @@ const FALLBACK: CrmSettingsData = {
 }
 
 export default function CrmSettings({ platformId }: { platformId: string }) {
+  const { t } = useI18n()
   const { data, loading } = useApi<{ crm: CrmSettingsData }>('/api/reseller/crm/settings', [platformId])
   // Mutable draft shared between the form fields and the header Save button.
   const draftRef = useRef<CrmSettingsData>(FALLBACK)
 
   async function save() {
     await mutate(() => api.patch('/api/reseller/crm/settings', draftRef.current), {
-      success: 'CRM settings saved',
+      success: t('crm.settingsSaved'),
     })
   }
 
   return (
     <PageWrap>
       <PanelPageHeader
-        title="CRM Settings"
-        description="Global behaviour for your inbox: business hours, away message and AI auto-assignment."
+        title={t('reseller.crmSettings')}
+        description={t('crm.settingsDesc')}
         actions={
           <Button
             onClick={save}
@@ -46,7 +48,7 @@ export default function CrmSettings({ platformId }: { platformId: string }) {
             className="rounded-xl text-[var(--on-brand)]"
             style={{ background: 'var(--brand)' }}
           >
-            <Save className="h-4 w-4" /> Save changes
+            <Save className="h-4 w-4" /> {t('rcat.saveChanges')}
           </Button>
         }
       />
@@ -61,7 +63,7 @@ export default function CrmSettings({ platformId }: { platformId: string }) {
         <SettingsForm key={platformId} initial={data.crm} draftRef={draftRef} />
       ) : (
         <p className="rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 text-center text-[13px] text-zinc-500 dark:text-zinc-400">
-          Could not load settings. Try refreshing the page.
+          {t('crm.couldNotLoadSettings')}
         </p>
       )}
     </PageWrap>
@@ -75,6 +77,7 @@ function SettingsForm({
   initial: CrmSettingsData
   draftRef: React.RefObject<CrmSettingsData>
 }) {
+  const { t } = useI18n()
   const [autoAssignAi, setAutoAssignAi] = useState(initial.autoAssignAi)
   const [businessHours, setBusinessHours] = useState(initial.businessHours ?? '')
   const [awayMessage, setAwayMessage] = useState(initial.awayMessage ?? '')
@@ -91,11 +94,10 @@ function SettingsForm({
           <div>
             <h2 className="flex items-center gap-2 text-[15px] font-bold text-zinc-900 dark:text-zinc-50">
               <Settings className="h-4 w-4" style={{ color: 'var(--brand)' }} />
-              Auto-assign to AI
+              {t('crm.autoAssign')}
             </h2>
             <p className="mt-1 max-w-md text-[12.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-              New conversations start in <strong>AI</strong> mode so your most relevant active agent answers
-              instantly. Agents can hand the chat back to a human at any time.
+              {t('crm.autoAssignDesc1')} <strong>{t('crm.aiWord')}</strong>{t('crm.autoAssignDesc2')}
             </p>
           </div>
           <Switch
@@ -104,19 +106,19 @@ function SettingsForm({
               setAutoAssignAi(v)
               patchDraft({ autoAssignAi: v })
             }}
-            aria-label="Auto-assign to AI"
+            aria-label={t('crm.autoAssignAria')}
           />
         </div>
       </section>
 
       {/* Business hours */}
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-        <h2 className="text-[15px] font-bold text-zinc-900 dark:text-zinc-50">Business hours</h2>
+        <h2 className="text-[15px] font-bold text-zinc-900 dark:text-zinc-50">{t('crm.businessHours')}</h2>
         <p className="mb-3 mt-1 text-[12.5px] text-zinc-500 dark:text-zinc-400">
-          Shown to customers and used by away-hours automations.
+          {t('crm.bhSub')}
         </p>
         <Label htmlFor="crm-bh" className="sr-only">
-          Business hours
+          {t('crm.businessHours')}
         </Label>
         <Input
           id="crm-bh"
@@ -132,12 +134,12 @@ function SettingsForm({
 
       {/* Away message */}
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-        <h2 className="text-[15px] font-bold text-zinc-900 dark:text-zinc-50">Away message</h2>
+        <h2 className="text-[15px] font-bold text-zinc-900 dark:text-zinc-50">{t('crm.awayMessage')}</h2>
         <p className="mb-3 mt-1 text-[12.5px] text-zinc-500 dark:text-zinc-400">
-          Auto-reply sent when a message arrives outside business hours.
+          {t('crm.amSub')}
         </p>
         <Label htmlFor="crm-am" className="sr-only">
-          Away message
+          {t('crm.awayMessage')}
         </Label>
         <Textarea
           id="crm-am"
@@ -147,10 +149,10 @@ function SettingsForm({
             setAwayMessage(e.target.value)
             patchDraft({ awayMessage: e.target.value })
           }}
-          placeholder="🌙 We are away right now — an agent will reply first thing during business hours!"
+          placeholder={t('crm.phAway')}
           className="rounded-xl text-[13px]"
         />
-        <p className="mt-2 text-[11px] text-zinc-400 dark:text-zinc-500">{awayMessage.length}/500 characters</p>
+        <p className="mt-2 text-[11px] text-zinc-400 dark:text-zinc-500">{t('crm.chars').replace('{x}', String(awayMessage.length))}</p>
       </section>
     </div>
   )

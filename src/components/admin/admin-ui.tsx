@@ -101,6 +101,7 @@ export type AdminService = {
   name: string
   type: string
   rate: number
+  cost: number | null
   min: number
   max: number
   description: string | null

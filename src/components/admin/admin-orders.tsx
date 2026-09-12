@@ -16,7 +16,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
-import { PanelPageHeader, StatusBadge } from '@/components/shared/panel-shell'
+import { PanelPageHeader, StatusBadge, useEnumLabel } from '@/components/shared/panel-shell'
 import { SocialLogo } from '@/components/shared/social-logo'
 import { api, mutate, useApi } from '@/lib/api'
 import { useRealtimeEvents } from '@/lib/realtime-client'
@@ -29,6 +29,7 @@ const STATUSES = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'PARTIAL', 'CANCELED'] 
 
 export function OrdersSection() {
   const { t } = useI18n()
+  const statusLabel = useEnumLabel()
   const [tab, setTab] = useState('ALL')
   const [q, setQ] = useState('')
   const dq = useDebounced(q)
@@ -56,7 +57,7 @@ export function OrdersSection() {
   const setOrderStatus = async (o: AdminOrder, status: string) => {
     const ok = await mutate(
       () => api.patch('/api/admin/orders', { id: o.id, status }),
-      { success: `${t('admin.o.toastMarked')} ${status.replace(/_/g, ' ').toLowerCase()}` },
+      { success: t('admin.o.toastMarkedAs').replace('{status}', statusLabel(status)) },
     )
     if (ok) refresh()
   }
@@ -75,7 +76,7 @@ export function OrdersSection() {
   const exportCsv = () =>
     downloadCsv(
       csvName('admin-orders'),
-      ['Date', 'Order ID', 'User', 'Email', 'Service', 'Category', 'Link', 'Quantity', 'Remains', 'Charge (USD)', 'Status'],
+      [t('common.date'), t('admin.o.order'), t('admin.o.user'), t('auth.email'), t('common.service'), t('common.category'), t('common.link'), t('common.quantity'), t('admin.o.remains'), t('admin.o.charge'), t('common.status')],
       (data?.orders ?? []).map((o) => [
         new Date(o.createdAt).toISOString(),
         o.id,
@@ -109,7 +110,7 @@ export function OrdersSection() {
           <TabsList className="h-9 rounded-full bg-zinc-100 dark:bg-zinc-800/60 p-1">
             <TabsTrigger value="ALL" className="h-7 rounded-full px-3 text-[12px] font-bold">{t('admin.o.all')}</TabsTrigger>
             {STATUSES.map((s) => (
-              <TabsTrigger key={s} value={s} className="h-7 rounded-full px-3 text-[12px] font-bold">{s.replace(/_/g, ' ')}</TabsTrigger>
+              <TabsTrigger key={s} value={s} className="h-7 rounded-full px-3 text-[12px] font-bold">{statusLabel(s)}</TabsTrigger>
             ))}
           </TabsList>
         </Tabs>
@@ -175,7 +176,7 @@ export function OrdersSection() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>)}
+                        {STATUSES.map((s) => <SelectItem key={s} value={s}>{statusLabel(s)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </td>
@@ -226,7 +227,7 @@ export function OrdersSection() {
                 <Select value={viewStatus} onValueChange={setViewStatus}>
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {STATUSES.map((s) => <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>)}
+                    {STATUSES.map((s) => <SelectItem key={s} value={s}>{statusLabel(s)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

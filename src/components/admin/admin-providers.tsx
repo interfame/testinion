@@ -2,7 +2,7 @@
 
 // Super Admin — Upstream providers: API endpoints, markup and balances.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Plus, Pencil, Trash2, KeyRound, Link2, PlugZap, RefreshCw, AlertTriangle, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,6 +22,7 @@ import {
 import { PanelPageHeader, StatusBadge } from '@/components/shared/panel-shell'
 import { toast } from '@/hooks/use-toast'
 import { api, mutate, useApi } from '@/lib/api'
+import { useI18n } from '@/lib/i18n'
 import { apiDel } from './admin-ui'
 import { AdminCard, EmptyState, FieldLabel, Money, TableShell, type AdminCategory, type AdminProvider } from './admin-ui'
 
@@ -31,6 +32,7 @@ const EMPTY: ProvForm = { name: '', apiUrl: 'https://', apiKey: '', markup: '20'
 type TestResult = { ok: boolean; balance?: number; currency?: string; error?: string }
 
 export function ProvidersSection() {
+  const { t } = useI18n()
   const { data, loading, refresh } = useApi<{ providers: AdminProvider[] }>('/api/admin/providers')
   const { data: catData } = useApi<{ categories: AdminCategory[] }>('/api/admin/categories')
   const [editing, setEditing] = useState<AdminProvider | 'new' | null>(null)
@@ -46,6 +48,11 @@ export function ProvidersSection() {
   const [syncMarkup, setSyncMarkup] = useState('20')
   const [syncCategory, setSyncCategory] = useState('auto')
   const [syncBusy, setSyncBusy] = useState(false)
+  // provider-side category filter (loaded when the dialog opens)
+  const [syncProvCat, setSyncProvCat] = useState('__all__')
+  const [provCats, setProvCats] = useState<{ name: string; count: number }[]>([])
+  const [catsLoading, setCatsLoading] = useState(false)
+  const [catsError, setCatsError] = useState<string | null>(null)
 
   // reset catalog
   const [resetOpen, setResetOpen] = useState(false)
@@ -104,7 +111,12 @@ export function ProvidersSection() {
     try {
       const res = await api.post<{ created: number; updated: number; skipped: number; categoriesCreated: number; capped: boolean }>(
         '/api/admin/providers/sync',
-        { id: syncing.id, markup: parseFloat(syncMarkup) || 0, ...(syncCategory !== 'auto' ? { categoryId: syncCategory } : {}) },
+        {
+          id: syncing.id,
+          markup: parseFloat(syncMarkup) || 0,
+          ...(syncCategory !== 'auto' ? { categoryId: syncCategory } : {}),
+          ...(syncProvCat !== '__all__' ? { providerCategory: syncProvCat } : {}),
+        },
       )
       toast({
         title: `Synced: ${res.created} created, ${res.updated} updated, ${res.skipped} skipped (${res.categoriesCreated} categories created)`,
@@ -118,6 +130,22 @@ export function ProvidersSection() {
       setSyncBusy(false)
     }
   }
+
+  /** Load the provider's own category list every time the sync dialog opens */
+  useEffect(() => {
+    if (!syncing) return
+    setSyncProvCat('__all__')
+    setProvCats([])
+    setCatsError(null)
+    setCatsLoading(true)
+    let dead = false
+    api
+      .get<{ categories: { name: string; count: number }[] }>(`/api/admin/providers/categories?id=${syncing.id}`)
+      .then((d) => { if (!dead) setProvCats(d.categories ?? []) })
+      .catch((e) => { if (!dead) setCatsError(e instanceof Error ? e.message : 'Failed to load categories') })
+      .finally(() => { if (!dead) setCatsLoading(false) })
+    return () => { dead = true }
+  }, [syncing?.id])
 
   const runReset = async () => {
     setResetBusy(true)
@@ -142,8 +170,8 @@ export function ProvidersSection() {
   return (
     <div className="space-y-4">
       <PanelPageHeader
-        title="Providers"
-        description="Upstream SMM APIs that feed your master catalog. Markup is added on top of provider prices."
+        title={t('admin.prov.title')}
+        description={t('admin.prov.desc')}
         actions={
           <Button onClick={() => { setForm(EMPTY); setFormTest(null); setEditing('new') }} className="h-9 rounded-full px-4 text-[13px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
             <Plus className="mr-1 h-4 w-4" /> New provider
@@ -154,7 +182,7 @@ export function ProvidersSection() {
       {loading && !data ? (
         <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}</div>
       ) : (data?.providers.length ?? 0) === 0 ? (
-        <AdminCard><EmptyState title="No providers yet" hint="Connect your first upstream provider API." /></AdminCard>
+        <AdminCard><EmptyState title={t('admin.prov.noneTitle')} hint={t('admin.prov.noneHint')} /></AdminCard>
       ) : (
         <TableShell>
           <table className="w-full min-w-[720px] text-left text-[13px]">
@@ -291,7 +319,24 @@ export function ProvidersSection() {
               <Input type="number" step="0.1" value={syncMarkup} onChange={(e) => setSyncMarkup(e.target.value)} />
             </div>
             <div>
-              <FieldLabel hint="optional">Category</FieldLabel>
+              <FieldLabel hint="from the provider API">Provider category</FieldLabel>
+              {catsLoading ? (
+                <div className="space-y-1.5"><Skeleton className="h-9 w-full" /><Skeleton className="h-3 w-32" /></div>
+              ) : (
+                <Select value={syncProvCat} onValueChange={setSyncProvCat}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent className="max-h-64">
+                    <SelectItem value="__all__">All categories</SelectItem>
+                    {provCats.map((c) => (
+                      <SelectItem key={c.name} value={c.name}>{c.name} ({c.count})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {catsError && <p className="mt-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400">✕ {catsError}</p>}
+            </div>
+            <div>
+              <FieldLabel hint="new services only">Target category</FieldLabel>
               <Select value={syncCategory} onValueChange={setSyncCategory}>
                 <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                 <SelectContent className="max-h-64">
@@ -301,9 +346,13 @@ export function ProvidersSection() {
                   ))}
                 </SelectContent>
               </Select>
+              <p className="mt-1 text-[11px] text-zinc-400 dark:text-zinc-500">
+                Target category for new services — existing services are never moved.
+              </p>
             </div>
             <p className="rounded-xl border border-dashed p-3 text-[12px] text-zinc-500 dark:text-zinc-400">
               Prices = provider price + {syncMarkup || 0}%. Services update automatically by ID; existing keep their IDs.
+              {syncProvCat !== '__all__' && <> Only the <b>{syncProvCat}</b> provider category is imported.</>}
             </p>
           </div>
           <DialogFooter>
@@ -332,8 +381,8 @@ export function ProvidersSection() {
 
       {/* Danger zone — reset catalog */}
       <AdminCard
-        title="Danger zone"
-        description="Irreversible catalog operations. Use with care."
+        title={t('admin.set.danger')}
+        description={t('admin.prov.dangerDesc')}
         className="border-rose-200 dark:border-rose-900/60"
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -358,7 +407,7 @@ export function ProvidersSection() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <label className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-dashed p-3" onClick={() => setPurgeOrders((v) => !v)}>
-            <Checkbox checked={purgeOrders} onCheckedChange={(v) => setPurgeOrders(v === true)} aria-label="Also delete all orders" />
+            <Checkbox checked={purgeOrders} onCheckedChange={(v) => setPurgeOrders(v === true)} aria-label={t('admin.prov.purgeAria')} />
             <span className="text-[13px] font-semibold text-zinc-700 dark:text-zinc-200">
               Also delete all orders <span className="font-normal text-zinc-500 dark:text-zinc-400">(purge order history)</span>
             </span>

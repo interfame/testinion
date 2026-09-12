@@ -21,6 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { formatDateTime } from '@/lib/format'
+import { useI18n } from '@/lib/i18n'
 
 type MailConfigDTO = {
   mode: 'outbox' | 'smtp'
@@ -56,13 +57,14 @@ function StatusPill({ status }: { status: string }) {
 }
 
 export default function EmailSection() {
+  const { t } = useI18n()
   const [tab, setTab] = useState('provider')
 
   return (
     <>
       <PanelPageHeader
-        title="Email & Notifications"
-        description="Provider setup, automated email templates and delivery logs for GrowthRush."
+        title={t('admin.emailNav')}
+        description={t('admin.mail.desc')}
       />
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="mb-4">
@@ -81,6 +83,7 @@ export default function EmailSection() {
 // ─────────────────────────── Provider ───────────────────────────
 
 function ProviderTab() {
+  const { t } = useI18n()
   const { data, loading, refresh } = useApi<{ config: MailConfigDTO; verificationRequired: boolean; stats: StatsDTO }>('/api/admin/email')
   const [ov, setOv] = useState<{ cfg?: Partial<MailConfigDTO>; verify?: boolean }>({})
   const [saving, setSaving] = useState(false)
@@ -196,7 +199,7 @@ function ProviderTab() {
             <Save className="mr-1.5 h-4 w-4" /> {saving ? 'Saving…' : 'Save'}
           </Button>
           <div className="flex flex-1 items-center gap-2 sm:min-w-[320px]">
-            <Input value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="Send a test email to…" type="email" className="flex-1" />
+            <Input value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder={t('rem.testPh')} type="email" className="flex-1" />
             <Button variant="outline" onClick={sendTest} disabled={sending} className="font-bold">
               <Send className="mr-1.5 h-4 w-4" /> {sending ? 'Sending…' : 'Send test'}
             </Button>

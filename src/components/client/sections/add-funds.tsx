@@ -100,20 +100,20 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
     )
     setChecking(false)
     if (!res) {
-      toast({ title: 'Could not verify the payment yet — try again in a moment', variant: 'destructive' })
+      toast({ title: t('cfund.verifyFail'), variant: 'destructive' })
       return
     }
     if (res.status === 'paid') {
-      setSuccessMsg('Payment confirmed — balance credited.')
+      setSuccessMsg(t('cfund.paidMsg'))
       setAwaitApproval(false)
       setCryptoPendingId(null)
       if (typeof res.balance === 'number') setUser({ ...user, balance: res.balance })
-      toast({ title: 'Payment confirmed — balance credited ✅' })
+      toast({ title: t('cfund.paidToast') })
     } else if (res.status === 'failed') {
-      toast({ title: 'The payment was not completed', variant: 'destructive' })
+      toast({ title: t('cfund.notCompleted'), variant: 'destructive' })
     } else {
       setAwaitApproval(true)
-      toast({ title: 'Payment still processing… it is credited automatically once confirmed.' })
+      toast({ title: t('cfund.stillProcessing') })
     }
     reloadFunds()
     refresh()
@@ -122,7 +122,7 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
 
   async function submitDeposit() {
     if (!gateway || amountNum <= 0) {
-      toast({ title: 'Enter a valid amount and method', variant: 'destructive' })
+      toast({ title: t('cfund.enterValid'), variant: 'destructive' })
       return
     }
     setSubmitting(true)
@@ -136,7 +136,7 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
     if (res.redirect) {
       // Real gateway checkout — full navigation away from the panel.
       setRedirecting(true)
-      toast({ title: res.message ?? 'Redirecting to checkout…' })
+      toast({ title: res.message ?? t('cfund.redirectToast') })
       window.location.href = res.redirect
       return
     }
@@ -151,16 +151,16 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
       })
       setAwaitApproval(true)
       setSuccessMsg(null)
-      toast({ title: res.message ?? 'Deposit created — follow the instructions' })
+      toast({ title: res.message ?? t('cfund.depositCreated') })
     } else if (res.pending) {
       setAwaitApproval(true)
       setSuccessMsg(null)
-      toast({ title: res.message ?? 'Deposit submitted — awaiting approval' })
+      toast({ title: res.message ?? t('cfund.awaitToast') })
     } else {
-      setSuccessMsg(res.message ?? 'Funds credited!')
+      setSuccessMsg(res.message ?? t('cfund.fundsCredited'))
       setAwaitApproval(false)
       if (typeof res.balance === 'number') setUser({ ...user, balance: res.balance })
-      toast({ title: res.message ?? 'Funds credited!' })
+      toast({ title: res.message ?? t('cfund.fundsCredited') })
     }
     if (res.crypto && res.deposit?.id) setCryptoPendingId(res.deposit.id)
     reloadFunds()
@@ -183,10 +183,10 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
         .catch(() => null)
       if (!res || res.status !== 'paid') return
       setCryptoPendingId(null)
-      setSuccessMsg('Payment confirmed — balance credited.')
+      setSuccessMsg(t('cfund.paidMsg'))
       setAwaitApproval(false)
       if (typeof res.balance === 'number') setUser({ ...user, balance: res.balance })
-      toast({ title: 'Payment confirmed — balance credited ✅' })
+      toast({ title: t('cfund.paidToast') })
       reloadFunds()
       refresh()
       onRefresh?.()
@@ -201,7 +201,7 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
     if (!f) return
     window.history.replaceState(null, '', window.location.pathname)
     if (f === 'cancel') {
-      toast({ title: 'Payment canceled — no charge was made' })
+      toast({ title: t('cfund.canceledToast') })
       return
     }
     // Deferred so the mount render is not blocked (and set-state lands after paint).
@@ -239,7 +239,7 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
         expMonth,
         expYear,
       }),
-      { success: 'Card saved' },
+      { success: t('cfund.cardSaved') },
     )
     setAddingCard(false)
     if (res) {
@@ -262,9 +262,9 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
         body: JSON.stringify({ id: deleteMethod.id }),
       })
       const data = await r.json().catch(() => ({}))
-      if (!r.ok) throw new Error((data as { error?: string }).error || 'Failed to remove card')
+      if (!r.ok) throw new Error((data as { error?: string }).error || t('cfund.cardRemoveFail'))
       return data as { ok: boolean }
-    }, { success: 'Card removed' })
+    }, { success: t('cfund.cardRemoved') })
     setDeletingCard(false)
     if (res) {
       setDeleteMethod(null)
@@ -276,7 +276,7 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
     <div className="mx-auto max-w-[1200px] p-4 sm:p-6 lg:p-8">
       <PanelPageHeader
         title={t('client.fundWallet')}
-        description="Top up your wallet — deposits are processed in USD."
+        description={t('cfund.desc')}
       />
 
       <div className="grid gap-4 lg:grid-cols-5">
@@ -286,28 +286,28 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
             <div className="flex items-start gap-3 rounded-2xl border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40 p-4">
               <Clock3 className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
               <div>
-                <p className="text-[13.5px] font-extrabold text-amber-800">Deposit submitted — awaiting approval</p>
+                <p className="text-[13.5px] font-extrabold text-amber-800">{t('cfund.awaitTitle')}</p>
                 <p className="mt-0.5 text-[12.5px] leading-relaxed text-amber-700 dark:text-amber-400">
-                  Your deposit is in the review queue. The balance will be credited as soon as it is approved.
+                  {t('cfund.awaitDesc')}
                 </p>
               </div>
             </div>
           )}
           {manualInfo && (
             <Card>
-              <CardHead icon={Landmark} title="How to complete your deposit" sub={manualInfo.method} />
+              <CardHead icon={Landmark} title={t('cfund.manualTitle')} sub={manualInfo.method} />
               <pre className="whitespace-pre-wrap rounded-xl border border-zinc-200 bg-zinc-50 p-4 font-sans text-[12.5px] leading-relaxed text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-200">
                 {manualInfo.instructions}
               </pre>
               <p className="mt-2 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-amber-600 dark:text-amber-400">
                 <Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                Pending approval — the funds are credited to your wallet once the deposit is reviewed.
+                {t('cfund.manualNote')}
               </p>
             </Card>
           )}
           {cryptoPendingId && (
             <Card>
-              <CardHead icon={Bitcoin} title="Crypto payment pending" sub="Checking the payment automatically — usually confirmed in minutes" />
+              <CardHead icon={Bitcoin} title={t('cfund.cryptoTitle')} sub={t('cfund.cryptoSub')} />
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
@@ -317,9 +317,9 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
                   onClick={() => verifyDeposit(cryptoPendingId)}
                 >
                   {checking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-                  Check status now
+                  {t('cfund.checkNow')}
                 </Button>
-                <span className="text-[11px] text-zinc-400 dark:text-zinc-500">Deposit #{cryptoPendingId.slice(-6)}</span>
+                <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{t('cfund.depositNo').replace('{n}', cryptoPendingId.slice(-6))}</span>
               </div>
             </Card>
           )}
@@ -327,18 +327,18 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
             <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/40 p-4">
               <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
               <div>
-                <p className="text-[13.5px] font-extrabold text-emerald-800">Payment complete 🎉</p>
+                <p className="text-[13.5px] font-extrabold text-emerald-800">{t('cfund.successTitle')}</p>
                 <p className="mt-0.5 text-[12.5px] text-emerald-700 dark:text-emerald-400">{successMsg}</p>
               </div>
             </div>
           )}
 
           <Card>
-            <CardHead icon={Wallet} title="Choose a payment method" sub="All transactions are encrypted and secure" />
+            <CardHead icon={Wallet} title={t('cfund.chooseMethod')} sub={t('cfund.secureSub')} />
             {fundsLoading && !funds ? (
               <LoadingRows rows={3} />
             ) : gateways.length === 0 ? (
-              <EmptyState icon={CreditCard} title="No payment methods available" message="Please contact support to arrange a manual top-up." />
+              <EmptyState icon={CreditCard} title={t('cfund.noMethodsTitle')} message={t('cfund.noMethodsDesc')} />
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {gateways.map((g) => {
@@ -368,7 +368,7 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
                       <div className="mt-2">
                         <p className="text-[13px] font-extrabold text-zinc-900 dark:text-zinc-50">{g.name}</p>
                         <p className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">
-                          {g.type}{g.feePercent > 0 ? ` · ${g.feePercent}% fee` : ' · No fee'}
+                          {g.type}{g.feePercent > 0 ? t('cfund.feeTag').replace('{n}', String(g.feePercent)) : t('cfund.noFeeTag')}
                         </p>
                       </div>
                     </button>
@@ -379,7 +379,7 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
           </Card>
 
           <Card>
-            <CardHead icon={CircleDollarSign} title="Amount" sub="Quick amounts or type your own" />
+            <CardHead icon={CircleDollarSign} title={t('common.amount')} sub={t('cfund.amountSub')} />
             <div className="space-y-4">
               <div className="flex flex-wrap gap-2">
                 {QUICK.map((q) => (
@@ -398,7 +398,7 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
                 ))}
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="fund-amount">Amount (USD)</Label>
+                <Label htmlFor="fund-amount">{t('cfund.amountUsd')}</Label>
                 <Input
                   id="fund-amount"
                   className="min-h-[44px] text-[15px] font-bold"
@@ -413,10 +413,10 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
               </div>
 
               <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 p-4 text-[13px]">
-                <div className="flex justify-between"><span className="text-zinc-500 dark:text-zinc-400">Amount</span><span className="font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{m(amountNum)}</span></div>
-                <div className="mt-1 flex justify-between"><span className="text-zinc-500 dark:text-zinc-400">Gateway fee {gateway && gateway.feePercent > 0 ? `(${gateway.feePercent}%)` : ''}</span><span className="font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{m(fee)}</span></div>
+                <div className="flex justify-between"><span className="text-zinc-500 dark:text-zinc-400">{t('common.amount')}</span><span className="font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{m(amountNum)}</span></div>
+                <div className="mt-1 flex justify-between"><span className="text-zinc-500 dark:text-zinc-400">{t('cfund.gatewayFee').replace('{n}', gateway && gateway.feePercent > 0 ? `(${gateway.feePercent}%)` : '')}</span><span className="font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{m(fee)}</span></div>
                 <div className="mt-2 flex justify-between border-t border-zinc-200 dark:border-zinc-800 pt-2">
-                  <span className="font-bold text-zinc-700 dark:text-zinc-200">You pay</span>
+                  <span className="font-bold text-zinc-700 dark:text-zinc-200">{t('cfund.youPay')}</span>
                   <span className="text-lg font-extrabold tabular-nums text-[var(--brand)]">{m(total)}</span>
                 </div>
               </div>
@@ -427,13 +427,13 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
                 onClick={submitDeposit}
               >
                 {submitting || redirecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
-                {redirecting ? 'Opening checkout…' : submitting ? 'Processing…' : `Deposit ${m(total)}`}
+                {redirecting ? t('cfund.openingCheckout') : submitting ? t('cfund.processing') : t('cfund.depositCta').replace('{amount}', m(total))}
               </BrandButton>
               <p className="flex items-start gap-1.5 text-[11.5px] leading-relaxed text-zinc-400 dark:text-zinc-500">
                 <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 {isPlatformUser
-                  ? 'Deposits on this storefront are reviewed and credited after approval.'
-                  : 'Real gateway checkout — payments are verified by the provider; manual methods are credited after approval.'}
+                  ? t('cfund.platformNote')
+                  : t('cfund.gatewayNote')}
               </p>
             </div>
           </Card>
@@ -445,15 +445,15 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
             <CardHead
               icon={CreditCard}
               title={t('client.paymentMethod')}
-              sub="Saved cards for faster checkout"
+              sub={t('cfund.savedSub')}
               right={
                 <Button size="sm" variant="outline" className="h-8 min-h-[32px] gap-1 rounded-full text-[12px] font-bold" onClick={() => setAddOpen(true)}>
-                  <Plus className="h-3.5 w-3.5" /> Add
+                  <Plus className="h-3.5 w-3.5" /> {t('cfund.add')}
                 </Button>
               }
             />
             {methods.length === 0 ? (
-              <EmptyState icon={CreditCard} title="No saved cards" message="Add a card to speed up your next deposit." />
+              <EmptyState icon={CreditCard} title={t('cfund.noCardsTitle')} message={t('cfund.noCardsDesc')} />
             ) : (
               <div className="space-y-2">
                 {methods.map((pm) => (
@@ -464,14 +464,14 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
                     <div className="min-w-0 flex-1">
                       <p className="text-[13px] font-bold text-zinc-900 dark:text-zinc-50">
                         {pm.brand} •••• {pm.last4}
-                        {pm.primary && <Pill tone="emerald" className="ml-2">Default</Pill>}
+                        {pm.primary && <Pill tone="emerald" className="ml-2">{t('cfund.default')}</Pill>}
                       </p>
-                      <p className="text-[11px] text-zinc-400 dark:text-zinc-500">Exp {String(pm.expMonth).padStart(2, '0')}/{pm.expYear}</p>
+                      <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{t('cfund.exp').replace('{d}', `${String(pm.expMonth).padStart(2, '0')}/${pm.expYear}`)}</p>
                     </div>
                     <Button
                       size="icon" variant="ghost"
                       className="h-8 w-8 text-zinc-400 dark:text-zinc-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400"
-                      aria-label={`Remove card ${pm.brand} ending ${pm.last4}`}
+                      aria-label={t('cfund.removeCardAria').replace('{brand}', pm.brand).replace('{last4}', pm.last4)}
                       onClick={() => setDeleteMethod(pm)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -532,9 +532,9 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
           </div>
 
           <Card>
-            <CardHead icon={Clock3} title="Deposit history" sub="Your recent top-ups" />
+            <CardHead icon={Clock3} title={t('cfund.historyTitle')} sub={t('cfund.historySub')} />
             {deposits.length === 0 ? (
-              <EmptyState icon={Wallet} title="No deposits yet" message="Your deposit history will show up here." />
+              <EmptyState icon={Wallet} title={t('cfund.noDepositsTitle')} message={t('cfund.noDepositsDesc')} />
             ) : (
               <div className="max-h-96 space-y-2 overflow-y-auto pr-1 gr-scroll">
                 {deposits.map((d) => (
@@ -551,7 +551,7 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
                       }`}
                     >
                       {d.status === 'APPROVED' ? <CheckCircle2 className="mr-1 h-3 w-3" /> : d.status === 'REJECTED' ? <XCircle className="mr-1 h-3 w-3" /> : <Clock3 className="mr-1 h-3 w-3" />}
-                      {d.status === 'APPROVED' ? 'Credited' : d.status === 'REJECTED' ? 'Rejected' : 'Awaiting approval'}
+                      {d.status === 'APPROVED' ? t('cfund.credited') : d.status === 'REJECTED' ? t('status.REJECTED') : t('cfund.awaitingApproval')}
                     </span>
                   </div>
                 ))}
@@ -565,14 +565,14 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add payment card</DialogTitle>
+            <DialogTitle>{t('cfund.addCardTitle')}</DialogTitle>
             <DialogDescription>
-              Card details are tokenized — we only store the brand and last 4 digits.
+              {t('cfund.addCardDesc')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3.5">
             <div className="space-y-1.5">
-              <Label htmlFor="card-number">Card number</Label>
+              <Label htmlFor="card-number">{t('cfund.cardNumber')}</Label>
               <Input
                 id="card-number"
                 className="min-h-[40px]"
@@ -584,11 +584,11 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="card-brand">Brand (optional)</Label>
-                <Input id="card-brand" className="min-h-[40px]" placeholder="Auto-detected" value={cardBrand} onChange={(e) => setCardBrand(e.target.value)} />
+                <Label htmlFor="card-brand">{t('cfund.cardBrand')}</Label>
+                <Input id="card-brand" className="min-h-[40px]" placeholder={t('cfund.cardBrandPh')} value={cardBrand} onChange={(e) => setCardBrand(e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="card-exp">Expiry (MM/YY)</Label>
+                <Label htmlFor="card-exp">{t('cfund.cardExp')}</Label>
                 <Input id="card-exp" className="min-h-[40px]" placeholder="12/28" value={cardExp} onChange={(e) => setCardExp(e.target.value)} />
               </div>
             </div>
@@ -596,7 +596,7 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>{t('common.cancel')}</Button>
             <BrandButton onClick={addCard} disabled={addingCard || cardNumber.replace(/\D/g, '').length < 12}>
-              {addingCard && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />} Save card
+              {addingCard && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />} {t('cfund.saveCard')}
             </BrandButton>
           </DialogFooter>
         </DialogContent>
@@ -606,18 +606,18 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
       <AlertDialog open={!!deleteMethod} onOpenChange={(open) => !open && setDeleteMethod(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove saved card?</AlertDialogTitle>
+            <AlertDialogTitle>{t('cfund.removeCardQ')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {deleteMethod?.brand} •••• {deleteMethod?.last4} will be removed from your account. You can add it again later.
+              {t('cfund.removeCardDesc').replace('{brand}', deleteMethod?.brand ?? '').replace('{last4}', deleteMethod?.last4 ?? '')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep card</AlertDialogCancel>
+            <AlertDialogCancel>{t('cfund.keepCard')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); removeCard() }}
               className="bg-rose-600 text-white hover:bg-rose-700"
             >
-              {deletingCard && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />} Remove
+              {deletingCard && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />} {t('admin.removeCta')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

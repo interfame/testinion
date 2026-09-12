@@ -23,7 +23,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Textarea } from '@/components/ui/textarea'
-import { PanelPageHeader, StatusBadge } from '@/components/shared/panel-shell'
+import { PanelPageHeader, StatusBadge, useEnumLabel, ROLE_KEYS } from '@/components/shared/panel-shell'
 import { api, mutate, useApi } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import {
@@ -35,6 +35,8 @@ const ROLES = ['CLIENT', 'RESELLER', 'SUPER_ADMIN'] as const
 
 export function UsersSection() {
   const { t } = useI18n()
+  const roleLabel = useEnumLabel(ROLE_KEYS)
+  const statusLabel = useEnumLabel()
   const [q, setQ] = useState('')
   const [role, setRole] = useState('ALL')
   const [status, setStatus] = useState('ALL')
@@ -67,7 +69,7 @@ export function UsersSection() {
   const setRoleFor = async (u: AdminUser, nextRole: string) => {
     const ok = await mutate(
       () => api.patch('/api/admin/users', { id: u.id, action: 'set_role', role: nextRole }),
-      { success: `${t('admin.u.toastRole')}: ${nextRole.replace(/_/g, ' ').toLowerCase()}` },
+      { success: t('admin.u.toastRoleSet').replace('{role}', roleLabel(nextRole)) },
     )
     if (ok) refresh()
   }
@@ -100,17 +102,17 @@ export function UsersSection() {
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('admin.u.search')} className="h-9 rounded-full pl-9 text-[13px]" />
         </div>
         <Select value={role} onValueChange={setRole}>
-          <SelectTrigger className="h-9 w-full rounded-full text-[12.5px] font-semibold sm:w-40"><SelectValue placeholder="Role" /></SelectTrigger>
+          <SelectTrigger className="h-9 w-full rounded-full text-[12.5px] font-semibold sm:w-40"><SelectValue placeholder={t('admin.u.role')} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">{t('admin.u.allRoles')}</SelectItem>
-            {ROLES.map((r) => <SelectItem key={r} value={r}>{r.replace(/_/g, ' ')}</SelectItem>)}
+            {ROLES.map((r) => <SelectItem key={r} value={r}>{roleLabel(r)}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="h-9 w-full rounded-full text-[12.5px] font-semibold sm:w-40"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="h-9 w-full rounded-full text-[12.5px] font-semibold sm:w-40"><SelectValue placeholder={t('common.status')} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">{t('admin.u.allStatuses')}</SelectItem>
-            {['ACTIVE', 'SUSPENDED', 'BANNED'].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            {['ACTIVE', 'SUSPENDED', 'BANNED'].map((s) => <SelectItem key={s} value={s}>{statusLabel(s)}</SelectItem>)}
           </SelectContent>
         </Select>
         <span className="text-[12px] font-medium text-zinc-400 dark:text-zinc-500 sm:ml-auto">{t('admin.u.count').replace('{n}', String(data?.users.length ?? 0))}</span>
@@ -158,7 +160,7 @@ export function UsersSection() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {ROLES.map((r) => <SelectItem key={r} value={r}>{r.replace(/_/g, ' ')}</SelectItem>)}
+                          {ROLES.map((r) => <SelectItem key={r} value={r}>{roleLabel(r)}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </td>
@@ -191,7 +193,7 @@ export function UsersSection() {
                     <p className="truncate text-[13px] font-bold text-zinc-800 dark:text-zinc-100">{u.name}</p>
                     <p className="truncate text-[12px] text-zinc-400 dark:text-zinc-500">{u.email}</p>
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                      <Badge variant="outline" className="rounded-full text-[10px] font-bold">{u.role.replace(/_/g, ' ')}</Badge>
+                      <Badge variant="outline" className="rounded-full text-[10px] font-bold">{roleLabel(u.role)}</Badge>
                       <StatusBadge status={u.status} />
                       <span className="text-[12px] font-bold text-zinc-700 dark:text-zinc-200"><Money usd={u.balance} /></span>
                     </div>
@@ -224,7 +226,7 @@ export function UsersSection() {
           <div className="space-y-3">
             <div>
               <FieldLabel hint={t('admin.u.amountHint')}>{t('common.amount')}</FieldLabel>
-              <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="e.g. 25 or -10" />
+              <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={t('admin.u.amountPlaceholder')} />
             </div>
             <div>
               <FieldLabel hint={t('admin.u.noteHint')}>{t('admin.u.note')}</FieldLabel>
@@ -272,8 +274,8 @@ export function UsersSection() {
             <DialogDescription>{viewing?.email}</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3 text-[13px]">
-            <Detail label={t('admin.u.role')} value={viewing?.role.replace(/_/g, ' ') ?? '—'} />
-            <Detail label={t('common.status')} value={viewing?.status ?? '—'} />
+            <Detail label={t('admin.u.role')} value={viewing ? roleLabel(viewing.role) : '—'} />
+            <Detail label={t('common.status')} value={viewing ? statusLabel(viewing.status) : '—'} />
             <Detail label={t('admin.u.balance')} value={viewing ? <Money usd={viewing.balance} /> : '—'} />
             <Detail label={t('admin.u.currency')} value={viewing?.currency ?? '—'} />
             <Detail label={t('admin.u.platform')} value={viewing?.platform?.name ?? t('admin.u.master')} />
@@ -300,7 +302,7 @@ function UserActions({ user, onView, onAdjust, onSuspend, onActivate, onBan }: {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" aria-label={`Actions for ${user.name}`}>
+        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" aria-label={t('admin.u.actionsFor').replace('{name}', user.name)}>
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>

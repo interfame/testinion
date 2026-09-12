@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog'
 import { PanelPageHeader } from '@/components/shared/panel-shell'
 import { PageWrap } from './crm-shared'
+import { useI18n } from '@/lib/i18n'
 import { CardsSkeleton, ConfirmDelete, EmptyState, type CrmLabel } from './crm-shared'
 
 const SWATCHES = [
@@ -36,6 +37,7 @@ const SWATCHES = [
 
 export default function CrmLabels({ platformId }: { platformId: string }) {
   const { lang } = useApp()
+  const { t } = useI18n()
   const { data, loading, refresh } = useApi<{ labels: CrmLabel[] }>('/api/reseller/crm/labels', [platformId])
   const labels = data?.labels ?? []
 
@@ -48,7 +50,7 @@ export default function CrmLabels({ platformId }: { platformId: string }) {
   async function create() {
     if (!name.trim()) return
     const res = await mutate(() => api.post('/api/reseller/crm/labels', { name, color }), {
-      success: 'Label created',
+      success: t('crm.labelCreated'),
     })
     if (res) {
       setName('')
@@ -67,7 +69,7 @@ export default function CrmLabels({ platformId }: { platformId: string }) {
     if (!editing || !editName.trim()) return
     const res = await mutate(
       () => api.patch('/api/reseller/crm/labels', { id: editing.id, name: editName, color: editColor }),
-      { success: 'Label updated' },
+      { success: t('crm.labelUpdated') },
     )
     if (res) {
       setEditing(null)
@@ -76,15 +78,15 @@ export default function CrmLabels({ platformId }: { platformId: string }) {
   }
 
   async function remove(l: CrmLabel) {
-    await mutate(() => api.del(`/api/reseller/crm/labels?id=${l.id}`), { success: `${l.name} deleted` })
+    await mutate(() => api.del(`/api/reseller/crm/labels?id=${l.id}`), { success: t('crm.deleted').replace('{name}', l.name) })
     refresh()
   }
 
   return (
     <PageWrap>
       <PanelPageHeader
-        title="Labels"
-        description="Color-coded tags for segments like VIP, Lead or Support — usable in contacts, inbox filters and automations."
+        title={t('reseller.labels')}
+        description={t('crm.labelsDesc')}
       />
 
       {/* Create form */}
@@ -92,7 +94,7 @@ export default function CrmLabels({ platformId }: { platformId: string }) {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1 space-y-1.5">
             <label htmlFor="lb-name" className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-              Label name
+              {t('crm.labelName')}
             </label>
             <Input
               id="lb-name"
@@ -106,13 +108,13 @@ export default function CrmLabels({ platformId }: { platformId: string }) {
             />
           </div>
           <div className="sm:w-auto">
-            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Color</p>
+            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">{t('crm.color')}</p>
             <div className="flex flex-wrap gap-1.5">
               {SWATCHES.map((c) => (
                 <button
                   key={c}
                   onClick={() => setColor(c)}
-                  aria-label={`Color ${c}`}
+                  aria-label={`${t('crm.color')} ${c}`}
                   className={cn(
                     'flex h-7 w-7 items-center justify-center rounded-full transition',
                     color === c ? 'ring-2 ring-zinc-900 dark:ring-zinc-100 ring-offset-2' : 'hover:scale-110',
@@ -130,7 +132,7 @@ export default function CrmLabels({ platformId }: { platformId: string }) {
             className="h-9 shrink-0 rounded-xl text-[var(--on-brand)]"
             style={{ background: 'var(--brand)' }}
           >
-            Create label
+            {t('crm.createLabel')}
           </Button>
         </div>
       </div>
@@ -140,8 +142,8 @@ export default function CrmLabels({ platformId }: { platformId: string }) {
       ) : labels.length === 0 ? (
         <EmptyState
           icon={Tag}
-          title="No labels yet"
-          description="Create your first label above — try VIP for high spenders or Lead for new prospects."
+          title={t('crm.labelsEmpty')}
+          description={t('crm.labelsEmptySub')}
         />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -163,13 +165,13 @@ export default function CrmLabels({ platformId }: { platformId: string }) {
                   size="icon"
                   className="h-8 w-8 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200"
                   onClick={() => openEdit(l)}
-                  aria-label={`Rename ${l.name}`}
+                  aria-label={t('crm.renameAria').replace('{name}', l.name)}
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
                 <ConfirmDelete
-                  title={`Delete ${l.name}?`}
-                  description="Contacts keep the tag text, but the label disappears from pickers and the inbox."
+                  title={t('crm.delQ').replace('{name}', l.name)}
+                  description={t('crm.delLabelDesc')}
                   onConfirm={() => remove(l)}
                 />
               </div>
@@ -182,23 +184,23 @@ export default function CrmLabels({ platformId }: { platformId: string }) {
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="rounded-2xl sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Rename label</DialogTitle>
-            <DialogDescription>Change the name or swap the color swatch.</DialogDescription>
+            <DialogTitle>{t('crm.renameLabel')}</DialogTitle>
+            <DialogDescription>{t('crm.renameDesc')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3.5 py-1">
             <Input
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
-              placeholder="Label name"
+              placeholder={t('crm.labelName')}
               className="rounded-xl"
-              aria-label="Label name"
+              aria-label={t('crm.labelName')}
             />
             <div className="flex flex-wrap gap-1.5">
               {SWATCHES.map((c) => (
                 <button
                   key={c}
                   onClick={() => setEditColor(c)}
-                  aria-label={`Color ${c}`}
+                  aria-label={`${t('crm.color')} ${c}`}
                   className={cn(
                     'flex h-7 w-7 items-center justify-center rounded-full transition',
                     editColor === c ? 'ring-2 ring-zinc-900 dark:ring-zinc-100 ring-offset-2' : 'hover:scale-110',
@@ -212,7 +214,7 @@ export default function CrmLabels({ platformId }: { platformId: string }) {
           </div>
           <DialogFooter>
             <Button variant="outline" className="rounded-xl" onClick={() => setEditing(null)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               onClick={saveEdit}
@@ -220,7 +222,7 @@ export default function CrmLabels({ platformId }: { platformId: string }) {
               className="rounded-xl text-[var(--on-brand)]"
               style={{ background: 'var(--brand)' }}
             >
-              Save
+              {t('common.save')}
             </Button>
           </DialogFooter>
         </DialogContent>

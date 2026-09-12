@@ -23,6 +23,8 @@ import {
 import { PanelPageHeader } from '@/components/shared/panel-shell'
 import { api, mutate, useApi } from '@/lib/api'
 import { toast } from '@/hooks/use-toast'
+import { useI18n } from '@/lib/i18n'
+import { useEnumLabel } from '@/components/shared/panel-shell'
 import {
   AdminCard, apiDel, EmptyState, FieldLabel, Money, TableShell,
   useDebounced, type AdminStats,
@@ -68,6 +70,8 @@ function randomCode(): string {
 
 export function CouponsSection({ stats }: { stats?: AdminStats | null }) {
   const { currencyOf, user, lang } = useApp()
+  const { t } = useI18n()
+  const statusLabel = useEnumLabel()
   const { data, loading, refresh } = useApi<{ items: AdminCoupon[]; totalGiven: number }>('/api/admin/coupons')
   const [adding, setAdding] = useState(false)
   const [form, setForm] = useState({ code: '', value: '', maxUses: '0', expiresAt: '', note: '' })
@@ -107,7 +111,7 @@ export function CouponsSection({ stats }: { stats?: AdminStats | null }) {
     )
     setCreating(false)
     if (ok) {
-      toast({ title: ok.message ?? `Coupon ${ok.item.code} created 🎟️` })
+      toast({ title: ok.message ?? t('admin.cpn.toastCreated').replace('{code}', ok.item.code) })
       setAdding(false)
       setForm({ code: '', value: '', maxUses: '0', expiresAt: '', note: '' })
       refresh()
@@ -137,11 +141,11 @@ export function CouponsSection({ stats }: { stats?: AdminStats | null }) {
   return (
     <div className="space-y-4">
       <PanelPageHeader
-        title="Promo coupons"
-        description="Gift codes that credit client wallets instantly — one redemption per account."
+        title={t('admin.coupons')}
+        description={t('admin.cpn.desc')}
         actions={
           <Button onClick={() => { setForm((f) => ({ ...f, code: randomCode() })); setAdding(true) }} className="h-9 rounded-full px-4 text-[13px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
-            <Plus className="mr-1 h-4 w-4" /> New coupon
+            <Plus className="mr-1 h-4 w-4" /> {t('admin.cpn.new')}
           </Button>
         }
       />
@@ -149,10 +153,10 @@ export function CouponsSection({ stats }: { stats?: AdminStats | null }) {
       {/* KPI row */}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { icon: Ticket, label: 'Coupons', value: String(items.length), sub: `${activeCount} active now`, tone: 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40' },
-          { icon: BadgePercent, label: 'Redemptions', value: String(redemptions), sub: 'all time', tone: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40' },
-          { icon: Wallet, label: 'Total credited', value: formatMoney(data?.totalGiven ?? 0, currencyOf(user.currency), lang), sub: 'via promo codes', tone: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40' },
-          { icon: Users, label: 'Reach', value: String(stats?.totalUsers ?? 0), sub: 'users can redeem', tone: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40' },
+          { icon: Ticket, label: t('admin.cpn.kpiCoupons'), value: String(items.length), sub: t('admin.cpn.kpiActiveSub').replace('{n}', String(activeCount)), tone: 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40' },
+          { icon: BadgePercent, label: t('admin.cpn.kpiRedemptions'), value: String(redemptions), sub: t('admin.cpn.kpiAllTime'), tone: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40' },
+          { icon: Wallet, label: t('admin.cpn.kpiTotal'), value: formatMoney(data?.totalGiven ?? 0, currencyOf(user.currency), lang), sub: t('admin.cpn.kpiViaCodes'), tone: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40' },
+          { icon: Users, label: t('admin.cpn.kpiReach'), value: String(stats?.totalUsers ?? 0), sub: t('admin.cpn.kpiReachSub'), tone: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40' },
         ].map((k) => (
           <div key={k.label} className="flex items-center gap-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
             <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${k.tone}`}>
@@ -176,11 +180,11 @@ export function CouponsSection({ stats }: { stats?: AdminStats | null }) {
             className={`rounded-full px-3.5 py-1.5 text-[12px] font-bold transition ${filter === s ? 'text-[var(--on-brand)]' : 'border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900/60'}`}
             style={filter === s ? { background: 'var(--brand)' } : undefined}
           >
-            {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
+            {s === 'ALL' ? t('common.all') : statusLabel(s)}
           </button>
         ))}
         <div className="ml-auto w-full sm:w-56">
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search code or note…" className="h-9 rounded-full text-[12.5px]" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('admin.cpn.search')} className="h-9 rounded-full text-[12.5px]" />
         </div>
       </div>
 
@@ -190,8 +194,8 @@ export function CouponsSection({ stats }: { stats?: AdminStats | null }) {
         <AdminCard>
           <EmptyState
             icon={Ticket}
-            title={items.length === 0 ? 'No coupons yet' : 'Nothing matches this filter'}
-            hint={items.length === 0 ? 'Create a code like WELCOME10 and share it with your clients.' : 'Try another status or clear the search.'}
+            title={items.length === 0 ? t('admin.cpn.none') : t('admin.cpn.noMatch')}
+            hint={items.length === 0 ? t('admin.cpn.noneHint') : t('admin.cpn.noMatchHint')}
           />
         </AdminCard>
       ) : (
@@ -199,13 +203,13 @@ export function CouponsSection({ stats }: { stats?: AdminStats | null }) {
           <table className="w-full text-left text-[13px]">
             <thead>
               <tr className="border-b border-zinc-100 dark:border-zinc-800/70 text-[11px] uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-                <th className="px-4 py-3 font-bold">Code</th>
-                <th className="px-3 py-3 font-bold">Bonus</th>
-                <th className="px-3 py-3 font-bold">Usage</th>
-                <th className="px-3 py-3 font-bold">Status</th>
-                <th className="px-3 py-3 font-bold">Expires</th>
-                <th className="px-3 py-3 font-bold">Note</th>
-                <th className="px-4 py-3 text-right font-bold">Actions</th>
+                <th className="px-4 py-3 font-bold">{t('admin.cpn.code')}</th>
+                <th className="px-3 py-3 font-bold">{t('admin.cpn.bonus')}</th>
+                <th className="px-3 py-3 font-bold">{t('admin.cpn.usage')}</th>
+                <th className="px-3 py-3 font-bold">{t('common.status')}</th>
+                <th className="px-3 py-3 font-bold">{t('admin.cpn.expires')}</th>
+                <th className="px-3 py-3 font-bold">{t('admin.u.note')}</th>
+                <th className="px-4 py-3 text-right font-bold">{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/60">
@@ -218,16 +222,16 @@ export function CouponsSection({ stats }: { stats?: AdminStats | null }) {
                       <button
                         onClick={() => setViewing(c)}
                         className="rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/60 px-2.5 py-1 font-mono text-[12px] font-extrabold tracking-wider text-zinc-800 dark:text-zinc-100 transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
-                        title="View redemptions"
+                        title={t('admin.cpn.viewRedemptions')}
                       >
                         {c.code}
                       </button>
                     </td>
                     <td className="px-3 py-3 font-extrabold tabular-nums text-emerald-600 dark:text-emerald-400"><Money usd={c.value} /></td>
                     <td className="px-3 py-3">
-                      <button onClick={() => setViewing(c)} className="group min-w-[110px] text-left" title="View redemptions">
+                      <button onClick={() => setViewing(c)} className="group min-w-[110px] text-left" title={t('admin.cpn.viewRedemptions')}>
                         <p className="text-[12px] font-bold tabular-nums text-zinc-700 dark:text-zinc-200">
-                          {c.usedCount}<span className="text-zinc-400 dark:text-zinc-500"> / {c.maxUses > 0 ? c.maxUses : '∞'} used</span>
+                          {c.usedCount}<span className="text-zinc-400 dark:text-zinc-500"> / {c.maxUses > 0 ? c.maxUses : '∞'} {t('admin.cpn.used')}</span>
                         </p>
                         <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
                           <div className="h-full rounded-full transition-all" style={{ width: `${Math.max(pct, c.usedCount > 0 ? 8 : 0)}%`, background: st === 'ACTIVE' ? 'var(--brand)' : '#a1a1aa' }} />
@@ -245,9 +249,9 @@ export function CouponsSection({ stats }: { stats?: AdminStats | null }) {
                           checked={c.active}
                           disabled={toggling === c.id}
                           onCheckedChange={() => toggle(c)}
-                          aria-label={`${c.active ? 'Pause' : 'Resume'} coupon ${c.code}`}
+                          aria-label={c.active ? t('admin.cpn.ariaPause').replace('{code}', c.code) : t('admin.cpn.ariaResume').replace('{code}', c.code)}
                         />
-                        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40" onClick={() => setDeleting(c)} aria-label={`Delete coupon ${c.code}`}>
+                        <Button variant="outline" size="icon" className="h-8 w-8 rounded-full text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40" onClick={() => setDeleting(c)} aria-label={t('admin.cpn.ariaDelete').replace('{code}', c.code)}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
@@ -264,12 +268,12 @@ export function CouponsSection({ stats }: { stats?: AdminStats | null }) {
       <Dialog open={adding} onOpenChange={setAdding}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Ticket className="h-4 w-4" style={{ color: 'var(--brand)' }} /> New promo coupon</DialogTitle>
-            <DialogDescription>Clients redeem it once in Add funds → the bonus lands in their wallet instantly.</DialogDescription>
+            <DialogTitle className="flex items-center gap-2"><Ticket className="h-4 w-4" style={{ color: 'var(--brand)' }} /> {t('admin.cpn.dialogTitle')}</DialogTitle>
+            <DialogDescription>{t('admin.cpn.dialogDesc')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3.5">
             <div>
-              <FieldLabel hint="A-Z, 0-9, dash">Code</FieldLabel>
+              <FieldLabel hint="A-Z, 0-9, dash">{t('admin.cpn.code')}</FieldLabel>
               <div className="flex gap-2">
                 <Input
                   value={form.code}
@@ -277,36 +281,36 @@ export function CouponsSection({ stats }: { stats?: AdminStats | null }) {
                   placeholder="WELCOME10"
                   className="min-h-[40px] font-mono font-extrabold tracking-wider"
                 />
-                <Button variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={() => setForm({ ...form, code: randomCode() })} aria-label="Generate random code">
+                <Button variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={() => setForm({ ...form, code: randomCode() })} aria-label={t('admin.cpn.ariaRandom')}>
                   <Dices className="h-4 w-4" />
                 </Button>
               </div>
-              {codeTaken && <p className="mt-1 text-[11px] font-bold text-rose-500">This code already exists.</p>}
+              {codeTaken && <p className="mt-1 text-[11px] font-bold text-rose-500">{t('admin.cpn.codeTaken')}</p>}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <FieldLabel hint="USD">Bonus amount</FieldLabel>
+                <FieldLabel hint="USD">{t('admin.cpn.bonusAmount')}</FieldLabel>
                 <Input value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} type="number" min={0.5} step="0.5" placeholder="10.00" className="min-h-[40px]" />
               </div>
               <div>
-                <FieldLabel hint="0 = unlimited">Max uses</FieldLabel>
+                <FieldLabel hint={t('admin.cpn.unlimitedHint')}>{t('admin.cpn.maxUses')}</FieldLabel>
                 <Input value={form.maxUses} onChange={(e) => setForm({ ...form, maxUses: e.target.value })} type="number" min={0} step="1" placeholder="0" className="min-h-[40px]" />
               </div>
             </div>
             <div>
-              <FieldLabel hint="optional">Expires on</FieldLabel>
+              <FieldLabel hint={t('admin.u.noteHint')}>{t('admin.cpn.expiresOn')}</FieldLabel>
               <Input value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} type="date" className="min-h-[40px]" />
             </div>
             <div>
-              <FieldLabel hint="optional">Note</FieldLabel>
-              <Textarea rows={2} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="Campaign, channel, who gets it…" />
+              <FieldLabel hint={t('admin.u.noteHint')}>{t('admin.u.note')}</FieldLabel>
+              <Textarea rows={2} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder={t('admin.cpn.notePlaceholder')} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAdding(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setAdding(false)}>{t('common.cancel')}</Button>
             <Button onClick={create} disabled={!codeValid || !valueValid || creating} style={{ background: 'var(--brand)' }}>
               {creating && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-              <Ticket className="mr-1.5 h-3.5 w-3.5" /> Create coupon
+              <Ticket className="mr-1.5 h-3.5 w-3.5" /> {t('admin.cpn.createCta')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -318,14 +322,17 @@ export function CouponsSection({ stats }: { stats?: AdminStats | null }) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <span className="rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/60 px-2 py-0.5 font-mono text-[13px] font-extrabold tracking-wider">{viewing?.code}</span>
-              redemptions
+              {t('admin.cpn.redemptionsWord')}
             </DialogTitle>
             <DialogDescription>
-              {viewing ? `${viewing.usedCount} of ${viewing.maxUses > 0 ? viewing.maxUses : 'unlimited'} uses · ${formatMoney(viewing.value, currencyOf(user.currency), lang)} per redemption` : ''}
+              {viewing ? t('admin.cpn.redemptionsDesc')
+                .replace('{n}', String(viewing.usedCount))
+                .replace('{max}', viewing.maxUses > 0 ? String(viewing.maxUses) : t('admin.cpn.unlimited'))
+                .replace('{money}', formatMoney(viewing.value, currencyOf(user.currency), lang)) : ''}
             </DialogDescription>
           </DialogHeader>
           {!viewing || viewing.redemptions.length === 0 ? (
-            <EmptyState icon={Ticket} title="No redemptions yet" hint="When a client redeems this code it will show up here." />
+            <EmptyState icon={Ticket} title={t('admin.cpn.noRedemptions')} hint={t('admin.cpn.noRedemptionsHint')} />
           ) : (
             <div className="max-h-72 space-y-2 overflow-y-auto gr-scroll pr-1">
               {viewing.redemptions.map((r) => (
@@ -349,15 +356,15 @@ export function CouponsSection({ stats }: { stats?: AdminStats | null }) {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete coupon “{deleting?.code}”?</AlertDialogTitle>
+            <AlertDialogTitle>{t('admin.cpn.deleteQ').replace('{code}', deleting?.code ?? '')}</AlertDialogTitle>
             <AlertDialogDescription>
-              The code stops working immediately. Past redemptions stay in clients&apos; wallets and transaction history.
+              {t('admin.cpn.deleteDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction className="bg-rose-600 hover:bg-rose-700" onClick={doDelete}>
-              <Ban className="mr-1.5 h-3.5 w-3.5" /> Delete coupon
+              <Ban className="mr-1.5 h-3.5 w-3.5" /> {t('admin.cpn.deleteCta')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -79,6 +79,14 @@ export async function PATCH(req: NextRequest) {
     if (b.providerId !== undefined) data.providerId = b.providerId || null
     if (b.type !== undefined) data.type = b.type
     if (b.rate !== undefined) data.rate = parseFloat(b.rate) || 0
+    if (b.cost !== undefined) {
+      // provider cost per 1k — null clears it; 0 is a valid value
+      if (b.cost === null || b.cost === '') data.cost = null
+      else {
+        const c = parseFloat(b.cost)
+        data.cost = Number.isFinite(c) && c >= 0 ? c : null
+      }
+    }
     if (b.min !== undefined) data.min = parseInt(b.min) || 1
     if (b.max !== undefined) data.max = parseInt(b.max) || 100000
     if (b.description !== undefined) data.description = b.description ? String(b.description).slice(0, 500) : null
@@ -92,11 +100,37 @@ export async function PATCH(req: NextRequest) {
   })
 }
 
-/** DELETE /api/admin/services — {id} (blocked when orders exist) */
+/** DELETE /api/admin/services — {id} or {ids: string[]} (bulk, max 2000; services with orders are skipped) */
 export async function DELETE(req: NextRequest) {
   return handle(async () => {
     await requireRole(['SUPER_ADMIN'])
-    const { id } = await req.json()
+    const b = await req.json().catch(() => ({}))
+
+    // ── Bulk delete: {ids: [...]} ─────────────────────────────────
+    if (Array.isArray(b.ids)) {
+      const ids = b.ids.map((x: unknown) => String(x)).filter(Boolean)
+      if (!ids.length) return jsonError('No services selected')
+      if (ids.length > 2000) return jsonError('Too many services selected (max 2000 per batch)')
+
+      const withOrders = await db.service.findMany({
+        where: { id: { in: ids }, orders: { some: {} } },
+        select: { id: true, name: true, _count: { select: { orders: true } } },
+      })
+      const blocked = withOrders.map((s) => ({ id: s.id, name: s.name, orders: s._count.orders }))
+      const blockedIds = new Set(blocked.map((s) => s.id))
+      const deletable = ids.filter((id: string) => !blockedIds.has(id))
+
+      let deleted = 0
+      for (let i = 0; i < deletable.length; i += 500) {
+        const chunk = deletable.slice(i, i + 500)
+        const res = await db.service.deleteMany({ where: { id: { in: chunk } } })
+        deleted += res.count
+      }
+      return jsonOk({ ok: true, deleted, blocked })
+    }
+
+    // ── Single delete: {id} (blocked when orders exist) ───────────
+    const { id } = b
     if (!id) return jsonError('Missing service id')
     const orders = await db.order.count({ where: { serviceId: id } })
     if (orders > 0) return jsonError(`Cannot delete: this service has ${orders} order(s). Set it inactive instead.`, 409)

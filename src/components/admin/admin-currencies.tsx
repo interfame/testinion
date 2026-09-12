@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { PanelPageHeader } from '@/components/shared/panel-shell'
 import { api, mutate, useApi } from '@/lib/api'
+import { useI18n } from '@/lib/i18n'
 import { AdminCard, TableShell, type AdminCurrency } from './admin-ui'
 
 type CurrenciesResponse = {
@@ -18,6 +19,7 @@ type CurrenciesResponse = {
 }
 
 export function CurrenciesSection({ onNavigate }: { onNavigate: (key: string) => void }) {
+  const { t } = useI18n()
   const { data, loading, refresh } = useApi<CurrenciesResponse>('/api/admin/currencies')
   const [rateEdits, setRateEdits] = useState<Record<string, string>>({})
   const [syncing, setSyncing] = useState(false)
@@ -41,7 +43,7 @@ export function CurrenciesSection({ onNavigate }: { onNavigate: (key: string) =>
     }
     const ok = await mutate(
       () => api.patch('/api/admin/currencies', { code: c.code, rate: parseFloat(raw) }),
-      { success: `${c.code} rate updated` },
+      { success: t('admin.cur.toastRate').replace('{code}', c.code) },
     )
     if (ok) {
       setRateEdits((prev) => {
@@ -54,13 +56,13 @@ export function CurrenciesSection({ onNavigate }: { onNavigate: (key: string) =>
   }
 
   const toggleAuto = async (c: AdminCurrency, auto: boolean) => {
-    const ok = await mutate(() => api.patch('/api/admin/currencies', { code: c.code, auto }), { success: `${c.code} auto-sync ${auto ? 'on' : 'off'}` })
+    const ok = await mutate(() => api.patch('/api/admin/currencies', { code: c.code, auto }), { success: auto ? t('admin.cur.toastAutoOn').replace('{code}', c.code) : t('admin.cur.toastAutoOff').replace('{code}', c.code) })
     if (ok) refresh()
   }
 
   const syncRates = async () => {
     setSyncing(true)
-    const ok = await mutate(() => api.post('/api/admin/currencies/refresh'), { success: 'Rates synced from API' })
+    const ok = await mutate(() => api.post('/api/admin/currencies/refresh'), { success: t('admin.cur.toastSynced') })
     setSyncing(false)
     if (ok) refresh()
   }
@@ -71,20 +73,20 @@ export function CurrenciesSection({ onNavigate }: { onNavigate: (key: string) =>
   return (
     <div className="space-y-4">
       <PanelPageHeader
-        title="Currencies"
-        description="Display conversion for balances and prices. Base currency is always USD."
+        title={t('admin.currencies')}
+        description={t('admin.cur.desc')}
         actions={
           <Button onClick={syncRates} disabled={syncing || mode !== 'api' || !apiUrl} className="h-9 rounded-full px-4 text-[13px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
-            <RefreshCw className={`mr-1.5 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} /> Sync rates from API
+            <RefreshCw className={`mr-1.5 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} /> {t('admin.cur.sync')}
           </Button>
         }
       />
 
       {/* Conversion API status */}
-      <AdminCard title="Conversion source" description="How exchange rates are kept up to date">
+      <AdminCard title={t('admin.cur.source')} description={t('admin.cur.sourceSub')}>
         <div className="flex flex-wrap items-center gap-4 text-[13px]">
           <span className="inline-flex items-center gap-2 rounded-full border border-zinc-200 dark:border-zinc-800 px-3 py-1.5 font-semibold text-zinc-600 dark:text-zinc-300">
-            Mode: <b className="capitalize" style={{ color: 'var(--brand)' }}>{mode}</b>
+            {t('admin.cur.mode')} <b className="capitalize" style={{ color: 'var(--brand)' }}>{mode}</b>
           </span>
           {apiUrl ? (
             <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 px-3 py-1.5 text-zinc-500 dark:text-zinc-400">
@@ -92,10 +94,10 @@ export function CurrenciesSection({ onNavigate }: { onNavigate: (key: string) =>
               <span className="truncate font-mono text-[11.5px]">{apiUrl}</span>
             </span>
           ) : (
-            <span className="text-[12.5px] text-zinc-400 dark:text-zinc-500">No API URL configured yet.</span>
+            <span className="text-[12.5px] text-zinc-400 dark:text-zinc-500">{t('admin.cur.noApiUrl')}</span>
           )}
           <Button variant="outline" size="sm" className="ml-auto h-8 rounded-full px-3 text-[12px] font-bold" onClick={() => onNavigate('settings')}>
-            Configure in Settings →
+            {t('admin.cur.configure')}
           </Button>
         </div>
       </AdminCard>
@@ -107,12 +109,12 @@ export function CurrenciesSection({ onNavigate }: { onNavigate: (key: string) =>
           <table className="w-full min-w-[640px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-zinc-100 dark:border-zinc-800/70 text-[11px] uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-                <th className="px-4 py-3 font-bold">Base</th>
-                <th className="px-3 py-3 font-bold">Code</th>
-                <th className="px-3 py-3 font-bold">Name</th>
-                <th className="px-3 py-3 font-bold">Symbol</th>
-                <th className="px-3 py-3 font-bold">Rate (per 1 USD)</th>
-                <th className="px-4 py-3 text-right font-bold">Auto</th>
+                <th className="px-4 py-3 font-bold">{t('admin.cur.base')}</th>
+                <th className="px-3 py-3 font-bold">{t('admin.cur.code')}</th>
+                <th className="px-3 py-3 font-bold">{t('admin.cat.name')}</th>
+                <th className="px-3 py-3 font-bold">{t('admin.cur.symbol')}</th>
+                <th className="px-3 py-3 font-bold">{t('admin.cur.rate')}</th>
+                <th className="px-4 py-3 text-right font-bold">{t('admin.cur.auto')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/60">
@@ -120,7 +122,7 @@ export function CurrenciesSection({ onNavigate }: { onNavigate: (key: string) =>
                 <tr key={c.code} className="transition hover:bg-zinc-50/60 dark:hover:bg-zinc-900/40">
                   <td className="px-4 py-3">
                     {c.isBase ? (
-                      <span title="Base currency" className="inline-flex">
+                      <span title={t('admin.cur.baseTitle')} className="inline-flex">
                         <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                       </span>
                     ) : <span className="block h-4 w-4" />}
@@ -130,7 +132,7 @@ export function CurrenciesSection({ onNavigate }: { onNavigate: (key: string) =>
                   <td className="px-3 py-3 text-zinc-500 dark:text-zinc-400">{c.symbol}</td>
                   <td className="px-3 py-3">
                     {c.isBase ? (
-                      <span className="text-[12px] font-bold text-zinc-400 dark:text-zinc-500">1.00 (base)</span>
+                      <span className="text-[12px] font-bold text-zinc-400 dark:text-zinc-500">{t('admin.cur.baseRate')}</span>
                     ) : (
                       <Input
                         type="number"
@@ -139,14 +141,14 @@ export function CurrenciesSection({ onNavigate }: { onNavigate: (key: string) =>
                         onChange={(e) => setRateEdits({ ...rateEdits, [c.code]: e.target.value })}
                         onBlur={() => saveRate(c)}
                         className="h-8 w-36 rounded-lg text-[12.5px] font-semibold"
-                        aria-label={`Rate for ${c.code}`}
+                        aria-label={t('admin.cur.rateFor').replace('{code}', c.code)}
                       />
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     {c.isBase ? <span className="text-[11px] text-zinc-300 dark:text-zinc-600">—</span> : (
                       <div className="flex items-center justify-end gap-2">
-                        <Switch checked={c.auto} onCheckedChange={(v) => toggleAuto(c, v)} aria-label={`Auto rate for ${c.code}`} />
+                        <Switch checked={c.auto} onCheckedChange={(v) => toggleAuto(c, v)} aria-label={t('admin.cur.autoFor').replace('{code}', c.code)} />
                         <span className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500">{c.auto ? 'API' : 'manual'}</span>
                       </div>
                     )}

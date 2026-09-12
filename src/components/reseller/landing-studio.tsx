@@ -29,6 +29,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useApp } from '@/components/shared/app-context'
+import { useI18n, type DictKey } from '@/lib/i18n'
 import { useApi, api } from '@/lib/api'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
@@ -69,12 +70,19 @@ const PAYMENT_LABELS: Record<string, string> = {
 }
 
 type TemplateKey = 'growthrush' | 'agency' | 'starter' | 'crypto'
-const TEMPLATES: { key: TemplateKey; name: string; desc: string }[] = [
-  { key: 'growthrush', name: 'GrowthRush', desc: 'The full reference landing — all sections in the default order with the default copy.' },
-  { key: 'agency', name: 'Agency Pro', desc: 'Problem/solution, testimonials and newsletter front and center — built to close agency clients.' },
-  { key: 'starter', name: 'Starter', desc: 'Lean and fast: hero, stats, features, how it works, FAQ and CTA only.' },
-  { key: 'crypto', name: 'Crypto Store', desc: 'Payments right after the networks with crypto-first checkout messaging.' },
+const TEMPLATES: { key: TemplateKey; name: string }[] = [
+  { key: 'growthrush', name: 'GrowthRush' },
+  { key: 'agency', name: 'Agency Pro' },
+  { key: 'starter', name: 'Starter' },
+  { key: 'crypto', name: 'Crypto Store' },
 ]
+
+const TPL_DESC: Record<TemplateKey, DictKey> = {
+  growthrush: 'rst.tplGrowthrushDesc',
+  agency: 'rst.tplAgencyDesc',
+  starter: 'rst.tplStarterDesc',
+  crypto: 'rst.tplCryptoDesc',
+}
 
 /** Build a template config on top of the default, keeping the user's pages. */
 function buildTemplate(key: TemplateKey, pages: LandingPage[]): LandingConfig {
@@ -149,14 +157,15 @@ type ConfirmState = {
 
 export default function LandingStudio({ onBack }: { onBack: () => void }) {
   const app = useApp()
+  const { t } = useI18n()
   const platform = app.user.platform as { id: string; name: string; slug: string; theme: string } | undefined
   const { data, loading } = useApi<LandingApiResponse>(platform ? '/api/reseller/landing' : null)
 
   if (!platform) {
     return (
       <div className="rounded-2xl border border-dashed p-10 text-center">
-        <p className="text-sm font-bold">No platform</p>
-        <p className="mt-1 text-[13px] text-zinc-400 dark:text-zinc-500">Buy a platform to edit its landing.</p>
+        <p className="text-sm font-bold">{t('rst.noPlatform')}</p>
+        <p className="mt-1 text-[13px] text-zinc-400 dark:text-zinc-500">{t('rst.noPlatformSub')}</p>
       </div>
     )
   }
@@ -176,6 +185,7 @@ function StudioBody({ platform, initial, onBack }: {
   initial: LandingApiResponse
   onBack: () => void
 }) {
+  const { t } = useI18n()
   const [draft, setDraft] = useState<LandingConfig>(() => initial.config)
   const [saved, setSaved] = useState<LandingConfig>(() => initial.config)
   const [selectedId, setSelectedId] = useState<LandingSectionId | null>(null)
@@ -260,11 +270,11 @@ function StudioBody({ platform, initial, onBack }: {
         body: JSON.stringify({ config: draft }),
       })
       const d = await res.json().catch(() => ({})) as { error?: string }
-      if (!res.ok) throw new Error(d.error || 'Failed to save')
+      if (!res.ok) throw new Error(d.error || t('rst.saveFailed'))
       setSaved(draft)
-      toast({ title: 'Landing updated' })
+      toast({ title: t('rst.savedToast') })
     } catch (e) {
-      toast({ title: e instanceof Error ? e.message : 'Failed to save', variant: 'destructive' })
+      toast({ title: e instanceof Error ? e.message : t('rst.saveFailed'), variant: 'destructive' })
     }
     setSaving(false)
   }
@@ -279,14 +289,14 @@ function StudioBody({ platform, initial, onBack }: {
         body: JSON.stringify({ reset: true }),
       })
       const d = await res.json().catch(() => ({})) as { config?: LandingConfig; error?: string }
-      if (!res.ok || !d.config) throw new Error(d.error || 'Failed to restore')
+      if (!res.ok || !d.config) throw new Error(d.error || t('rst.restoreFailed'))
       setDraft(d.config)
       setSaved(d.config)
       setSelectedId(null)
       setSelectedPageId(null)
-      toast({ title: 'Landing restored to the GrowthRush default' })
+      toast({ title: t('rst.restoredToast') })
     } catch (e) {
-      toast({ title: e instanceof Error ? e.message : 'Failed to restore', variant: 'destructive' })
+      toast({ title: e instanceof Error ? e.message : t('rst.restoreFailed'), variant: 'destructive' })
     }
     setSaving(false)
   }
@@ -302,9 +312,9 @@ function StudioBody({ platform, initial, onBack }: {
   const requestBack = () => {
     if (dirty) {
       setConfirm({
-        title: 'Unsaved changes',
-        description: 'You have edits that were not saved yet. Leave the Landing Studio anyway?',
-        confirmLabel: 'Discard & leave',
+        title: t('rst.unsavedTitle'),
+        description: t('rst.unsavedDesc'),
+        confirmLabel: t('rst.discardLeave'),
         destructive: true,
         onConfirm: onBack,
       })
@@ -317,13 +327,13 @@ function StudioBody({ platform, initial, onBack }: {
     const run = () => {
       setDraft((d) => buildTemplate(key, d.pages))
       setTemplatesOpen(false)
-      toast({ title: 'Template applied — review and save' })
+      toast({ title: t('rst.templateApplied') })
     }
     if (dirty) {
       setConfirm({
-        title: 'Unsaved changes',
-        description: 'Applying a template replaces your current section order, visibility and copy (your pages are kept). Continue?',
-        confirmLabel: 'Apply template',
+        title: t('rst.unsavedTitle'),
+        description: t('rst.templateConfirmDesc'),
+        confirmLabel: t('rst.applyTemplate'),
         onConfirm: run,
       })
     } else {
@@ -346,29 +356,29 @@ function StudioBody({ platform, initial, onBack }: {
           variant="ghost" size="sm" onClick={requestBack}
           className="h-9 shrink-0 gap-1.5 rounded-full px-2.5 text-[13px] font-bold text-white/70 hover:bg-white/10 hover:text-white"
         >
-          <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Back</span>
+          <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">{t('buy.back')}</span>
         </Button>
         <span className="mx-0.5 hidden h-5 w-px bg-white/15 sm:block" />
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
           <Layers className="h-4 w-4" />
         </span>
         <div className="flex min-w-0 items-center gap-2">
-          <h1 className="truncate text-[15px] font-black tracking-tight">Landing Studio</h1>
+          <h1 className="truncate text-[15px] font-black tracking-tight">{t('rst.title')}</h1>
           {dirty && (
             <span className="hidden items-center gap-1.5 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-400 sm:flex">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> Unsaved changes
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> {t('rst.unsavedTitle')}
             </span>
           )}
         </div>
 
         <div className="ml-auto flex items-center gap-1">
           {/* Device switcher */}
-          <div className="hidden items-center gap-0.5 rounded-full border border-white/15 p-0.5 md:flex" role="group" aria-label="Preview device">
+          <div className="hidden items-center gap-0.5 rounded-full border border-white/15 p-0.5 md:flex" role="group" aria-label={t('rst.previewDevice')}>
             {(
               [
-                { key: 'desktop', icon: Monitor, label: 'Desktop' },
-                { key: 'tablet', icon: Tablet, label: 'Tablet' },
-                { key: 'mobile', icon: Smartphone, label: 'Mobile' },
+                { key: 'desktop', icon: Monitor, label: t('rst.desktop') },
+                { key: 'tablet', icon: Tablet, label: t('rst.tablet') },
+                { key: 'mobile', icon: Smartphone, label: t('rst.mobile') },
               ] as { key: Device; icon: LucideIcon; label: string }[]
             ).map((d) => (
               <button
@@ -391,26 +401,26 @@ function StudioBody({ platform, initial, onBack }: {
             variant="ghost" size="sm" onClick={() => setTemplatesOpen(true)}
             className="h-9 gap-1.5 rounded-full px-2.5 text-[13px] font-bold text-white/70 hover:bg-white/10 hover:text-white"
           >
-            <LayoutTemplate className="h-4 w-4" /> <span className="hidden lg:inline">Templates</span>
+            <LayoutTemplate className="h-4 w-4" /> <span className="hidden lg:inline">{t('rst.templates')}</span>
           </Button>
           <Button
             variant="ghost" size="sm" onClick={viewLanding}
             className="h-9 gap-1.5 rounded-full px-2.5 text-[13px] font-bold text-white/70 hover:bg-white/10 hover:text-white"
           >
-            <ExternalLink className="h-4 w-4" /> <span className="hidden lg:inline">View landing</span>
+            <ExternalLink className="h-4 w-4" /> <span className="hidden lg:inline">{t('rst.viewLanding')}</span>
           </Button>
           <Button
             variant="ghost" size="sm"
             onClick={() => setConfirm({
-              title: 'Restore default landing?',
-              description: 'This replaces the current section order, visibility, copy and pages with the GrowthRush default. This cannot be undone.',
-              confirmLabel: 'Restore',
+              title: t('rst.restoreTitle'),
+              description: t('rst.restoreDesc'),
+              confirmLabel: t('rst.restore'),
               destructive: true,
               onConfirm: restore,
             })}
             className="h-9 gap-1.5 rounded-full px-2.5 text-[13px] font-bold text-white/70 hover:bg-white/10 hover:text-white"
           >
-            <RotateCcw className="h-4 w-4" /> <span className="hidden lg:inline">Restore</span>
+            <RotateCcw className="h-4 w-4" /> <span className="hidden lg:inline">{t('rst.restore')}</span>
           </Button>
           <Button
             size="sm"
@@ -418,10 +428,10 @@ function StudioBody({ platform, initial, onBack }: {
             disabled={saving || !pagesValid}
             className="h-9 gap-1.5 rounded-full px-3.5 text-[13px] font-black text-[var(--on-brand)]"
             style={{ background: 'var(--brand)', boxShadow: '0 8px 24px -8px var(--brand-glow)' }}
-            title={!pagesValid ? 'Fix the page slugs before saving' : undefined}
+            title={!pagesValid ? t('rst.fixSlugs') : undefined}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            <span className="hidden sm:inline">{saving ? 'Saving…' : 'Save'}</span>
+            <span className="hidden sm:inline">{saving ? t('rst.saving') : t('common.save')}</span>
           </Button>
         </div>
       </div>
@@ -431,9 +441,9 @@ function StudioBody({ platform, initial, onBack }: {
         {/* LEFT — sections & pages */}
         <aside className="hidden w-64 shrink-0 flex-col border-r border-white/[0.06] bg-zinc-950/70 lg:flex">
           <div className="px-4 pb-1 pt-4">
-            <span className="text-[11px] font-black uppercase tracking-[0.16em] text-white/60">Sections</span>
+            <span className="text-[11px] font-black uppercase tracking-[0.16em] text-white/60">{t('rst.sections')}</span>
           </div>
-          <p className="px-4 pb-3 text-[11px] leading-snug text-white/30">Click any block in the preview to edit it</p>
+          <p className="px-4 pb-3 text-[11px] leading-snug text-white/30">{t('rst.clickToEdit')}</p>
           <div className="gr-scroll-dark flex-1 overflow-y-auto px-2 pb-2">
             {draft.sections.map((s, i) => {
               const Icon = SECTION_ICONS[SECTION_META[s.id].icon] ?? Layers
@@ -453,17 +463,17 @@ function StudioBody({ platform, initial, onBack }: {
                   {selected && <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full" style={{ background: 'var(--brand)' }} />}
                   <Icon className={cn('h-3.5 w-3.5 shrink-0', selected ? 'text-white/80' : 'text-white/35')} />
                   <span className={cn('truncate', !s.visible && 'line-through opacity-50')}>{SECTION_META[s.id].label}</span>
-                  {!s.visible && <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-400">Hidden</span>}
+                  {!s.visible && <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-400">{t('rst.hidden')}</span>}
                   <span className="ml-auto flex items-center gap-0.5 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100">
                     <button
-                      title="Move up" aria-label={`Move ${SECTION_META[s.id].label} up`} disabled={i === 0}
+                      title={t('rst.moveUp')} aria-label={t('rst.moveUpAria').replace('{name}', SECTION_META[s.id].label)} disabled={i === 0}
                       onClick={(e) => { e.stopPropagation(); moveSection(s.id, -1) }}
                       className="rounded p-0.5 text-white/40 hover:bg-white/10 hover:text-white disabled:opacity-15"
                     >
                       <ChevronUp className="h-3.5 w-3.5" />
                     </button>
                     <button
-                      title="Move down" aria-label={`Move ${SECTION_META[s.id].label} down`} disabled={i === draft.sections.length - 1}
+                      title={t('rst.moveDown')} aria-label={t('rst.moveDownAria').replace('{name}', SECTION_META[s.id].label)} disabled={i === draft.sections.length - 1}
                       onClick={(e) => { e.stopPropagation(); moveSection(s.id, 1) }}
                       className="rounded p-0.5 text-white/40 hover:bg-white/10 hover:text-white disabled:opacity-15"
                     >
@@ -471,8 +481,8 @@ function StudioBody({ platform, initial, onBack }: {
                     </button>
                   </span>
                   <button
-                    title={s.visible ? 'Hide on landing' : 'Show on landing'}
-                    aria-label={`${s.visible ? 'Hide' : 'Show'} ${SECTION_META[s.id].label}`}
+                    title={s.visible ? t('rst.hideOnLanding') : t('rst.showOnLanding')}
+                    aria-label={s.visible ? t('rst.hideAria').replace('{name}', SECTION_META[s.id].label) : t('rst.showAria').replace('{name}', SECTION_META[s.id].label)}
                     onClick={(e) => { e.stopPropagation(); setVisible(s.id, !s.visible) }}
                     className="rounded p-1 text-white/40 hover:bg-white/10 hover:text-white"
                   >
@@ -485,7 +495,7 @@ function StudioBody({ platform, initial, onBack }: {
 
           {/* Pages */}
           <div className="border-t border-white/10 px-4 pb-1 pt-3">
-            <span className="text-[11px] font-black uppercase tracking-[0.16em] text-white/60">Pages</span>
+            <span className="text-[11px] font-black uppercase tracking-[0.16em] text-white/60">{t('reseller.pages')}</span>
           </div>
           <div className="gr-scroll-dark max-h-44 overflow-y-auto px-2 pb-1">
             {draft.pages.map((p) => {
@@ -505,10 +515,10 @@ function StudioBody({ platform, initial, onBack }: {
                   <FileText className={cn('h-3.5 w-3.5 shrink-0', selected ? 'text-white/80' : 'text-white/35')} />
                   <span className={cn('truncate', !p.visible && 'line-through opacity-50')}>{p.title}</span>
                   <span className="ml-auto flex items-center gap-0.5">
-                    {!p.visible && <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-400">Hidden</span>}
+                    {!p.visible && <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-400">{t('rst.hidden')}</span>}
                     <button
-                      title={p.visible ? 'Hide footer link' : 'Show footer link'}
-                      aria-label={`${p.visible ? 'Hide' : 'Show'} footer link for ${p.title}`}
+                      title={p.visible ? t('rst.hideFooterLink') : t('rst.showFooterLink')}
+                      aria-label={p.visible ? t('rst.hideFooterAria').replace('{name}', p.title) : t('rst.showFooterAria').replace('{name}', p.title)}
                       onClick={(e) => { e.stopPropagation(); patchPage(p.id, { visible: !p.visible }) }}
                       className="rounded p-1 text-white/40 opacity-0 transition hover:bg-white/10 hover:text-white group-hover:opacity-100"
                     >
@@ -518,14 +528,14 @@ function StudioBody({ platform, initial, onBack }: {
                 </div>
               )
             })}
-            {!draft.pages.length && <p className="px-2.5 py-2 text-[12px] text-white/30">No pages yet.</p>}
+            {!draft.pages.length && <p className="px-2.5 py-2 text-[12px] text-white/30">{t('rst.noPages')}</p>}
           </div>
           <div className="px-3 pb-3 pt-1">
             <button
               onClick={addPage}
               className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-white/20 py-2 text-[12px] font-bold text-white/60 transition hover:border-white/40 hover:text-white"
             >
-              <Plus className="h-3.5 w-3.5" /> Add page
+              <Plus className="h-3.5 w-3.5" /> {t('rst.addPage')}
             </button>
           </div>
         </aside>
@@ -562,9 +572,9 @@ function StudioBody({ platform, initial, onBack }: {
               onVisible={(v) => patchPage(selectedPage.id, { visible: v })}
               onBody={(b) => patchPage(selectedPage.id, { body: b })}
               onAskDelete={() => setConfirm({
-                title: `Delete “${selectedPage.title}”?`,
-                description: 'The page and its footer link are removed when you save. This cannot be undone.',
-                confirmLabel: 'Delete page',
+                title: t('admin.deleteQ').replace('{name}', selectedPage.title),
+                description: t('rst.deletePageDesc'),
+                confirmLabel: t('rst.deletePage'),
                 destructive: true,
                 onConfirm: () => deletePage(selectedPage.id),
               })}
@@ -585,9 +595,9 @@ function StudioBody({ platform, initial, onBack }: {
               <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400 dark:bg-zinc-900 dark:text-zinc-500">
                 <MousePointerClick className="h-6 w-6" />
               </span>
-              <p className="text-[14px] font-extrabold">Nothing selected</p>
+              <p className="text-[14px] font-extrabold">{t('rst.nothingSelected')}</p>
               <p className="max-w-[220px] text-[12.5px] leading-relaxed text-zinc-400 dark:text-zinc-500">
-                Select a section in the preview or the list to edit its copy, visibility and order.
+                {t('rst.nothingSelectedDesc')}
               </p>
             </div>
           )}
@@ -598,21 +608,21 @@ function StudioBody({ platform, initial, onBack }: {
       <Dialog open={templatesOpen} onOpenChange={setTemplatesOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Templates</DialogTitle>
-            <DialogDescription>Start from a proven layout — your pages are always kept.</DialogDescription>
+            <DialogTitle>{t('rst.templates')}</DialogTitle>
+            <DialogDescription>{t('rst.templatesDesc')}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 sm:grid-cols-2">
-            {TEMPLATES.map((t) => {
-              const active = draft.template === t.key
+            {TEMPLATES.map((tpl) => {
+              const active = draft.template === tpl.key
               return (
-                <div key={t.key} className={cn('rounded-2xl border p-4 transition', active ? 'border-[var(--brand)]' : 'border-zinc-200 dark:border-zinc-800')}>
+                <div key={tpl.key} className={cn('rounded-2xl border p-4 transition', active ? 'border-[var(--brand)]' : 'border-zinc-200 dark:border-zinc-800')}>
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-[14px] font-extrabold">{t.name}</p>
-                    {active && <Badge className="text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>CURRENT</Badge>}
+                    <p className="text-[14px] font-extrabold">{tpl.name}</p>
+                    {active && <Badge className="text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>{t('rst.current')}</Badge>}
                   </div>
-                  <p className="mt-1 min-h-[36px] text-[12px] leading-snug text-zinc-500 dark:text-zinc-400">{t.desc}</p>
-                  <Button variant="outline" size="sm" className="mt-3 w-full font-bold" onClick={() => applyTemplate(t.key)}>
-                    Apply
+                  <p className="mt-1 min-h-[36px] text-[12px] leading-snug text-zinc-500 dark:text-zinc-400">{t(TPL_DESC[tpl.key])}</p>
+                  <Button variant="outline" size="sm" className="mt-3 w-full font-bold" onClick={() => applyTemplate(tpl.key)}>
+                    {t('rst.apply')}
                   </Button>
                 </div>
               )
@@ -628,13 +638,13 @@ function StudioBody({ platform, initial, onBack }: {
             <AlertDialogDescription>{confirm?.description}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className={confirm?.destructive ? 'bg-rose-600 text-white hover:bg-rose-600/90' : 'text-[var(--on-brand)]'}
               style={!confirm?.destructive ? { background: 'var(--brand)' } : undefined}
               onClick={() => { const action = confirm; setConfirm(null); action?.onConfirm() }}
             >
-              {confirm?.confirmLabel ?? 'Confirm'}
+              {confirm?.confirmLabel ?? t('rst.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -656,10 +666,11 @@ function Field({ label, children, hint }: { label: string; children: React.React
 }
 
 function ItemBox({ index, label, children }: { index: number; label?: string; children: React.ReactNode }) {
+  const { t } = useI18n()
   return (
     <div className="space-y-2.5 rounded-xl border bg-zinc-50/70 p-3 dark:bg-zinc-900/40">
       <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-        {label ?? `Item ${index + 1}`}
+        {label ?? t('rst.itemN').replace('{n}', String(index + 1))}
       </p>
       {children}
     </div>
@@ -678,6 +689,7 @@ function SectionEditor({ section, onVisible, onCopy, faqCount, gatewayCount, lea
   onRefreshLeads: () => void
 }) {
   const id = section.id
+  const { t } = useI18n()
   const c = section.copy
   const str = (k: string, fb = '') => (typeof c[k] === 'string' ? (c[k] as string) : fb)
   const bool = (k: string, fb: boolean) => (typeof c[k] === 'boolean' ? (c[k] as boolean) : fb)
@@ -699,8 +711,8 @@ function SectionEditor({ section, onVisible, onCopy, faqCount, gatewayCount, lea
             <span className="truncate text-[14px] font-extrabold">{SECTION_META[id].label}</span>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Label className="text-[11px] text-zinc-400 dark:text-zinc-500">Show on landing</Label>
-            <Switch checked={section.visible} onCheckedChange={onVisible} aria-label="Show on landing" />
+            <Label className="text-[11px] text-zinc-400 dark:text-zinc-500">{t('rst.showOnLanding')}</Label>
+            <Switch checked={section.visible} onCheckedChange={onVisible} aria-label={t('rst.showOnLanding')} />
           </div>
         </div>
       </div>
@@ -709,31 +721,31 @@ function SectionEditor({ section, onVisible, onCopy, faqCount, gatewayCount, lea
         {id === 'header' && (
           <>
             <div className="flex items-center justify-between rounded-xl border bg-zinc-50/70 px-3.5 py-3 dark:bg-zinc-900/40">
-              <Label className="text-[12px] font-bold text-zinc-600 dark:text-zinc-300">Show blog link</Label>
+              <Label className="text-[12px] font-bold text-zinc-600 dark:text-zinc-300">{t('rst.showBlog')}</Label>
               <Switch checked={bool('showBlog', true)} onCheckedChange={(v) => onCopy({ showBlog: v })} />
             </div>
-            <Field label="Blog link label">
-              <Input value={str('blogLabel', 'Blog')} onChange={(e) => onCopy({ blogLabel: e.target.value })} placeholder="Blog" />
+            <Field label={t('rst.blogLabel')}>
+              <Input value={str('blogLabel', 'Blog')} onChange={(e) => onCopy({ blogLabel: e.target.value })} placeholder={t('rst.blogPh')} />
             </Field>
           </>
         )}
 
         {id === 'hero' && (
           <>
-            <Field label="Title" hint="Leave empty to use your brand hero title from Website → Landing.">
-              <Textarea rows={2} value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} placeholder="Launch your own social media marketing business today" />
+            <Field label={t('rst.titleLabel')} hint={t('rst.heroTitleHint')}>
+              <Textarea rows={2} value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} placeholder={t('rst.heroTitlePh')} />
             </Field>
-            <Field label="Subtitle">
+            <Field label={t('rst.subtitle')}>
               <Textarea rows={2} value={str('subtitle')} onChange={(e) => onCopy({ subtitle: e.target.value })} />
             </Field>
-            <Field label="Main button">
-              <Input value={str('cta')} onChange={(e) => onCopy({ cta: e.target.value })} placeholder="Get started free" />
+            <Field label={t('rst.mainButton')}>
+              <Input value={str('cta')} onChange={(e) => onCopy({ cta: e.target.value })} placeholder={t('rst.phCta')} />
             </Field>
-            <Field label="Secondary button" hint="Leave empty to hide the secondary button.">
-              <Input value={str('secondary', 'Browse services')} onChange={(e) => onCopy({ secondary: e.target.value })} placeholder="Browse services" />
+            <Field label={t('rst.secondaryButton')} hint={t('rst.secondaryHint')}>
+              <Input value={str('secondary', 'Browse services')} onChange={(e) => onCopy({ secondary: e.target.value })} placeholder={t('rst.phSecondary')} />
             </Field>
             <div className="flex items-center justify-between rounded-xl border bg-zinc-50/70 px-3.5 py-3 dark:bg-zinc-900/40">
-              <Label className="text-[12px] font-bold text-zinc-600 dark:text-zinc-300">Show domain badge</Label>
+              <Label className="text-[12px] font-bold text-zinc-600 dark:text-zinc-300">{t('rst.showBadge')}</Label>
               <Switch checked={bool('showBadge', true)} onCheckedChange={(v) => onCopy({ showBadge: v })} />
             </div>
           </>
@@ -742,17 +754,17 @@ function SectionEditor({ section, onVisible, onCopy, faqCount, gatewayCount, lea
         {id === 'stats' && (
           <>
             <p className="text-[12px] leading-snug text-zinc-400 dark:text-zinc-500">
-              The four numbers shown right below the hero.
+              {t('rst.statsDesc')}
             </p>
             {(['orders', 'clients', 'services', 'uptime'] as const).map((k) => (
               <ItemBox key={k} index={0} label={k}>
                 <div className="grid grid-cols-2 gap-2.5">
                   <div className="space-y-1.5">
-                    <Label className="text-[11px] text-zinc-500 dark:text-zinc-400">Value</Label>
+                    <Label className="text-[11px] text-zinc-500 dark:text-zinc-400">{t('rst.value')}</Label>
                     <Input value={str(k)} onChange={(e) => onCopy({ [k]: e.target.value })} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-[11px] text-zinc-500 dark:text-zinc-400">Label</Label>
+                    <Label className="text-[11px] text-zinc-500 dark:text-zinc-400">{t('rst.label')}</Label>
                     <Input value={str(`${k}Label`)} onChange={(e) => onCopy({ [`${k}Label`]: e.target.value })} />
                   </div>
                 </div>
@@ -763,35 +775,35 @@ function SectionEditor({ section, onVisible, onCopy, faqCount, gatewayCount, lea
 
         {id === 'signin' && (
           <>
-            <Field label="Title"><Input value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} /></Field>
-            <Field label="Subtitle"><Textarea rows={2} value={str('subtitle')} onChange={(e) => onCopy({ subtitle: e.target.value })} /></Field>
-            <Field label="Sign-up button"><Input value={str('button')} onChange={(e) => onCopy({ button: e.target.value })} /></Field>
-            <Field label="Log-in button"><Input value={str('loginLabel')} onChange={(e) => onCopy({ loginLabel: e.target.value })} /></Field>
+            <Field label={t('rst.titleLabel')}><Input value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} /></Field>
+            <Field label={t('rst.subtitle')}><Textarea rows={2} value={str('subtitle')} onChange={(e) => onCopy({ subtitle: e.target.value })} /></Field>
+            <Field label={t('rst.signupButton')}><Input value={str('button')} onChange={(e) => onCopy({ button: e.target.value })} /></Field>
+            <Field label={t('rst.loginButton')}><Input value={str('loginLabel')} onChange={(e) => onCopy({ loginLabel: e.target.value })} /></Field>
           </>
         )}
 
         {id === 'problem' && (
           <>
-            <Field label="Eyebrow"><Input value={str('eyebrow')} onChange={(e) => onCopy({ eyebrow: e.target.value })} /></Field>
-            <Field label="Title"><Input value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} /></Field>
+            <Field label={t('rst.eyebrow')}><Input value={str('eyebrow')} onChange={(e) => onCopy({ eyebrow: e.target.value })} /></Field>
+            <Field label={t('rst.titleLabel')}><Input value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} /></Field>
             <div className="pt-1">
-              <Label className="text-[11px] font-black uppercase tracking-wider text-rose-500">The problem</Label>
+              <Label className="text-[11px] font-black uppercase tracking-wider text-rose-500">{t('rst.theProblem')}</Label>
               <div className="mt-2 space-y-3">
                 {items('items').slice(0, 3).map((it, i) => (
                   <ItemBox key={i} index={i}>
-                    <Input value={typeof it.title === 'string' ? it.title : ''} onChange={(e) => setItem('items', i, { title: e.target.value })} placeholder="Title" />
-                    <Textarea rows={2} value={typeof it.desc === 'string' ? it.desc : ''} onChange={(e) => setItem('items', i, { desc: e.target.value })} placeholder="Description" />
+                    <Input value={typeof it.title === 'string' ? it.title : ''} onChange={(e) => setItem('items', i, { title: e.target.value })} placeholder={t('rst.titleLabel')} />
+                    <Textarea rows={2} value={typeof it.desc === 'string' ? it.desc : ''} onChange={(e) => setItem('items', i, { desc: e.target.value })} placeholder={t('rst.phDescription')} />
                   </ItemBox>
                 ))}
               </div>
             </div>
             <div className="pt-1">
-              <Label className="text-[11px] font-black uppercase tracking-wider text-emerald-600">Our solution</Label>
+              <Label className="text-[11px] font-black uppercase tracking-wider text-emerald-600">{t('rst.ourSolution')}</Label>
               <div className="mt-2 space-y-3">
                 {items('solutions').slice(0, 3).map((it, i) => (
                   <ItemBox key={i} index={i}>
-                    <Input value={typeof it.title === 'string' ? it.title : ''} onChange={(e) => setItem('solutions', i, { title: e.target.value })} placeholder="Title" />
-                    <Textarea rows={2} value={typeof it.desc === 'string' ? it.desc : ''} onChange={(e) => setItem('solutions', i, { desc: e.target.value })} placeholder="Description" />
+                    <Input value={typeof it.title === 'string' ? it.title : ''} onChange={(e) => setItem('solutions', i, { title: e.target.value })} placeholder={t('rst.titleLabel')} />
+                    <Textarea rows={2} value={typeof it.desc === 'string' ? it.desc : ''} onChange={(e) => setItem('solutions', i, { desc: e.target.value })} placeholder={t('rst.phDescription')} />
                   </ItemBox>
                 ))}
               </div>
@@ -801,14 +813,14 @@ function SectionEditor({ section, onVisible, onCopy, faqCount, gatewayCount, lea
 
         {id === 'features' && (
           <>
-            <Field label="Eyebrow"><Input value={str('eyebrow')} onChange={(e) => onCopy({ eyebrow: e.target.value })} /></Field>
-            <Field label="Title"><Input value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} /></Field>
-            <Field label="Subtitle"><Input value={str('sub')} onChange={(e) => onCopy({ sub: e.target.value })} /></Field>
+            <Field label={t('rst.eyebrow')}><Input value={str('eyebrow')} onChange={(e) => onCopy({ eyebrow: e.target.value })} /></Field>
+            <Field label={t('rst.titleLabel')}><Input value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} /></Field>
+            <Field label={t('rst.subtitle')}><Input value={str('sub')} onChange={(e) => onCopy({ sub: e.target.value })} /></Field>
             <div className="space-y-3 pt-1">
               {items('items').slice(0, 6).map((it, i) => (
                 <ItemBox key={i} index={i}>
-                  <Input value={typeof it.title === 'string' ? it.title : ''} onChange={(e) => setItem('items', i, { title: e.target.value })} placeholder="Title" />
-                  <Textarea rows={2} value={typeof it.desc === 'string' ? it.desc : ''} onChange={(e) => setItem('items', i, { desc: e.target.value })} placeholder="Description" />
+                  <Input value={typeof it.title === 'string' ? it.title : ''} onChange={(e) => setItem('items', i, { title: e.target.value })} placeholder={t('rst.titleLabel')} />
+                  <Textarea rows={2} value={typeof it.desc === 'string' ? it.desc : ''} onChange={(e) => setItem('items', i, { desc: e.target.value })} placeholder={t('rst.phDescription')} />
                   <Select value={typeof it.icon === 'string' ? it.icon : 'zap'} onValueChange={(v) => setItem('items', i, { icon: v })}>
                     <SelectTrigger className="h-9 text-[12px]"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -822,20 +834,20 @@ function SectionEditor({ section, onVisible, onCopy, faqCount, gatewayCount, lea
         )}
 
         {id === 'networks' && (
-          <Field label="Title" hint="The brands marquee below the title shows all 30 supported networks.">
+          <Field label={t('rst.titleLabel')} hint={t('rst.networksHint')}>
             <Textarea rows={2} value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} />
           </Field>
         )}
 
         {id === 'payments' && (
           <>
-            <Field label="Title"><Input value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} /></Field>
-            <Field label="Subtitle"><Input value={str('sub')} onChange={(e) => onCopy({ sub: e.target.value })} /></Field>
+            <Field label={t('rst.titleLabel')}><Input value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} /></Field>
+            <Field label={t('rst.subtitle')}><Input value={str('sub')} onChange={(e) => onCopy({ sub: e.target.value })} /></Field>
             <Field
-              label="Methods shown"
+              label={t('rst.methodsShown')}
               hint={gatewayCount !== null
-                ? `${gatewayCount} payment ${gatewayCount === 1 ? 'method' : 'methods'} enabled — your clients will see the methods you enable in Finance → Payment methods.`
-                : 'Your clients will see the methods you enable in Finance → Payment methods.'}
+                ? t(gatewayCount === 1 ? 'rst.methodsHint1' : 'rst.methodsHintN').replace('{n}', String(gatewayCount))
+                : t('rst.methodsHint')}
             >
               <div className="grid grid-cols-1 gap-2 rounded-xl border bg-zinc-50/70 p-3 dark:bg-zinc-900/40">
                 {PAYMENT_METHOD_KEYS.map((key) => {
@@ -863,13 +875,13 @@ function SectionEditor({ section, onVisible, onCopy, faqCount, gatewayCount, lea
 
         {id === 'how' && (
           <>
-            <Field label="Title"><Input value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} /></Field>
-            <Field label="Subtitle"><Input value={str('sub')} onChange={(e) => onCopy({ sub: e.target.value })} /></Field>
+            <Field label={t('rst.titleLabel')}><Input value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} /></Field>
+            <Field label={t('rst.subtitle')}><Input value={str('sub')} onChange={(e) => onCopy({ sub: e.target.value })} /></Field>
             <div className="space-y-3 pt-1">
               {items('steps').slice(0, 3).map((it, i) => (
-                <ItemBox key={i} index={i} label={`Step ${String(i + 1).padStart(2, '0')}`}>
-                  <Input value={typeof it.title === 'string' ? it.title : ''} onChange={(e) => setItem('steps', i, { title: e.target.value })} placeholder="Title" />
-                  <Textarea rows={2} value={typeof it.desc === 'string' ? it.desc : ''} onChange={(e) => setItem('steps', i, { desc: e.target.value })} placeholder="Description" />
+                <ItemBox key={i} index={i} label={t('rst.stepN').replace('{n}', String(i + 1).padStart(2, '0'))}>
+                  <Input value={typeof it.title === 'string' ? it.title : ''} onChange={(e) => setItem('steps', i, { title: e.target.value })} placeholder={t('rst.titleLabel')} />
+                  <Textarea rows={2} value={typeof it.desc === 'string' ? it.desc : ''} onChange={(e) => setItem('steps', i, { desc: e.target.value })} placeholder={t('rst.phDescription')} />
                 </ItemBox>
               ))}
             </div>
@@ -878,21 +890,21 @@ function SectionEditor({ section, onVisible, onCopy, faqCount, gatewayCount, lea
 
         {id === 'testimonials' && (
           <>
-            <Field label="Title"><Input value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} /></Field>
+            <Field label={t('rst.titleLabel')}><Input value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} /></Field>
             <div className="space-y-3 pt-1">
               {items('items').slice(0, 3).map((it, i) => (
                 <ItemBox key={i} index={i}>
                   <div className="grid grid-cols-2 gap-2.5">
-                    <Input value={typeof it.name === 'string' ? it.name : ''} onChange={(e) => setItem('items', i, { name: e.target.value })} placeholder="Name" />
-                    <Input value={typeof it.role === 'string' ? it.role : ''} onChange={(e) => setItem('items', i, { role: e.target.value })} placeholder="Role" />
+                    <Input value={typeof it.name === 'string' ? it.name : ''} onChange={(e) => setItem('items', i, { name: e.target.value })} placeholder={t('rst.phName')} />
+                    <Input value={typeof it.role === 'string' ? it.role : ''} onChange={(e) => setItem('items', i, { role: e.target.value })} placeholder={t('rst.phRole')} />
                   </div>
-                  <Textarea rows={3} value={typeof it.text === 'string' ? it.text : ''} onChange={(e) => setItem('items', i, { text: e.target.value })} placeholder="Testimonial" />
+                  <Textarea rows={3} value={typeof it.text === 'string' ? it.text : ''} onChange={(e) => setItem('items', i, { text: e.target.value })} placeholder={t('rst.phTestimonial')} />
                   <div className="space-y-1.5">
-                    <Label className="text-[11px] text-zinc-500 dark:text-zinc-400">Rating</Label>
+                    <Label className="text-[11px] text-zinc-500 dark:text-zinc-400">{t('rst.rating')}</Label>
                     <Select value={String(typeof it.rating === 'number' ? it.rating : 5)} onValueChange={(v) => setItem('items', i, { rating: Number(v) })}>
                       <SelectTrigger className="h-9 text-[12px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {[5, 4, 3].map((r) => <SelectItem key={r} value={String(r)}>{r} stars</SelectItem>)}
+                        {[5, 4, 3].map((r) => <SelectItem key={r} value={String(r)}>{t('rst.starsN').replace('{n}', String(r))}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -904,40 +916,40 @@ function SectionEditor({ section, onVisible, onCopy, faqCount, gatewayCount, lea
 
         {id === 'faq' && (
           <>
-            <Field label="Title"><Input value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} /></Field>
-            <Field label="Subtitle"><Input value={str('sub')} onChange={(e) => onCopy({ sub: e.target.value })} /></Field>
+            <Field label={t('rst.titleLabel')}><Input value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} /></Field>
+            <Field label={t('rst.subtitle')}><Input value={str('sub')} onChange={(e) => onCopy({ sub: e.target.value })} /></Field>
             <div className="flex items-center gap-2.5 rounded-xl border border-dashed px-3.5 py-3 text-[12px] font-semibold text-zinc-500 dark:text-zinc-400">
               <HelpCircle className="h-4 w-4 shrink-0 text-[var(--brand)]" />
-              Questions are managed in Content → FAQ
-              <Badge variant="outline" className="ml-auto font-bold">{faqCount} live</Badge>
+              {t('rst.faqManaged')}
+              <Badge variant="outline" className="ml-auto font-bold">{t('rst.faqLive').replace('{n}', String(faqCount))}</Badge>
             </div>
           </>
         )}
 
         {id === 'cta' && (
           <>
-            <Field label="Title"><Input value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} /></Field>
-            <Field label="Subtitle"><Input value={str('sub')} onChange={(e) => onCopy({ sub: e.target.value })} /></Field>
-            <Field label="Button"><Input value={str('button')} onChange={(e) => onCopy({ button: e.target.value })} /></Field>
+            <Field label={t('rst.titleLabel')}><Input value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} /></Field>
+            <Field label={t('rst.subtitle')}><Input value={str('sub')} onChange={(e) => onCopy({ sub: e.target.value })} /></Field>
+            <Field label={t('rst.button')}><Input value={str('button')} onChange={(e) => onCopy({ button: e.target.value })} /></Field>
           </>
         )}
 
         {id === 'newsletter' && (
           <>
-            <Field label="Title"><Input value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} /></Field>
-            <Field label="Subtitle"><Input value={str('sub')} onChange={(e) => onCopy({ sub: e.target.value })} /></Field>
-            <Field label="Button"><Input value={str('button')} onChange={(e) => onCopy({ button: e.target.value })} /></Field>
+            <Field label={t('rst.titleLabel')}><Input value={str('title')} onChange={(e) => onCopy({ title: e.target.value })} /></Field>
+            <Field label={t('rst.subtitle')}><Input value={str('sub')} onChange={(e) => onCopy({ sub: e.target.value })} /></Field>
+            <Field label={t('rst.button')}><Input value={str('button')} onChange={(e) => onCopy({ button: e.target.value })} /></Field>
             <div className="rounded-xl border bg-zinc-50/70 p-3.5 dark:bg-zinc-900/40">
               <div className="flex items-center justify-between gap-2">
                 <p className="flex items-center gap-1.5 text-[12px] font-extrabold">
-                  <Mail className="h-3.5 w-3.5 text-[var(--brand)]" /> Newsletter leads
+                  <Mail className="h-3.5 w-3.5 text-[var(--brand)]" /> {t('rst.newsletterLeads')}
                 </p>
                 <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-[11px] font-bold" onClick={onRefreshLeads}>
-                  <RefreshCw className="h-3 w-3" /> Refresh
+                  <RefreshCw className="h-3 w-3" /> {t('client.refresh')}
                 </Button>
               </div>
               <p className="mt-2 text-2xl font-black tracking-tight">{leads.total.toLocaleString()}</p>
-              <p className="text-[11px] text-zinc-400 dark:text-zinc-500">emails captured from your landing</p>
+              <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{t('rst.leadsCaptured')}</p>
               <div className="mt-3 max-h-40 space-y-1.5 overflow-y-auto">
                 {leads.latest.map((l, i) => (
                   <div key={`${l.email}-${i}`} className="flex items-center justify-between gap-2 rounded-lg bg-card px-2.5 py-1.5 text-[12px]">
@@ -945,7 +957,7 @@ function SectionEditor({ section, onVisible, onCopy, faqCount, gatewayCount, lea
                     <span className="shrink-0 text-[10px] text-zinc-400 dark:text-zinc-500">{new Date(l.createdAt).toLocaleDateString()}</span>
                   </div>
                 ))}
-                {!leads.latest.length && <p className="py-2 text-center text-[11.5px] text-zinc-400 dark:text-zinc-500">No leads yet — publish your landing and share it!</p>}
+                {!leads.latest.length && <p className="py-2 text-center text-[11.5px] text-zinc-400 dark:text-zinc-500">{t('rst.noLeads')}</p>}
               </div>
             </div>
           </>
@@ -953,23 +965,23 @@ function SectionEditor({ section, onVisible, onCopy, faqCount, gatewayCount, lea
 
         {id === 'footer' && (
           <>
-            <Field label="Tagline" hint="Shown under your brand in the footer.">
+            <Field label={t('rst.tagline')} hint={t('rst.taglineHint')}>
               <Textarea rows={2} value={str('tagline')} onChange={(e) => onCopy({ tagline: e.target.value })} />
             </Field>
             <div className="flex items-center justify-between rounded-xl border bg-zinc-50/70 px-3.5 py-3 dark:bg-zinc-900/40">
-              <Label className="text-[12px] font-bold text-zinc-600 dark:text-zinc-300">Show social icons</Label>
+              <Label className="text-[12px] font-bold text-zinc-600 dark:text-zinc-300">{t('rst.showSocial')}</Label>
               <Switch checked={bool('showSocial', true)} onCheckedChange={(v) => onCopy({ showSocial: v })} />
             </div>
             <div className="flex items-center gap-2.5 rounded-xl border border-dashed px-3.5 py-3 text-[12px] font-semibold text-zinc-500 dark:text-zinc-400">
               <FileText className="h-4 w-4 shrink-0 text-[var(--brand)]" />
-              Legal links come from the Pages list
+              {t('rst.legalFromPages')}
             </div>
           </>
         )}
 
         {/* Key whitelist hint for the curious */}
         <p className="pb-2 text-[10.5px] leading-snug text-zinc-300 dark:text-zinc-600">
-          Allowed keys: {Object.keys(COPY_SCHEMA[id]).join(', ')}
+          {t('rst.allowedKeys').replace('{list}', Object.keys(COPY_SCHEMA[id]).join(', '))}
         </p>
       </div>
     </div>
@@ -988,6 +1000,7 @@ function PageEditor({ page, pages, onTitle, onSlug, onVisible, onBody, onAskDele
   onAskDelete: () => void
   onDone: () => void
 }) {
+  const { t } = useI18n()
   const slugValid = /^[a-z0-9-]+$/.test(page.slug)
   const slugTaken = pages.some((p) => p.id !== page.id && p.slug === page.slug)
 
@@ -997,29 +1010,29 @@ function PageEditor({ page, pages, onTitle, onSlug, onVisible, onBody, onAskDele
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <FileText className="h-4 w-4 shrink-0 text-[var(--brand)]" />
-            <span className="truncate text-[14px] font-extrabold">{page.title || 'Untitled page'}</span>
+            <span className="truncate text-[14px] font-extrabold">{page.title || t('rst.untitled')}</span>
             {page.system ? (
-              <Badge variant="outline" className="shrink-0 text-[9px] font-bold">SYSTEM</Badge>
+              <Badge variant="outline" className="shrink-0 text-[9px] font-bold">{t('rst.badgeSystem')}</Badge>
             ) : (
-              <Badge variant="outline" className="shrink-0 text-[9px] font-bold">CUSTOM</Badge>
+              <Badge variant="outline" className="shrink-0 text-[9px] font-bold">{t('rst.badgeCustom')}</Badge>
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Label className="text-[11px] text-zinc-400 dark:text-zinc-500">Show link in footer</Label>
-            <Switch checked={page.visible} onCheckedChange={onVisible} aria-label="Show link in footer" />
+            <Label className="text-[11px] text-zinc-400 dark:text-zinc-500">{t('rst.showLinkFooter')}</Label>
+            <Switch checked={page.visible} onCheckedChange={onVisible} aria-label={t('rst.showLinkFooter')} />
           </div>
         </div>
       </div>
 
       <div className="space-y-4 p-4">
-        <Field label="Page title">
-          <Input value={page.title} onChange={(e) => onTitle(e.target.value)} placeholder="e.g. Shipping & delivery" />
+        <Field label={t('rst.pageTitle')}>
+          <Input value={page.title} onChange={(e) => onTitle(e.target.value)} placeholder={t('rst.pageTitlePh')} />
         </Field>
         <Field
-          label="Slug"
+          label={t('rst.slug')}
           hint={page.system
-            ? 'System page — the slug cannot change (links and fallbacks depend on it).'
-            : slugTaken ? 'This slug is already used by another page.' : 'Lowercase letters, numbers and dashes.'}
+            ? t('rst.slugSystemHint')
+            : slugTaken ? t('rst.slugTakenHint') : t('rst.slugHint')}
         >
           <div className="flex items-center overflow-hidden rounded-md border bg-background">
             <span className="pl-2.5 text-[13px] font-bold text-zinc-400 dark:text-zinc-500">/</span>
@@ -1033,11 +1046,11 @@ function PageEditor({ page, pages, onTitle, onSlug, onVisible, onBody, onAskDele
             {page.system && <Lock className="mr-2.5 h-3.5 w-3.5 shrink-0 text-zinc-300 dark:text-zinc-600" />}
           </div>
           {page.slug && (!slugValid || slugTaken) && (
-            <p className="text-[11px] font-semibold text-rose-500">{slugTaken ? 'Slug already in use.' : 'Use lowercase letters, numbers and dashes only.'}</p>
+            <p className="text-[11px] font-semibold text-rose-500">{slugTaken ? t('rst.slugInUse') : t('rst.slugInvalid')}</p>
           )}
         </Field>
-        <Field label="Content">
-          <RichEditor value={page.body} onChange={onBody} placeholder="Write the page content…" minRows={13} />
+        <Field label={t('common.content')}>
+          <RichEditor value={page.body} onChange={onBody} placeholder={t('rst.contentPh')} minRows={13} />
         </Field>
 
         <div className="flex items-center justify-between gap-2 border-t pt-4">
@@ -1047,10 +1060,10 @@ function PageEditor({ page, pages, onTitle, onSlug, onVisible, onBody, onAskDele
               onClick={onAskDelete}
               className="gap-1.5 rounded-lg text-[12.5px] font-bold text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40"
             >
-              <Trash2 className="h-3.5 w-3.5" /> Delete page
+              <Trash2 className="h-3.5 w-3.5" /> {t('rst.deletePage')}
             </Button>
           ) : (
-            <span className="text-[11px] text-zinc-300 dark:text-zinc-600">System pages cannot be deleted</span>
+            <span className="text-[11px] text-zinc-300 dark:text-zinc-600">{t('rst.systemNoDelete')}</span>
           )}
           <Button
             size="sm"
@@ -1058,7 +1071,7 @@ function PageEditor({ page, pages, onTitle, onSlug, onVisible, onBody, onAskDele
             className="gap-1.5 rounded-full px-4 text-[12.5px] font-black text-[var(--on-brand)]"
             style={{ background: 'var(--brand)' }}
           >
-            <Check className="h-3.5 w-3.5" /> Done
+            <Check className="h-3.5 w-3.5" /> {t('rst.done')}
           </Button>
         </div>
       </div>

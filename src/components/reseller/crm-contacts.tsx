@@ -30,6 +30,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { PanelPageHeader } from '@/components/shared/panel-shell'
 import { PageWrap } from './crm-shared'
+import { useI18n } from '@/lib/i18n'
 import {
   CHANNEL_TYPES,
   ChannelIcon,
@@ -65,6 +66,7 @@ const EMPTY_FORM: Form = {
 
 export default function CrmContacts({ platformId }: { platformId: string }) {
   const { lang, currencyOf, user } = useApp()
+  const { t } = useI18n()
   const currency = currencyOf(user.platform?.currency ?? 'USD')
 
   const { data, loading, refresh } = useApi<{ contacts: CrmContact[] }>('/api/reseller/crm/contacts', [platformId])
@@ -130,9 +132,9 @@ export default function CrmContacts({ platformId }: { platformId: string }) {
     }
     const res = editing
       ? await mutate(() => api.patch('/api/reseller/crm/contacts', { id: editing.id, ...payload }), {
-          success: 'Contact updated',
+          success: t('crm.contactUpdated'),
         })
-      : await mutate(() => api.post('/api/reseller/crm/contacts', payload), { success: 'Contact created' })
+      : await mutate(() => api.post('/api/reseller/crm/contacts', payload), { success: t('crm.contactCreated') })
     setSaving(false)
     if (res) {
       setOpen(false)
@@ -142,7 +144,7 @@ export default function CrmContacts({ platformId }: { platformId: string }) {
 
   async function remove(c: CrmContact) {
     await mutate(() => api.del(`/api/reseller/crm/contacts?id=${c.id}`), {
-      success: `${c.name} deleted`,
+      success: t('crm.deleted').replace('{name}', c.name),
     })
     refresh()
   }
@@ -150,11 +152,11 @@ export default function CrmContacts({ platformId }: { platformId: string }) {
   return (
     <PageWrap>
       <PanelPageHeader
-        title="Contacts"
-        description="Every customer across every channel, with labels, lifetime value and history."
+        title={t('reseller.contacts')}
+        description={t('crm.contactsDesc')}
         actions={
           <Button onClick={openCreate} className="rounded-xl text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
-            <Plus className="h-4 w-4" /> New contact
+            <Plus className="h-4 w-4" /> {t('crm.newContact')}
           </Button>
         }
       />
@@ -165,18 +167,18 @@ export default function CrmContacts({ platformId }: { platformId: string }) {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name, phone or email…"
+            placeholder={t('crm.searchContacts')}
             className="h-9 rounded-xl bg-white dark:bg-zinc-900 pl-8 text-[13px]"
-            aria-label="Search contacts"
+            aria-label={t('crm.searchContactsAria')}
           />
         </div>
         <Select value={channelFilter} onValueChange={setChannelFilter}>
-          <SelectTrigger size="sm" className="w-full rounded-xl text-xs sm:w-[190px]" aria-label="Filter by channel">
+          <SelectTrigger size="sm" className="w-full rounded-xl text-xs sm:w-[190px]" aria-label={t('crm.filterChannelAria')}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL" className="text-xs">
-              All channels ({contacts.length})
+              {t('crm.allChannelsCount').replace('{x}', String(contacts.length))}
             </SelectItem>
             {CHANNEL_TYPES.filter((t) => channelCounts[t]).map((t) => (
               <SelectItem key={t} value={t} className="text-xs">
@@ -192,8 +194,8 @@ export default function CrmContacts({ platformId }: { platformId: string }) {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Users}
-          title={contacts.length === 0 ? 'No contacts yet' : 'No contacts match your filters'}
-          description="Contacts are created automatically when customers message you — or add them manually."
+          title={contacts.length === 0 ? t('crm.noContacts') : t('crm.noMatches')}
+          description={t('crm.contactsEmptySub')}
         />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
@@ -201,16 +203,16 @@ export default function CrmContacts({ platformId }: { platformId: string }) {
             <Table>
               <TableHeader>
                 <TableRow className="border-zinc-100 dark:border-zinc-800/70 bg-zinc-50/60 dark:bg-zinc-900/40">
-                  <TableHead className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Contact</TableHead>
-                  <TableHead className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Phone</TableHead>
-                  <TableHead className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Email</TableHead>
-                  <TableHead className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Labels</TableHead>
+                  <TableHead className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{t('admin.role.CLIENT')}</TableHead>
+                  <TableHead className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{t('crm.phone')}</TableHead>
+                  <TableHead className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{t('auth.email')}</TableHead>
+                  <TableHead className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{t('crm.labels')}</TableHead>
                   <TableHead className="text-right text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                    Total spent
+                    {t('crm.totalSpent')}
                   </TableHead>
-                  <TableHead className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Last seen</TableHead>
+                  <TableHead className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{t('crm.lastSeen')}</TableHead>
                   <TableHead className="w-20 text-right text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                    Actions
+                    {t('common.actions')}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -247,13 +249,13 @@ export default function CrmContacts({ platformId }: { platformId: string }) {
                           size="icon"
                           className="h-8 w-8 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200"
                           onClick={() => openEdit(c)}
-                          aria-label={`Edit ${c.name}`}
+                          aria-label={t('crm.editAria').replace('{name}', c.name)}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <ConfirmDelete
-                          title={`Delete ${c.name}?`}
-                          description="Their conversations and messages will be removed too. This cannot be undone."
+                          title={t('crm.delQ').replace('{name}', c.name)}
+                          description={t('crm.delContactDesc')}
                           onConfirm={() => remove(c)}
                         />
                       </div>
@@ -270,12 +272,12 @@ export default function CrmContacts({ platformId }: { platformId: string }) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto rounded-2xl sm:max-w-lg [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-300/70">
           <DialogHeader>
-            <DialogTitle>{editing ? `Edit ${editing.name}` : 'New contact'}</DialogTitle>
-            <DialogDescription>Labels help you segment campaigns and automations.</DialogDescription>
+            <DialogTitle>{editing ? t('crm.editName').replace('{name}', editing.name) : t('crm.newContact')}</DialogTitle>
+            <DialogDescription>{t('crm.contactFormDesc')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3.5 py-1">
             <div className="space-y-1.5">
-              <Label htmlFor="ct-name">Name</Label>
+              <Label htmlFor="ct-name">{t('rcat.name')}</Label>
               <Input
                 id="ct-name"
                 value={form.name}
@@ -286,7 +288,7 @@ export default function CrmContacts({ platformId }: { platformId: string }) {
             </div>
             <div className="grid gap-3.5 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="ct-phone">Phone</Label>
+                <Label htmlFor="ct-phone">{t('crm.phone')}</Label>
                 <Input
                   id="ct-phone"
                   value={form.phone}
@@ -296,7 +298,7 @@ export default function CrmContacts({ platformId }: { platformId: string }) {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="ct-email">Email</Label>
+                <Label htmlFor="ct-email">{t('auth.email')}</Label>
                 <Input
                   id="ct-email"
                   type="email"
@@ -309,7 +311,7 @@ export default function CrmContacts({ platformId }: { platformId: string }) {
             </div>
             <div className="grid gap-3.5 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label>Channel</Label>
+                <Label>{t('crm.channel')}</Label>
                 <Select value={form.channel} onValueChange={(v) => setForm((f) => ({ ...f, channel: v }))}>
                   <SelectTrigger className="w-full rounded-xl">
                     <SelectValue />
@@ -326,7 +328,7 @@ export default function CrmContacts({ platformId }: { platformId: string }) {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="ct-spent">Total spent (USD)</Label>
+                <Label htmlFor="ct-spent">{t('crm.totalSpentUsd')}</Label>
                 <Input
                   id="ct-spent"
                   type="number"
@@ -339,10 +341,10 @@ export default function CrmContacts({ platformId }: { platformId: string }) {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Labels</Label>
+              <Label>{t('crm.labels')}</Label>
               {labels.length === 0 ? (
                 <p className="rounded-xl bg-zinc-50 dark:bg-zinc-900/60 p-2.5 text-[12px] text-zinc-500 dark:text-zinc-400">
-                  No labels yet — create some in the Labels section.
+                  {t('crm.noLabelsYet')}
                 </p>
               ) : (
                 <div className="flex flex-wrap gap-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 p-2.5">
@@ -376,20 +378,20 @@ export default function CrmContacts({ platformId }: { platformId: string }) {
               )}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ct-notes">Notes</Label>
+              <Label htmlFor="ct-notes">{t('crm.notes')}</Label>
               <Textarea
                 id="ct-notes"
                 rows={3}
                 value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                placeholder="Agency owner — buys weekly bundles…"
+                placeholder={t('crm.phNotes')}
                 className="rounded-xl text-[13px]"
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" className="rounded-xl" onClick={() => setOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               onClick={save}
@@ -397,7 +399,7 @@ export default function CrmContacts({ platformId }: { platformId: string }) {
               className="rounded-xl text-[var(--on-brand)]"
               style={{ background: 'var(--brand)' }}
             >
-              {editing ? 'Save changes' : 'Create contact'}
+              {editing ? t('rcat.saveChanges') : t('crm.createContact')}
             </Button>
           </DialogFooter>
         </DialogContent>

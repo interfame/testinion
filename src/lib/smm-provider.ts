@@ -46,6 +46,13 @@ function round2(n: number): number {
 
 export { round2 }
 
+/** 4-decimal precision — provider rates can be tiny (e.g. 0.0102 /1k). */
+function round4(n: number): number {
+  return Math.round(n * 10000) / 10000
+}
+
+export { round4 }
+
 /** POST to the provider API. Tries JSON, falls back to form-urlencoded. */
 export async function providerFetch(
   apiUrl: string,
@@ -263,19 +270,28 @@ export async function runProviderSync(opts: {
   provider: MinimalProvider
   platformId: string | null
   markup: number
-  /** force every service into this category (must belong to the same platform scope) */
+  /** local target category for NEW services only (same platform scope) — existing services are NEVER moved */
   categoryId?: string | null
+  /** sync only entries whose provider category matches (case-insensitive) — null = all */
+  providerCategory?: string | null
 }): Promise<{ ok: true; stats: SyncStats } | { ok: false; error: string }> {
   const { provider, platformId, markup } = opts
 
   const raw = await fetchProviderServices(provider.apiUrl, provider.apiKey ?? '')
   if (!raw.ok) return { ok: false, error: raw.error }
 
-  const total = raw.data.length
+  // When providerCategory is set, only entries in that provider category are considered.
+  const providerCat = opts.providerCategory?.trim().toLowerCase() || null
+  const scoped = providerCat
+    ? raw.data.filter((e) => String(e?.category ?? '').trim().toLowerCase() === providerCat)
+    : raw.data
+
+  const total = scoped.length
   const capped = total > MAX_SYNC_SERVICES
-  const entries = raw.data.slice(0, MAX_SYNC_SERVICES)
+  const entries = scoped.slice(0, MAX_SYNC_SERVICES)
 
   // ── 1. Resolve / create categories ──────────────────────────────
+  // forceCategory applies to NEW services only; updates keep their current category.
   const forceCategory = opts.categoryId
     ? await db.category.findFirst({ where: { id: opts.categoryId, platformId } })
     : null
@@ -348,6 +364,7 @@ export async function runProviderSync(opts: {
     name: string
     type: string
     rate: number
+    cost: number
     min: number
     max: number
     description: string | null
@@ -376,7 +393,8 @@ export async function runProviderSync(opts: {
       categoryId: catId,
       name: name.slice(0, 200),
       type: mapServiceType(e?.type),
-      rate: round2(providerRate * (1 + markup / 100)),
+      rate: round4(providerRate * (1 + markup / 100)),
+      cost: providerRate,
       min: parseProviderInt(e?.min, 1),
       max: parseProviderInt(e?.max, 100000),
       description:
@@ -433,6 +451,7 @@ export async function runProviderSync(opts: {
         name: p.name,
         type: p.type,
         rate: p.rate,
+        cost: p.cost,
         min: p.min,
         max: p.max,
         description: p.description,
@@ -453,11 +472,14 @@ export async function runProviderSync(opts: {
         db.service.update({
           where: { id: u.id },
           data: {
-            categoryId: u.data.categoryId,
+            // categoryId is only forced for NEW services — updates never move a
+            // service out of its current category (the category-destroying bug).
+            ...(forceCategory ? {} : { categoryId: u.data.categoryId }),
             providerServiceId: u.data.providerServiceId,
             name: u.data.name,
             type: u.data.type,
             rate: u.data.rate,
+            cost: u.data.cost,
             min: u.data.min,
             max: u.data.max,
             description: u.data.description,

@@ -158,7 +158,8 @@ model Service {
   providerServiceId String?
   name              String
   type              String    @default("DEFAULT") // DEFAULT | CUSTOM_COMMENTS | SUBSCRIPTION
-  rate              Float // per 1000, in USD
+  rate              Float // per 1000, in USD (sell price)
+  cost              Float?    // what the provider charges per 1000, in USD (null = manual service)
   min               Int       @default(100)
   max               Int       @default(100000)
   description       String?

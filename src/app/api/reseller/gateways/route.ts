@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, requireRole, handle, jsonError, jsonOk } from '@/lib/auth'
-import { maskConfig, parseConfig, sanitizeConfig, providerOf, PROVIDER_CODES } from '@/lib/gateways'
+import { maskConfig, parseConfig, sanitizeConfig, missingRequired, providerOf, PROVIDER_CODES } from '@/lib/gateways'
 
 async function myPlatform(userId: string) {
   const p = await db.platform.findUnique({ where: { ownerId: userId } })
@@ -41,8 +41,9 @@ export async function POST(req: NextRequest) {
     if (!PROVIDER_CODES.includes(code)) return jsonError('Unknown provider')
     const provider = providerOf(code)!
     const config = sanitizeConfig(code, b.config)
-    // require every credential field before the gateway can go live
-    const missing = provider.fields.filter((f) => f.kind !== 'select' && !config[f.key])
+    // require every REQUIRED credential before the gateway can go live
+    // (optional fields — e.g. MercadoPago publicKey — don't block the connection)
+    const missing = missingRequired(code, config)
     if (missing.length) return jsonError(`Missing credentials: ${missing.map((f) => f.label).join(', ')}`)
 
     const existing = await db.gateway.findFirst({ where: { platformId: platform.id, code } })

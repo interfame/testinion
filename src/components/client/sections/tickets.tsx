@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft, LifeBuoy, Loader2, MessageSquarePlus, Plus, Send,
 } from 'lucide-react'
-import { useI18n } from '@/lib/i18n'
+import { useI18n, type DictKey } from '@/lib/i18n'
 import { PanelPageHeader, StatusBadge } from '@/components/shared/panel-shell'
 import { api, mutate, useApi } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
@@ -23,6 +23,21 @@ import { Card, EmptyState, LoadingRows, Pill, BrandButton } from '../bits'
 import type { TicketDetailData, TicketItem } from '../types'
 
 const PRIORITIES = ['low', 'normal', 'high', 'urgent'] as const
+
+const PRI_KEYS: Record<string, DictKey> = {
+  low: 'ctix.pLow',
+  normal: 'ctix.pNormal',
+  high: 'ctix.pHigh',
+  urgent: 'ctix.pUrgent',
+}
+
+const CAT_KEYS: Record<string, DictKey> = {
+  general: 'ctix.catGeneral',
+  orders: 'ctix.catOrders',
+  payments: 'ctix.catPayments',
+  api: 'ctix.catApi',
+  other: 'ctix.catOther',
+}
 
 function priorityTone(p: string): 'zinc' | 'sky' | 'amber' | 'rose' {
   return p === 'urgent' ? 'rose' : p === 'high' ? 'amber' : p === 'low' ? 'zinc' : 'sky'
@@ -47,7 +62,7 @@ export default function TicketsSection() {
     setCreating(true)
     const res = await mutate(
       () => api.post<{ ticket: TicketItem }>('/api/tickets', { subject, category, priority, message }),
-      { success: 'Ticket created — we will reply shortly' },
+      { success: t('ctix.created') },
     )
     setCreating(false)
     if (res) {
@@ -74,10 +89,10 @@ export default function TicketsSection() {
     <div className="mx-auto max-w-[1200px] p-4 sm:p-6 lg:p-8">
       <PanelPageHeader
         title={t('common.tickets')}
-        description={`${openCount} open · average first reply under 1 hour`}
+        description={t('ctix.desc').replace('{n}', String(openCount))}
         actions={
           <BrandButton className="min-h-[40px] gap-1.5" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4" /> New ticket
+            <Plus className="h-4 w-4" /> {t('ctix.new')}
           </BrandButton>
         }
       />
@@ -87,11 +102,11 @@ export default function TicketsSection() {
       ) : tickets.length === 0 ? (
         <EmptyState
           icon={LifeBuoy}
-          title="No tickets yet"
-          message="Questions about an order, a payment or the API? Open a ticket and our team will help."
+          title={t('ctix.noneTitle')}
+          message={t('ctix.noneDesc')}
           action={
             <BrandButton onClick={() => setCreateOpen(true)}>
-              <MessageSquarePlus className="mr-1.5 h-4 w-4" /> Create your first ticket
+              <MessageSquarePlus className="mr-1.5 h-4 w-4" /> {t('ctix.first')}
             </BrandButton>
           }
         />
@@ -112,13 +127,13 @@ export default function TicketsSection() {
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-[13.5px] font-extrabold text-zinc-900 dark:text-zinc-50">{tk.subject}</p>
                     <StatusBadge status={tk.status} />
-                    <Pill tone={priorityTone(tk.priority)}>{tk.priority}</Pill>
-                    <Pill tone="zinc">{tk.category}</Pill>
+                    <Pill tone={priorityTone(tk.priority)}>{t(PRI_KEYS[tk.priority] ?? PRI_KEYS.normal)}</Pill>
+                    <Pill tone="zinc">{t(CAT_KEYS[tk.category] ?? CAT_KEYS.general)}</Pill>
                   </div>
                   <p className="mt-1 line-clamp-1 text-[12.5px] text-zinc-500 dark:text-zinc-400">
-                    {last ? `${last.isStaff ? 'Support' : 'You'}: ${last.body}` : 'No messages'}
+                    {last ? `${last.isStaff ? t('ctix.staff') : t('ctix.you')}: ${last.body}` : t('ctix.noMessages')}
                   </p>
-                  <p className="mt-1 text-[11px] text-zinc-400 dark:text-zinc-500">Updated {formatDateTime(tk.updatedAt)}</p>
+                  <p className="mt-1 text-[11px] text-zinc-400 dark:text-zinc-500">{t('ctix.updated').replace('{d}', formatDateTime(tk.updatedAt))}</p>
                 </div>
               </button>
             )
@@ -130,8 +145,8 @@ export default function TicketsSection() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>New support ticket</DialogTitle>
-            <DialogDescription>Describe your issue — include order IDs or links when relevant.</DialogDescription>
+            <DialogTitle>{t('ctix.newTitle')}</DialogTitle>
+            <DialogDescription>{t('ctix.newDesc')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3.5">
             <div className="space-y-1.5">
@@ -139,7 +154,7 @@ export default function TicketsSection() {
               <Input
                 id="tk-subject"
                 className="min-h-[40px]"
-                placeholder="e.g. My order is not delivering"
+                placeholder={t('ctix.subjectPh')}
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
               />
@@ -150,30 +165,30 @@ export default function TicketsSection() {
                 <Select value={category} onValueChange={setCategory}>
                   <SelectTrigger className="min-h-[40px] w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="general">General</SelectItem>
-                    <SelectItem value="orders">Orders</SelectItem>
-                    <SelectItem value="payments">Payments</SelectItem>
-                    <SelectItem value="api">API</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="general">{t('ctix.catGeneral')}</SelectItem>
+                    <SelectItem value="orders">{t('ctix.catOrders')}</SelectItem>
+                    <SelectItem value="payments">{t('ctix.catPayments')}</SelectItem>
+                    <SelectItem value="api">{t('ctix.catApi')}</SelectItem>
+                    <SelectItem value="other">{t('ctix.catOther')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Priority</Label>
+                <Label>{t('ctix.priority')}</Label>
                 <Select value={priority} onValueChange={setPriority}>
                   <SelectTrigger className="min-h-[40px] w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {PRIORITIES.map((p) => <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>)}
+                    {PRIORITIES.map((p) => <SelectItem key={p} value={p}>{t(PRI_KEYS[p])}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="tk-message">Message</Label>
+              <Label htmlFor="tk-message">{t('ctix.message')}</Label>
               <Textarea
                 id="tk-message"
                 rows={5}
-                placeholder="Tell us what happened…"
+                placeholder={t('ctix.messagePh')}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
               />
@@ -225,7 +240,7 @@ function TicketThread({ id, onBack }: { id: string; onBack: () => void }) {
     setToggling(true)
     const ok = await mutate(
       () => api.patch('/api/tickets/reply', { ticketId: id, status: ticket.status === 'CLOSED' ? 'OPEN' : 'CLOSED' }),
-      { success: ticket.status === 'CLOSED' ? 'Ticket reopened' : 'Ticket closed' },
+      { success: ticket.status === 'CLOSED' ? t('ctix.reopened') : t('ctix.closed') },
     )
     setToggling(false)
     if (ok) refresh()
@@ -238,7 +253,7 @@ function TicketThread({ id, onBack }: { id: string; onBack: () => void }) {
         actions={
           <div className="flex items-center gap-2">
             <Button variant="outline" className="min-h-[40px] gap-1.5" onClick={onBack}>
-              <ArrowLeft className="h-3.5 w-3.5" /> All tickets
+              <ArrowLeft className="h-3.5 w-3.5" /> {t('ctix.all')}
             </Button>
             {ticket && (
               <Button
@@ -248,7 +263,7 @@ function TicketThread({ id, onBack }: { id: string; onBack: () => void }) {
                 disabled={toggling}
               >
                 {toggling && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-                {ticket.status === 'CLOSED' ? 'Reopen ticket' : 'Close ticket'}
+                {ticket.status === 'CLOSED' ? t('ctix.reopen') : t('ctix.close')}
               </Button>
             )}
           </div>
@@ -259,7 +274,7 @@ function TicketThread({ id, onBack }: { id: string; onBack: () => void }) {
       {loading && !ticket ? (
         <Card><LoadingRows rows={5} /></Card>
       ) : !ticket ? (
-        <EmptyState icon={LifeBuoy} title="Ticket not found" />
+        <EmptyState icon={LifeBuoy} title={t('ctix.notFound')} />
       ) : (
         <>
           <Card className="mb-4">
@@ -300,7 +315,7 @@ function TicketThread({ id, onBack }: { id: string; onBack: () => void }) {
               <div className="mt-4 border-t border-zinc-200 dark:border-zinc-800 pt-4">
                 <Textarea
                   rows={3}
-                  placeholder="Write a reply…"
+                  placeholder={t('ctix.replyPh')}
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
                   onKeyDown={(e) => {
@@ -308,16 +323,16 @@ function TicketThread({ id, onBack }: { id: string; onBack: () => void }) {
                   }}
                 />
                 <div className="mt-2.5 flex items-center justify-between">
-                  <p className="text-[11px] text-zinc-400 dark:text-zinc-500">Tip: press ⌘/Ctrl + Enter to send</p>
+                  <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{t('ctix.tip')}</p>
                   <BrandButton className="min-h-[40px]" onClick={send} disabled={sending || !reply.trim()}>
                     {sending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Send className="mr-1.5 h-4 w-4" />}
-                    Send reply
+                    {t('ctix.send')}
                   </BrandButton>
                 </div>
               </div>
             ) : (
               <p className="mt-4 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 p-3 text-center text-[12.5px] font-semibold text-zinc-500 dark:text-zinc-400">
-                This ticket is closed — reopen it if you need more help.
+                {t('ctix.closedNote')}
               </p>
             )}
           </Card>

@@ -29,7 +29,7 @@ export default function LegalPages({ doc }: { doc: LegalKey }) {
           <button
             className="flex items-center gap-2"
             onClick={() => window.dispatchEvent(new Event('gr:exit'))}
-            aria-label="Back to site"
+            aria-label={t('legal.back')}
           >
             <span className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
               <Rocket className="h-4 w-4 text-[var(--on-brand)]" />

@@ -77,20 +77,20 @@ export default function AccountSection({ onLogout }: { onLogout: () => void }) {
 
   async function saveProfile() {
     setSavingProfile(true)
-    const res = await mutate(() => api.patch<MePatchResult>('/api/me', { name }), { success: 'Profile updated' })
+    const res = await mutate(() => api.patch<MePatchResult>('/api/me', { name }), { success: t('cacc.profileUpdated') })
     setSavingProfile(false)
     await applyUser(res)
   }
 
   async function savePassword() {
     if (newPassword !== confirmPassword) {
-      toast({ title: 'Passwords do not match', variant: 'destructive' })
+      toast({ title: t('cacc.pwMismatch'), variant: 'destructive' })
       return
     }
     setSavingPassword(true)
     const res = await mutate(
       () => api.patch<MePatchResult>('/api/me', { currentPassword, newPassword }),
-      { success: 'Password changed' },
+      { success: t('cacc.pwChanged') },
     )
     setSavingPassword(false)
     if (res) {
@@ -112,7 +112,7 @@ export default function AccountSection({ onLogout }: { onLogout: () => void }) {
   }
 
   async function regenerateKey() {
-    await mutate(() => api.patch<MePatchResult>('/api/me', { regenerateApiKey: true }), { success: 'API key regenerated — update your integrations' })
+    await mutate(() => api.patch<MePatchResult>('/api/me', { regenerateApiKey: true }), { success: t('cacc.keyRegenerated') })
     refresh()
   }
 
@@ -120,13 +120,13 @@ export default function AccountSection({ onLogout }: { onLogout: () => void }) {
     <div className="mx-auto max-w-[900px] p-4 sm:p-6 lg:p-8">
       <PanelPageHeader
         title={t('common.account')}
-        description={`Member since ${user.createdAt ? formatDate(user.createdAt) : 'today'}`}
+        description={t('cacc.memberSince').replace('{d}', user.createdAt ? formatDate(user.createdAt) : t('cacc.today'))}
       />
 
       <div className="space-y-4">
         {/* Profile */}
         <Card>
-          <CardHead icon={UserRound} title="Profile" sub="How you appear in the panel" />
+          <CardHead icon={UserRound} title={t('cacc.profile')} sub={t('cacc.profileSub')} />
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="acc-name">{t('auth.name')}</Label>
@@ -135,7 +135,7 @@ export default function AccountSection({ onLogout }: { onLogout: () => void }) {
             <div className="space-y-1.5">
               <Label htmlFor="acc-email">{t('auth.email')}</Label>
               <Input id="acc-email" className="min-h-[40px] bg-zinc-50 dark:bg-zinc-900/60" value={user.email} disabled />
-              <p className="text-[11px] text-zinc-400 dark:text-zinc-500">Email cannot be changed for demo accounts.</p>
+              <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{t('cacc.emailFixed')}</p>
             </div>
           </div>
           <div className="mt-4 flex justify-end">
@@ -153,10 +153,10 @@ export default function AccountSection({ onLogout }: { onLogout: () => void }) {
 
         {/* Preferences */}
         <Card>
-          <CardHead icon={Globe2} title="Preferences" sub="Currency, language and security" />
+          <CardHead icon={Globe2} title={t('cacc.prefs')} sub={t('cacc.prefsSub')} />
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-1.5">
-              <Label>Currency</Label>
+              <Label>{t('cacc.currency')}</Label>
               <Select
                 value={user.currency}
                 onValueChange={(v) => updatePref({ currency: v })}
@@ -170,10 +170,10 @@ export default function AccountSection({ onLogout }: { onLogout: () => void }) {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-[11px] text-zinc-400 dark:text-zinc-500">Display only — charges are in USD.</p>
+              <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{t('cacc.currencyHint')}</p>
             </div>
             <div className="space-y-1.5">
-              <Label>Language</Label>
+              <Label>{t('cacc.language')}</Label>
               <Select
                 value={user.language as string}
                 onValueChange={(v) => {
@@ -193,8 +193,8 @@ export default function AccountSection({ onLogout }: { onLogout: () => void }) {
             </div>
             <div className="flex items-start justify-between gap-3 rounded-xl border border-zinc-200 dark:border-zinc-800 p-3">
               <div>
-                <Label htmlFor="acc-2fa" className="text-[13px]">Two-factor auth</Label>
-                <p className="mt-0.5 text-[11px] leading-snug text-zinc-400 dark:text-zinc-500">Extra code on login (demo)</p>
+                <Label htmlFor="acc-2fa" className="text-[13px]">{t('cacc.twoFa')}</Label>
+                <p className="mt-0.5 text-[11px] leading-snug text-zinc-400 dark:text-zinc-500">{t('cacc.twoFaSub')}</p>
               </div>
               <Switch
                 id="acc-2fa"
@@ -208,18 +208,18 @@ export default function AccountSection({ onLogout }: { onLogout: () => void }) {
 
         {/* Security: password */}
         <Card>
-          <CardHead icon={Lock} title="Change password" sub="Use at least 6 characters" />
+          <CardHead icon={Lock} title={t('cacc.changePw')} sub={t('cacc.changePwSub')} />
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-1.5">
-              <Label htmlFor="acc-curpass">Current password</Label>
+              <Label htmlFor="acc-curpass">{t('cacc.currentPw')}</Label>
               <Input id="acc-curpass" type="password" className="min-h-[40px]" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} autoComplete="current-password" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="acc-newpass">New password</Label>
+              <Label htmlFor="acc-newpass">{t('cacc.newPw')}</Label>
               <Input id="acc-newpass" type="password" className="min-h-[40px]" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="acc-confpass">Confirm new password</Label>
+              <Label htmlFor="acc-confpass">{t('cacc.confirmPw')}</Label>
               <Input id="acc-confpass" type="password" className="min-h-[40px]" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" />
             </div>
           </div>
@@ -231,7 +231,7 @@ export default function AccountSection({ onLogout }: { onLogout: () => void }) {
               disabled={savingPassword || !currentPassword || newPassword.length < 6 || !confirmPassword}
             >
               {savingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-              Update password
+              {t('cacc.updatePw')}
             </Button>
           </div>
         </Card>
@@ -240,26 +240,26 @@ export default function AccountSection({ onLogout }: { onLogout: () => void }) {
         <Card>
           <CardHead
             icon={KeyRound}
-            title="API key"
-            sub="Used by the SMM API v2 — see the API section"
+            title={t('cacc.apiKey')}
+            sub={t('cacc.apiKeySub')}
             right={
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" size="sm" className="h-8 min-h-[32px] gap-1 rounded-full text-[12px] font-bold">
-                    <KeyRound className="h-3 w-3" /> Regenerate
+                    <KeyRound className="h-3 w-3" /> {t('cacc.regenerate')}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Regenerate API key?</AlertDialogTitle>
+                    <AlertDialogTitle>{t('cacc.regenerateQ')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Your current key will stop working immediately. Any integrations using it will need the new key.
+                      {t('cacc.regenerateDesc')}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                     <AlertDialogAction className="text-[var(--on-brand)]" style={{ background: 'var(--brand)' }} onClick={regenerateKey}>
-                      Yes, regenerate
+                      {t('cacc.regenerateYes')}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -395,7 +395,7 @@ export default function AccountSection({ onLogout }: { onLogout: () => void }) {
                       >
                         {f.bonusPaid ? `✓ ${interpolate(t('account.refBonusEarned'), bonusLabel)}` : t('account.refPending')}
                       </span>
-                      <span className="sr-only">rank {rank + 1}</span>
+                      <span className="sr-only">{t('cacc.rankSr').replace('{n}', String(rank + 1))}</span>
                     </div>
                   )
                 })}
@@ -408,13 +408,13 @@ export default function AccountSection({ onLogout }: { onLogout: () => void }) {
         <Card className="border-rose-200 dark:border-rose-900/60">
           <CardHead
             icon={Trash2}
-            title="Danger zone"
-            sub="Careful — these actions affect your session"
+            title={t('cacc.danger')}
+            sub={t('cacc.dangerSub')}
           />
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/60 p-4">
             <div>
-              <p className="text-[13.5px] font-extrabold text-rose-800">Log out of this device</p>
-              <p className="text-[12px] text-rose-600/80">Ends your session. Your orders keep running.</p>
+              <p className="text-[13.5px] font-extrabold text-rose-800">{t('cacc.logoutDevice')}</p>
+              <p className="text-[12px] text-rose-600/80">{t('cacc.logoutDeviceSub')}</p>
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -424,8 +424,8 @@ export default function AccountSection({ onLogout }: { onLogout: () => void }) {
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Log out?</AlertDialogTitle>
-                  <AlertDialogDescription>You will need to sign in again to access your panel.</AlertDialogDescription>
+                  <AlertDialogTitle>{t('cacc.logoutQ')}</AlertDialogTitle>
+                  <AlertDialogDescription>{t('cacc.logoutDesc')}</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>

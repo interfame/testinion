@@ -9,8 +9,9 @@ import {
   Layers, LayoutTemplate, Menu, MessagesSquare, Palette, Plug, Rocket,
   ShieldCheck, ShoppingCart, Sparkles, Store, Users, Wallet, Zap,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useApp } from '@/components/shared/app-context'
-import { useI18n, type Lang } from '@/lib/i18n'
+import { useI18n, type DictKey, type Lang } from '@/lib/i18n'
 import { useApi } from '@/lib/api'
 import { formatMoney } from '@/lib/format'
 import { themeVars } from '@/lib/themes'
@@ -48,14 +49,8 @@ type LandingCopy = {
   statsUptime?: string
 }
 
-const DEFAULT_COPY: LandingCopy = {
-  badge: 'One platform. Three powerful businesses.',
-  heroTitle1: 'Launch your own',
-  heroTitle2: 'social media marketing',
-  heroTitle3: 'business today',
-  heroSub: 'Automated SMM orders, a built-in omnichannel CRM, AI-powered automations and white-label reseller plans. Everything you need to run — and resell — a social media empire.',
-  ctaPrimary: 'Get started free',
-  ctaSecondary: 'See live demo',
+// Language-neutral stat values (labels come from the dict); admin copy can override
+const DEFAULT_STATS = {
   statsOrders: '12.4M+',
   statsResellers: '3,800+',
   statsServices: '18,500+',
@@ -73,129 +68,123 @@ function parseCopy(json?: string | null): LandingCopy {
 
 /* ------------------------------ static content ----------------------------- */
 
-const FEATURES = [
-  { icon: Database, title: 'Provider manager', desc: 'Connect unlimited SMM providers with automatic price & status sync.' },
-  { icon: Layers, title: 'Service catalogue', desc: 'Unlimited categories and services with per-platform pricing.' },
-  { icon: ShoppingCart, title: 'Orders & drip-feed', desc: 'Auto orders, partial status tracking and drip-feed campaigns.' },
-  { icon: Wallet, title: 'Wallet & ledger', desc: 'Double-entry wallet with deposits, refunds and full history.' },
-  { icon: CreditCard, title: 'Payment gateways', desc: 'Card, PayPal, crypto and manual methods with custom fees.' },
-  { icon: Code2, title: 'Public API v2', desc: 'Standard SMM API (services · add · status · balance) built in.' },
-  { icon: Inbox, title: 'Omnichannel inbox', desc: 'WhatsApp, Instagram, Telegram and email in one thread.' },
-  { icon: Bot, title: 'AI agents', desc: 'GPT-powered agents that answer, sell and escalate 24/7.' },
-  { icon: Zap, title: 'Automation flows', desc: 'Triggers, actions and away messages — zero code required.' },
-  { icon: Store, title: 'Reseller panels', desc: 'White-label panels with their own catalogue and pricing.' },
-  { icon: Globe, title: 'Custom domains', desc: 'Free subdomain or bring your own domain with automatic SSL.' },
-  { icon: LayoutTemplate, title: 'Landing builder', desc: 'Edit hero copy, badge, stats and CTAs without touching code.' },
-  { icon: Palette, title: '3 portal designs', desc: 'Nova, Horizon and Boost themes for your client portals.' },
-  { icon: Languages, title: 'Multi-language', desc: 'English, Spanish and Portuguese out of the box.' },
-  { icon: Users, title: 'Roles & staff', desc: 'Granular staff permissions with a complete audit trail.' },
-  { icon: ShieldCheck, title: '2FA & blacklist', desc: 'Two-factor auth, IP blacklist and fraud control.' },
+const FEATURES: { icon: LucideIcon; titleKey: DictKey; descKey: DictKey }[] = [
+  { icon: Database, titleKey: 'landing.feat.providers.title', descKey: 'landing.feat.providers.desc' },
+  { icon: Layers, titleKey: 'landing.feat.catalogue.title', descKey: 'landing.feat.catalogue.desc' },
+  { icon: ShoppingCart, titleKey: 'landing.feat.orders.title', descKey: 'landing.feat.orders.desc' },
+  { icon: Wallet, titleKey: 'landing.feat.wallet.title', descKey: 'landing.feat.wallet.desc' },
+  { icon: CreditCard, titleKey: 'landing.feat.gateways.title', descKey: 'landing.feat.gateways.desc' },
+  { icon: Code2, titleKey: 'landing.feat.api.title', descKey: 'landing.feat.api.desc' },
+  { icon: Inbox, titleKey: 'landing.feat.inbox.title', descKey: 'landing.feat.inbox.desc' },
+  { icon: Bot, titleKey: 'landing.feat.agents.title', descKey: 'landing.feat.agents.desc' },
+  { icon: Zap, titleKey: 'landing.feat.flows.title', descKey: 'landing.feat.flows.desc' },
+  { icon: Store, titleKey: 'landing.feat.panels.title', descKey: 'landing.feat.panels.desc' },
+  { icon: Globe, titleKey: 'landing.feat.domains.title', descKey: 'landing.feat.domains.desc' },
+  { icon: LayoutTemplate, titleKey: 'landing.feat.builder.title', descKey: 'landing.feat.builder.desc' },
+  { icon: Palette, titleKey: 'landing.feat.designs.title', descKey: 'landing.feat.designs.desc' },
+  { icon: Languages, titleKey: 'landing.feat.languages.title', descKey: 'landing.feat.languages.desc' },
+  { icon: Users, titleKey: 'landing.feat.roles.title', descKey: 'landing.feat.roles.desc' },
+  { icon: ShieldCheck, titleKey: 'landing.feat.security.title', descKey: 'landing.feat.security.desc' },
 ]
 
-const SHOWCASE_ROWS = [
+const SHOWCASE_ROWS: {
+  id: string
+  align: 'left' | 'right'
+  mock: React.ReactNode
+  eyebrowKey: DictKey
+  bulletKeys: [DictKey, DictKey, DictKey]
+}[] = [
   {
     id: 'admin',
-    align: 'left' as const,
+    align: 'left',
     mock: <AdminCommandMock />,
-    eyebrow: 'For you',
-    bullets: ['Live revenue, orders and wallet charts', 'Approve deposits and tickets in one click', 'Provider health, sync and price control'],
+    eyebrowKey: 'landing.sc.admin.eyebrow',
+    bulletKeys: ['landing.sc.admin.b1', 'landing.sc.admin.b2', 'landing.sc.admin.b3'],
   },
   {
     id: 'client',
-    align: 'right' as const,
+    align: 'right',
     mock: <ClientPortalMock />,
-    eyebrow: 'For your customers',
-    bullets: ['Place orders in under 30 seconds', 'Balance, deposits and full order history', 'News feed, tickets and multi-currency'],
+    eyebrowKey: 'landing.sc.client.eyebrow',
+    bulletKeys: ['landing.sc.client.b1', 'landing.sc.client.b2', 'landing.sc.client.b3'],
   },
   {
     id: 'inbox',
-    align: 'left' as const,
+    align: 'left',
     mock: <InboxMock />,
-    eyebrow: 'For your support team',
-    bullets: ['One thread per customer across every channel', 'AI agents reply in your tone of voice', 'Quick replies, labels and human handover'],
+    eyebrowKey: 'landing.sc.inbox.eyebrow',
+    bulletKeys: ['landing.sc.inbox.b1', 'landing.sc.inbox.b2', 'landing.sc.inbox.b3'],
   },
   {
     id: 'reseller',
-    align: 'right' as const,
+    align: 'right',
     mock: <StorefrontMock />,
-    eyebrow: 'For your resellers',
-    bullets: ['Your branding, your prices, your rules', 'Free subdomain or your own custom domain', 'Memberships billed monthly, automatically'],
+    eyebrowKey: 'landing.sc.reseller.eyebrow',
+    bulletKeys: ['landing.sc.reseller.b1', 'landing.sc.reseller.b2', 'landing.sc.reseller.b3'],
   },
 ]
 
-const BUSINESSES = [
+const BUSINESSES: { icon: LucideIcon; titleKey: DictKey; descKey: DictKey }[] = [
   {
     icon: Rocket,
-    title: 'Run an SMM panel',
-    desc: 'Sell followers, views and likes from top providers with instant, automated delivery.',
+    titleKey: 'landing.biz.1.title',
+    descKey: 'landing.biz.1.desc',
   },
   {
     icon: Store,
-    title: 'Sell panels as white-label SaaS',
-    desc: 'Charge resellers monthly memberships for their own fully branded platform.',
+    titleKey: 'landing.biz.2.title',
+    descKey: 'landing.biz.2.desc',
   },
   {
     icon: MessagesSquare,
-    title: 'Omnichannel CRM for your agency',
-    desc: 'Turn DMs into customers with AI agents, automations and one shared inbox.',
+    titleKey: 'landing.biz.3.title',
+    descKey: 'landing.biz.3.desc',
   },
 ]
 
-const PLANS = [
+const PLANS: {
+  name: string
+  price: number
+  popular: boolean
+  descKey: DictKey
+  featureKeys: DictKey[]
+}[] = [
   {
     name: 'Starter',
     price: 29,
     popular: false,
-    desc: 'For solo marketers launching their first panel.',
-    features: ['1 admin seat', '1,000 orders / month', '3 provider connections', 'Rush portal design', 'Free subdomain + SSL', 'Client portal & API v2'],
+    descKey: 'landing.plan.starter.desc',
+    featureKeys: ['landing.plan.starter.f1', 'landing.plan.starter.f2', 'landing.plan.starter.f3', 'landing.plan.starter.f4', 'landing.plan.starter.f5', 'landing.plan.starter.f6'],
   },
   {
     name: 'Pro',
     price: 59,
     popular: true,
-    desc: 'For growing panels with real daily volume.',
-    features: ['5 staff seats', '10,000 orders / month', 'Unlimited providers', 'All portal designs', 'Omnichannel CRM + AI agents', 'Priority support'],
+    descKey: 'landing.plan.pro.desc',
+    featureKeys: ['landing.plan.pro.f1', 'landing.plan.pro.f2', 'landing.plan.pro.f3', 'landing.plan.pro.f4', 'landing.plan.pro.f5', 'landing.plan.pro.f6'],
   },
   {
     name: 'Agency',
     price: 119,
     popular: false,
-    desc: 'For agencies running multiple white-label brands.',
-    features: ['Unlimited seats & orders', 'Reseller sub-panels included', 'Advanced automations & AI', 'Boost portal design', 'Dedicated onboarding', '99.9% uptime SLA'],
+    descKey: 'landing.plan.agency.desc',
+    featureKeys: ['landing.plan.agency.f1', 'landing.plan.agency.f2', 'landing.plan.agency.f3', 'landing.plan.agency.f4', 'landing.plan.agency.f5', 'landing.plan.agency.f6'],
   },
 ]
 
-const STEPS = [
-  { n: '01', title: 'Pick your plan', desc: 'Start on Starter, Pro or Agency — upgrade whenever your volume grows.' },
-  { n: '02', title: 'Choose your domain', desc: 'Get a free subdomain instantly, or connect your own custom domain.' },
-  { n: '03', title: 'Launch & resell', desc: 'Import services, set your prices and start taking orders today.' },
+const STEPS: { n: string; titleKey: DictKey; descKey: DictKey }[] = [
+  { n: '01', titleKey: 'landing.step.1.title', descKey: 'landing.step.1.desc' },
+  { n: '02', titleKey: 'landing.step.2.title', descKey: 'landing.step.2.desc' },
+  { n: '03', titleKey: 'landing.step.3.title', descKey: 'landing.step.3.desc' },
 ]
 
-const FAQS = [
-  {
-    q: 'How fast are orders delivered?',
-    a: 'Most services start within 0–30 minutes and complete progressively. Speed per service is shown in the catalogue (e.g. 5k/day), and the platform tracks start count and remains on every order automatically.',
-  },
-  {
-    q: 'Which payment methods are supported?',
-    a: 'You can accept credit cards, PayPal, crypto (USDT, BTC and more) and manual methods. Every gateway supports custom fees, and deposits are credited to client wallets instantly or after approval — you choose the mode.',
-  },
-  {
-    q: 'Can I offer refunds?',
-    a: 'Yes. Canceled and partial orders can be refunded straight back to the client wallet with one click, and every movement is recorded in the double-entry ledger for both you and your customers.',
-  },
-  {
-    q: 'Is there an API for my customers and resellers?',
-    a: 'Absolutely — a standard SMM API v2 (services, add, status, balance) ships with every panel. Resellers plug their own panels or external connectors straight into it, so nothing about your workflow changes.',
-  },
-  {
-    q: 'Can I resell panels to my own customers?',
-    a: 'Yes. On any plan you can create white-label reseller panels with their own branding, catalogue, prices and portal. Resellers pay you a monthly membership and you keep 100% of the margin on their orders.',
-  },
-  {
-    q: 'Do services include refill guarantees?',
-    a: 'Services marked with refill include an automatic refill window — clients can trigger refills themselves from their portal within the allowed period, and you control cancel/refill permissions per service.',
-  },
+const FAQS: { qKey: DictKey; aKey: DictKey }[] = [
+  { qKey: 'landing.faq.1.q', aKey: 'landing.faq.1.a' },
+  { qKey: 'landing.faq.2.q', aKey: 'landing.faq.2.a' },
+  { qKey: 'landing.faq.3.q', aKey: 'landing.faq.3.a' },
+  { qKey: 'landing.faq.4.q', aKey: 'landing.faq.4.a' },
+  { qKey: 'landing.faq.5.q', aKey: 'landing.faq.5.a' },
+  { qKey: 'landing.faq.6.q', aKey: 'landing.faq.6.a' },
 ]
 
 const FOOTER_SOCIAL = ['instagram', 'x', 'telegram', 'youtube', 'tiktok', 'whatsapp']
@@ -261,7 +250,7 @@ export default function Landing() {
   const { t, setLang } = useI18n()
   // Live FAQs from DB (admin-editable) with static fallback + public coupon for the promo ticket
   const { data: pubFaq } = useApi<{ faqs: { id: string; question: string; answer: string }[]; publicCoupon?: { code: string; value: number } | null }>('/api/settings/public')
-  const FAQ_LIST = (pubFaq?.faqs?.length ? pubFaq.faqs.map((f) => ({ q: f.question, a: f.answer })) : FAQS)
+  const FAQ_LIST = (pubFaq?.faqs?.length ? pubFaq.faqs.map((f) => ({ q: f.question, a: f.answer })) : FAQS.map((f) => ({ q: t(f.qKey), a: t(f.aKey) })))
   const [menuOpen, setMenuOpen] = useState(false)
 
   const ps = app.publicSettings
@@ -269,10 +258,17 @@ export default function Landing() {
   const tagline = ps?.brand_tagline || t('brand.tagline')
   const subBase = ps?.subdomain_base || 'growthrush.io'
 
-  const copy = useMemo<LandingCopy>(
-    () => ({ ...DEFAULT_COPY, ...parseCopy(ps?.landing_copy) }),
-    [ps?.landing_copy],
-  )
+  const copy = useMemo<LandingCopy>(() => ({
+    badge: t('landing.badge'),
+    heroTitle1: t('landing.hero.title1'),
+    heroTitle2: t('landing.hero.title2'),
+    heroTitle3: t('landing.hero.title3'),
+    heroSub: t('landing.hero.sub'),
+    ctaPrimary: t('landing.cta.primary'),
+    ctaSecondary: t('landing.cta.secondary'),
+    ...DEFAULT_STATS,
+    ...parseCopy(ps?.landing_copy),
+  }), [ps?.landing_copy, t])
 
   const loggedIn = !!app.user?.id
   const [demoOpen, setDemoOpen] = useState(false)
@@ -296,9 +292,9 @@ export default function Landing() {
   ]
 
   const navLinks = [
-    { href: '#features', label: 'Features' },
-    { href: '#showcase', label: 'Showcase' },
-    { href: '#pricing', label: 'Pricing' },
+    { href: '#features', label: t('landing.nav.features') },
+    { href: '#showcase', label: t('landing.nav.showcase') },
+    { href: '#pricing', label: t('landing.nav.pricing') },
     { href: '#faq', label: 'FAQ' },
   ]
 
@@ -320,7 +316,7 @@ export default function Landing() {
       className="h-9 rounded-full px-4 text-[13px] font-black text-[var(--on-brand)] transition-transform hover:scale-[1.03]"
       style={{ background: 'var(--brand)' }}
     >
-      <Zap className="mr-1.5 h-3.5 w-3.5" /> Open my panel
+      <Zap className="mr-1.5 h-3.5 w-3.5" /> {t('landing.openPanel')}
     </Button>
   ) : (
     <>
@@ -356,12 +352,12 @@ export default function Landing() {
       {/* ============================== HEADER ============================== */}
       <header className="sticky top-0 z-50 border-b border-zinc-900/[0.06] bg-[#fbf7f4]/85 dark:border-zinc-800/70 dark:bg-zinc-950/85 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
-          <a href="#top" className="flex items-center gap-2.5" aria-label={`${brand} home`}>
+          <a href="#top" className="flex items-center gap-2.5" aria-label={t('landing.a11y.home').replace('{brand}', brand)}>
             {logoMark}
             <span className="text-lg font-black tracking-tight">{brand}</span>
           </a>
 
-          <nav className="ml-6 hidden items-center gap-1 lg:flex" aria-label="Main navigation">
+          <nav className="ml-6 hidden items-center gap-1 lg:flex" aria-label={t('landing.a11y.nav')}>
             {navLinks.map((l) => (
               <a
                 key={l.href}
@@ -383,7 +379,7 @@ export default function Landing() {
             {/* Mobile menu */}
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9 rounded-full lg:hidden" aria-label="Open menu">
+                <Button variant="outline" size="icon" className="h-9 w-9 rounded-full lg:hidden" aria-label={t('landing.a11y.openMenu')}>
                   <Menu className="h-4 w-4" />
                 </Button>
               </SheetTrigger>
@@ -393,7 +389,7 @@ export default function Landing() {
                     {logoMark}
                     <span className="text-lg font-black tracking-tight">{brand}</span>
                   </SheetTitle>
-                  <SheetDescription className="sr-only">Menu</SheetDescription>
+                  <SheetDescription className="sr-only">{t('landing.a11y.menu')}</SheetDescription>
                 </SheetHeader>
                 <div className="flex flex-col gap-1 px-4">
                   {navLinks.map((l) => (
@@ -415,7 +411,7 @@ export default function Landing() {
                   </div>
                   {loggedIn ? (
                     <Button onClick={() => { setMenuOpen(false); openMyPanel() }} className="h-11 rounded-full text-sm font-black text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
-                      Open my panel
+                      {t('landing.openPanel')}
                     </Button>
                   ) : (
                     <>
@@ -484,7 +480,7 @@ export default function Landing() {
                       className="h-12 rounded-full px-7 text-sm font-black text-[var(--on-brand)] transition-transform hover:scale-[1.04]"
                       style={{ background: 'var(--brand)', boxShadow: '0 14px 44px -10px var(--brand-glow)' }}
                     >
-                      <Zap className="mr-2 h-4 w-4" /> Open my panel
+                      <Zap className="mr-2 h-4 w-4" /> {t('landing.openPanel')}
                     </Button>
                   ) : (
                     <Button
@@ -535,7 +531,7 @@ export default function Landing() {
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setDemoOpen(true) }}
-                aria-label="Open the interactive product tour"
+                aria-label={t('landing.a11y.tour')}
               >
                 <PanelDashboardMock />
               </motion.div>
@@ -545,7 +541,7 @@ export default function Landing() {
 
         {/* =========================== PROMO COUPON TICKET ========================= */}
         {pubFaq?.publicCoupon && (
-          <div className="relative z-10 flex justify-center px-4 pb-3 pt-4" aria-label="Promotion">
+          <div className="relative z-10 flex justify-center px-4 pb-3 pt-4" aria-label={t('landing.a11y.promo')}>
             <CouponBanner
               code={pubFaq.publicCoupon.code}
               value={pubFaq.publicCoupon.value}
@@ -555,11 +551,11 @@ export default function Landing() {
         )}
 
         {/* =========================== BRANDS MARQUEE ========================= */}
-        <section className="border-b border-zinc-900/[0.06] py-12 sm:py-16" aria-label="Supported platforms">
+        <section className="border-b border-zinc-900/[0.06] py-12 sm:py-16" aria-label={t('landing.a11y.platforms')}>
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <FadeUp className="mb-8 text-center">
               <h2 className="mx-auto max-w-2xl font-black tracking-tight text-2xl text-zinc-900 dark:text-zinc-50 sm:text-3xl">
-                From Instagram to Spotify — one catalog for every platform.
+                {t('landing.networksTitle')}
               </h2>
             </FadeUp>
           </div>
@@ -585,16 +581,16 @@ export default function Landing() {
         </section>
 
         {/* ============================ FEATURES ============================= */}
-        <section id="features" className="scroll-mt-20 py-16 sm:py-24" aria-label="Features">
+        <section id="features" className="scroll-mt-20 py-16 sm:py-24" aria-label={t('landing.nav.features')}>
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
-            <SectionHead eyebrow="Features" title={t('landing.features.title')} sub={t('landing.features.sub')} />
+            <SectionHead eyebrow={t('landing.nav.features')} title={t('landing.features.title')} sub={t('landing.features.sub')} />
             <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
               {FEATURES.map((f, i) => (
-                <FadeUp key={f.title} delay={(i % 4) * 0.06}>
+                <FadeUp key={f.titleKey} delay={(i % 4) * 0.06}>
                   <div className="group relative h-full rounded-2xl border border-zinc-200/80 bg-white dark:bg-zinc-900 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[var(--brand)] hover:shadow-[0_16px_44px_-16px_var(--brand-glow)]">
                     {i === 0 && (
                       <span className="absolute right-4 top-4 rounded-full px-2 py-0.5 text-[9px] font-black tracking-widest text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
-                        NEW
+                        {t('landing.newBadge')}
                       </span>
                     )}
                     <span
@@ -603,8 +599,8 @@ export default function Landing() {
                     >
                       <f.icon className="h-5 w-5" />
                     </span>
-                    <h3 className="text-[15px] font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">{f.title}</h3>
-                    <p className="mt-1.5 text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">{f.desc}</p>
+                    <h3 className="text-[15px] font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">{t(f.titleKey)}</h3>
+                    <p className="mt-1.5 text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">{t(f.descKey)}</p>
                   </div>
                 </FadeUp>
               ))}
@@ -613,9 +609,9 @@ export default function Landing() {
         </section>
 
         {/* ============================= SHOWCASE ============================= */}
-        <section id="showcase" className="scroll-mt-20 py-16 sm:py-24" aria-label="Showcase">
+        <section id="showcase" className="scroll-mt-20 py-16 sm:py-24" aria-label={t('landing.nav.showcase')}>
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
-            <SectionHead eyebrow="Showcase" title={t('landing.showcase.title')} />
+            <SectionHead eyebrow={t('landing.nav.showcase')} title={t('landing.showcase.title')} />
             <div className="space-y-16 sm:space-y-24">
               {SHOWCASE_ROWS.map((row, i) => {
                 const titles: Record<string, { title: string; sub: string }> = {
@@ -626,11 +622,11 @@ export default function Landing() {
                 }
                 const text = (
                   <FadeUp className="lg:w-[44%]">
-                    <p className="mb-3 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--brand)] sm:text-xs">{row.eyebrow}</p>
+                    <p className="mb-3 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--brand)] sm:text-xs">{t(row.eyebrowKey)}</p>
                     <h3 className="font-black tracking-tight text-2xl text-zinc-900 dark:text-zinc-50 sm:text-3xl lg:text-4xl">{titles[row.id].title}</h3>
                     <p className="mt-4 text-base leading-relaxed text-zinc-500 dark:text-zinc-400">{titles[row.id].sub}</p>
                     <ul className="mt-6 space-y-3">
-                      {row.bullets.map((b) => <CheckItem key={b}>{b}</CheckItem>)}
+                      {row.bulletKeys.map((bk) => <CheckItem key={bk}>{t(bk)}</CheckItem>)}
                     </ul>
                     {row.id === 'reseller' && (
                       <button
@@ -638,7 +634,7 @@ export default function Landing() {
                         className="group mt-6 inline-flex items-center gap-2 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2 text-[12px] font-extrabold text-zinc-700 dark:text-zinc-200 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                       >
                         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-600 text-[9px] font-black text-white">K</span>
-                        Browse a live storefront: kayasocial.growthrush.io
+                        {t('landing.sc.browse').replace('{domain}', 'kayasocial.growthrush.io')}
                         <span className="transition-transform group-hover:translate-x-0.5">→</span>
                       </button>
                     )}
@@ -666,7 +662,7 @@ export default function Landing() {
               {/* 3 portal designs */}
               <div>
                 <FadeUp className="mx-auto mb-10 max-w-2xl text-center">
-                  <p className="mb-3 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--brand)] sm:text-xs">White-label portals</p>
+                  <p className="mb-3 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--brand)] sm:text-xs">{t('landing.sc.portals')}</p>
                   <h3 className="font-black tracking-tight text-2xl text-zinc-900 dark:text-zinc-50 sm:text-3xl lg:text-4xl">{t('landing.showcase.themes')}</h3>
                   <p className="mt-4 text-base text-zinc-500 dark:text-zinc-400">{t('landing.showcase.themesSub')}</p>
                 </FadeUp>
@@ -679,12 +675,12 @@ export default function Landing() {
         </section>
 
         {/* ====================== THREE BUSINESSES BAND ======================= */}
-        <section className="bg-[var(--brand-dark)] py-16 text-white sm:py-20" aria-label="Three powerful businesses">
+        <section className="bg-[var(--brand-dark)] py-16 text-white sm:py-20" aria-label={t('landing.a11y.businesses')}>
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
-            <SectionHead eyebrow={t('landing.badge')} title="One platform. Three powerful businesses." dark />
+            <SectionHead eyebrow={t('landing.badge')} title={t('landing.biz.title')} dark />
             <div className="grid gap-4 md:grid-cols-3">
               {BUSINESSES.map((b, i) => (
-                <FadeUp key={b.title} delay={i * 0.08}>
+                <FadeUp key={b.titleKey} delay={i * 0.08}>
                   <div className="h-full rounded-2xl border border-white/10 bg-white/[0.04] p-6 transition-colors duration-300 hover:border-[var(--brand)]/60 hover:bg-white/[0.07]">
                     <span
                       className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl"
@@ -692,8 +688,8 @@ export default function Landing() {
                     >
                       <b.icon className="h-5 w-5" />
                     </span>
-                    <h3 className="text-lg font-extrabold tracking-tight">{b.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-white/55">{b.desc}</p>
+                    <h3 className="text-lg font-extrabold tracking-tight">{t(b.titleKey)}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-white/55">{t(b.descKey)}</p>
                   </div>
                 </FadeUp>
               ))}
@@ -702,9 +698,9 @@ export default function Landing() {
         </section>
 
         {/* ============================== PRICING ============================= */}
-        <section id="pricing" className="scroll-mt-20 py-16 sm:py-24" aria-label="Pricing">
+        <section id="pricing" className="scroll-mt-20 py-16 sm:py-24" aria-label={t('landing.nav.pricing')}>
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
-            <SectionHead eyebrow="Pricing" title={t('landing.pricing.title')} sub={t('landing.pricing.sub')} />
+            <SectionHead eyebrow={t('landing.nav.pricing')} title={t('landing.pricing.title')} sub={t('landing.pricing.sub')} />
             <div className="grid items-stretch gap-5 lg:grid-cols-3 lg:gap-6">
               {PLANS.map((plan, i) => (
                 <FadeUp key={plan.name} delay={i * 0.08} className="h-full">
@@ -724,21 +720,21 @@ export default function Landing() {
                       </span>
                     )}
                     <h3 className="text-lg font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">{plan.name}</h3>
-                    <p className="mt-1 text-[13px] text-zinc-500 dark:text-zinc-400">{plan.desc}</p>
+                    <p className="mt-1 text-[13px] text-zinc-500 dark:text-zinc-400">{t(plan.descKey)}</p>
                     <div className="mt-5 flex items-baseline gap-1">
                       <span className="text-5xl font-black tracking-tight text-zinc-900 dark:text-zinc-50">${plan.price}</span>
                       <span className="text-sm font-semibold text-zinc-400 dark:text-zinc-500">{t('landing.pricing.month')}</span>
                     </div>
                     <ul className="mt-6 flex-1 space-y-2.5 border-t border-zinc-100 dark:border-zinc-800/70 pt-6">
-                      {plan.features.map((f) => (
-                        <li key={f} className="flex items-start gap-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-300">
+                      {plan.featureKeys.map((fk) => (
+                        <li key={fk} className="flex items-start gap-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-300">
                           <span
                             className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full"
                             style={{ background: plan.popular ? 'var(--brand)' : '#17141a', color: plan.popular ? '#0b0d03' : '#ffffff' }}
                           >
                             <Check className="h-2.5 w-2.5" strokeWidth={3.5} />
                           </span>
-                          {f}
+                          {t(fk)}
                         </li>
                       ))}
                     </ul>
@@ -783,9 +779,9 @@ export default function Landing() {
         </section>
 
         {/* ============================ HOW IT WORKS ========================== */}
-        <section className="border-y border-zinc-900/[0.06] bg-white dark:bg-zinc-900 py-16 sm:py-24" aria-label="How it works">
+        <section className="border-y border-zinc-900/[0.06] bg-white dark:bg-zinc-900 py-16 sm:py-24" aria-label={t('landing.how.eyebrow')}>
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
-            <SectionHead eyebrow="How it works" title="Live in three steps. Literally." />
+            <SectionHead eyebrow={t('landing.how.eyebrow')} title={t('landing.how.title')} />
             <div className="relative mx-auto max-w-4xl">
               <div className="absolute left-[16%] right-[16%] top-7 hidden border-t-2 border-dashed border-zinc-300 dark:border-zinc-700 md:block" aria-hidden />
               <div className="grid gap-10 md:grid-cols-3 md:gap-6">
@@ -797,8 +793,8 @@ export default function Landing() {
                     >
                       {s.n}
                     </span>
-                    <h3 className="text-lg font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">{s.title}</h3>
-                    <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{s.desc}</p>
+                    <h3 className="text-lg font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">{t(s.titleKey)}</h3>
+                    <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{t(s.descKey)}</p>
                   </FadeUp>
                 ))}
               </div>
@@ -807,9 +803,9 @@ export default function Landing() {
         </section>
 
         {/* ================================ FAQ =============================== */}
-        <section id="faq" className="scroll-mt-20 py-16 sm:py-24" aria-label="Frequently asked questions">
+        <section id="faq" className="scroll-mt-20 py-16 sm:py-24" aria-label={t('landing.a11y.faqSection')}>
           <div className="mx-auto max-w-3xl px-4 sm:px-6">
-            <SectionHead eyebrow="FAQ" title="Questions, answered." />
+            <SectionHead eyebrow="FAQ" title={t('landing.faqTitle')} />
             <FadeUp>
               <Accordion type="single" collapsible className="space-y-3">
                 {FAQ_LIST.map((f, i) => (
@@ -832,7 +828,7 @@ export default function Landing() {
         </section>
 
         {/* ============================ FINAL CTA ============================= */}
-        <section className="relative overflow-hidden bg-[var(--brand-dark)] py-20 text-center text-white sm:py-28" aria-label="Get started">
+        <section className="relative overflow-hidden bg-[var(--brand-dark)] py-20 text-center text-white sm:py-28" aria-label={t('landing.a11y.getStarted')}>
           <div
             className="absolute inset-0"
             style={{
@@ -853,10 +849,11 @@ export default function Landing() {
                 {t('landing.badge')}
               </p>
               <h2 className="font-black tracking-tight text-4xl sm:text-5xl lg:text-6xl">
-                Ready to launch your <span className="bg-gradient-to-r from-[var(--brand)] to-[var(--brand-2)] bg-clip-text text-transparent">SMM empire</span>?
+                {t('landing.cta.finalPre')}{' '}
+                <span className="bg-gradient-to-r from-[var(--brand)] to-[var(--brand-2)] bg-clip-text text-transparent">{t('landing.cta.finalPost')}</span>?
               </h2>
               <p className="mx-auto mt-5 max-w-xl text-base text-white/60 sm:text-lg">
-                Join thousands of resellers running their own branded panels with {brand}. Setup takes less than five minutes.
+                {t('landing.cta.finalSub').replace('{brand}', brand)}
               </p>
               <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
                 <Button
@@ -870,7 +867,7 @@ export default function Landing() {
                   href="#pricing"
                   className="inline-flex h-12 items-center rounded-full border border-white/25 bg-white/5 px-8 text-sm font-bold text-white backdrop-blur transition-colors hover:bg-white/10"
                 >
-                  Compare plans
+                  {t('landing.cta.compare')}
                 </a>
               </div>
             </FadeUp>
@@ -879,11 +876,11 @@ export default function Landing() {
       </main>
 
       {/* ============================== FOOTER ============================== */}
-      <footer className="border-t border-zinc-900/[0.06] bg-white dark:bg-zinc-900" aria-label="Footer">
+      <footer className="border-t border-zinc-900/[0.06] bg-white dark:bg-zinc-900" aria-label={t('landing.a11y.footer')}>
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
             <div>
-              <a href="#top" className="flex items-center gap-2.5" aria-label={`${brand} home`}>
+              <a href="#top" className="flex items-center gap-2.5" aria-label={t('landing.a11y.home').replace('{brand}', brand)}>
                 {logoMark}
                 <span className="text-lg font-black tracking-tight">{brand}</span>
               </a>
@@ -905,27 +902,27 @@ export default function Landing() {
               {
                 title: t('landing.footer.product'),
                 links: [
-                  { label: 'Features', href: '#features' },
-                  { label: 'Showcase', href: '#showcase' },
-                  { label: 'Pricing', href: '#pricing' },
+                  { label: t('landing.nav.features'), href: '#features' },
+                  { label: t('landing.nav.showcase'), href: '#showcase' },
+                  { label: t('landing.nav.pricing'), href: '#pricing' },
                   { label: 'API', onClick: () => app.setView('client') },
-                  { label: 'Themes', href: '#showcase' },
+                  { label: t('landing.footer.themes'), href: '#showcase' },
                 ],
               },
               {
                 title: t('landing.footer.company'),
                 links: [
-                  { label: 'About', href: '#' },
+                  { label: t('landing.footer.about'), href: '#' },
                   { label: 'Blog', onClick: () => window.dispatchEvent(new CustomEvent('gr:blog', { detail: null })) },
-                  { label: 'Contact', href: '#' },
-                  { label: 'Buy your platform', onClick: () => app.setView('buy') },
+                  { label: t('landing.footer.contact'), href: '#' },
+                  { label: t('landing.cta.buy'), onClick: () => app.setView('buy') },
                 ],
               },
               {
                 title: t('landing.footer.support'),
                 links: [
                   { label: 'FAQ', href: '#faq' },
-                  { label: 'Contact', href: '#' },
+                  { label: t('landing.footer.contact'), href: '#' },
                   { label: t('legal.terms.title'), onClick: () => window.dispatchEvent(new CustomEvent('gr:legal', { detail: 'terms' })) },
                   { label: t('legal.privacy.title'), onClick: () => window.dispatchEvent(new CustomEvent('gr:legal', { detail: 'privacy' })) },
                   { label: t('legal.responsibility.title'), onClick: () => window.dispatchEvent(new CustomEvent('gr:legal', { detail: 'responsibility' })) },
@@ -956,8 +953,8 @@ export default function Landing() {
             <p className="text-xs text-zinc-400 dark:text-zinc-500">
               © {year} {brand}. {t('landing.footer.rights')}
             </p>
-            <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500">Multi-currency · Multi-language · White-label ready</p>
-            <div className="flex gap-3" aria-label="Languages">
+            <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500">{t('landing.footer.tagline')}</p>
+            <div className="flex gap-3" aria-label={t('landing.a11y.languages')}>
               {(['en', 'es', 'pt'] as const).map((l) => (
                 <button
                   key={l}

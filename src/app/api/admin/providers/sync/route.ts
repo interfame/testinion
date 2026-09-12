@@ -3,7 +3,7 @@ import { db } from '@/lib/db'
 import { requireRole, handle, jsonError, jsonOk } from '@/lib/auth'
 import { runProviderSync } from '@/lib/smm-provider'
 
-/** POST /api/admin/providers/sync — {id, markup?, categoryId?} → import/update provider services */
+/** POST /api/admin/providers/sync — {id, markup?, categoryId?, providerCategory?} → import/update provider services */
 export async function POST(req: NextRequest) {
   return handle(async () => {
     await requireRole(['SUPER_ADMIN'])
@@ -18,9 +18,14 @@ export async function POST(req: NextRequest) {
       if (Number.isFinite(m) && m >= 0) markup = m
     }
     const categoryId = b.categoryId ? String(b.categoryId) : null
+    // only import entries whose provider-side category matches this (case-insensitive)
+    const providerCategory =
+      typeof b.providerCategory === 'string' && b.providerCategory.trim()
+        ? b.providerCategory.trim().slice(0, 120)
+        : null
 
     // provider.status !== 'ACTIVE' is allowed — syncing is an explicit admin action
-    const result = await runProviderSync({ provider, platformId: null, markup, categoryId })
+    const result = await runProviderSync({ provider, platformId: null, markup, categoryId, providerCategory })
     if (!result.ok) return jsonError(result.error)
     return jsonOk({ ok: true, ...result.stats })
   })

@@ -48,7 +48,7 @@ export default function LaunchChecklist({ checklist, platformId, onNavigate }: {
 
   const steps: Step[] = [
     { key: 'branding', label: t('reseller.checklist.branding'), sub: t('reseller.checklist.brandingSub'), icon: Palette, nav: 'settings' },
-    { key: 'landing', label: t('reseller.checklist.landing'), sub: t('reseller.checklist.landingSub'), icon: PanelTop, nav: 'w-landing' },
+    { key: 'landing', label: t('reseller.checklist.landing'), sub: t('reseller.checklist.landingSub'), icon: PanelTop, nav: 'storefront' },
     { key: 'payment', label: t('reseller.checklist.payment'), sub: t('reseller.checklist.paymentSub'), icon: WalletCards, nav: 'payment-methods' },
     { key: 'coupon', label: t('reseller.checklist.coupon'), sub: t('reseller.checklist.couponSub'), icon: Ticket, nav: 'coupons' },
     { key: 'clients', label: t('reseller.checklist.clients'), sub: t('reseller.checklist.clientsSub'), icon: Users, nav: 'clients' },

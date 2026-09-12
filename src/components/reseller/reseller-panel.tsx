@@ -6,7 +6,7 @@ import {
   Inbox, Radio, Bot, Workflow, BookUser, Tags, MessageSquareText, ChartPie, SlidersHorizontal,
   CreditCard, Wallet, WalletCards, BadgeDollarSign, ArrowLeftRight, Headset, Ticket,
   Newspaper, HelpCircle, FileText, FileStack, UsersRound, Settings2, Blocks, ShieldBan,
-  PanelTop, MonitorSmartphone, Globe, ExternalLink, TrendingUp, UserPlus, Rocket, Sparkles, Gift,
+  MonitorSmartphone, Globe, TrendingUp, UserPlus, Rocket, Sparkles, Gift,
   ChevronRight, Mail,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -15,21 +15,19 @@ import { BalanceChip, CurrencyChip, LanguageChip } from '@/components/shared/chi
 import { useApp } from '@/components/shared/app-context'
 import { useApi, mutate, api } from '@/lib/api'
 import { SocialLogo } from '@/components/shared/social-logo'
-import { toast } from '@/hooks/use-toast'
 import { formatMoney, formatDate } from '@/lib/format'
 import { useGoto } from '@/lib/goto'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
-import { THEMES } from '@/lib/themes'
 import CrmRouter from '@/components/reseller/crm'
 import ResellerCatalog from '@/components/reseller/catalog'
 import ResellerCustomers from '@/components/reseller/customers'
 import ResellerFinance from '@/components/reseller/finance'
 import ResellerContent from '@/components/reseller/content'
 import ResellerAccount from '@/components/reseller/account'
-import ResellerWebsite, { StorefrontPreview } from '@/components/reseller/website'
+import ResellerWebsite from '@/components/reseller/website'
 import LaunchChecklist from '@/components/reseller/launch-checklist'
 import ResellerEmail from '@/components/reseller/reseller-email'
 import LandingStudio from '@/components/reseller/landing-studio'
@@ -88,10 +86,10 @@ export default function ResellerPanel({ user, onRefresh, onLogout }: {
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400">
             <Rocket className="h-7 w-7" />
           </span>
-          <h1 className="mt-4 text-xl font-extrabold">You don&apos;t own a platform yet</h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Buy your white-label SMM panel to unlock the reseller panel, CRM and storefront.</p>
+          <h1 className="mt-4 text-xl font-extrabold">{t('rpanel.noPlatformTitle')}</h1>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('rpanel.noPlatformDesc')}</p>
           <Button className="mt-5 w-full font-bold text-[var(--on-brand)]" onClick={() => app.setView('buy')} style={{ background: 'var(--brand)' }}>
-            Buy your platform <ChevronRight className="ml-1 h-4 w-4" />
+            {t('rpanel.buyPlatform')} <ChevronRight className="ml-1 h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -104,7 +102,7 @@ export default function ResellerPanel({ user, onRefresh, onLogout }: {
     {
       items: [
         { key: 'dashboard', label: t('common.dashboard'), icon: LayoutDashboard },
-        { key: 'storefront', label: t('reseller.storefront'), icon: Store },
+        { key: 'storefront', label: t('rpanel.storefrontLanding'), icon: Store },
       ],
     },
     {
@@ -157,7 +155,7 @@ export default function ResellerPanel({ user, onRefresh, onLogout }: {
         { key: 'faqs', label: t('reseller.faqs'), icon: HelpCircle },
         { key: 'posts', label: t('reseller.blog'), icon: FileText },
         { key: 'pages', label: t('reseller.pages'), icon: FileStack },
-        { key: 'email', label: 'Email', icon: Mail },
+        { key: 'email', label: t('auth.email'), icon: Mail },
       ],
     },
     {
@@ -173,8 +171,6 @@ export default function ResellerPanel({ user, onRefresh, onLogout }: {
     {
       title: t('nav.website'),
       items: [
-        { key: 'landing-studio', label: 'Landing Studio', icon: Sparkles },
-        { key: 'w-landing', label: t('reseller.landing'), icon: PanelTop },
         { key: 'w-portal', label: t('reseller.clientPortal'), icon: MonitorSmartphone },
         { key: 'w-domains', label: t('reseller.domains'), icon: Globe },
       ],
@@ -195,8 +191,6 @@ export default function ResellerPanel({ user, onRefresh, onLogout }: {
     switch (active) {
       case 'dashboard':
         return <ResellerDashboard stats={statsData} loading={statsLoading} onNavigate={setActive} />
-      case 'storefront':
-        return <ResellerStorefront onNavigate={setActive} />
       case 'margins':
       case 'categories':
       case 'services':
@@ -227,12 +221,9 @@ export default function ResellerPanel({ user, onRefresh, onLogout }: {
       case 'integrations':
       case 'blacklist':
         return <ResellerAccount section={active} onRefresh={onRefresh} />
-      case 'landing-studio':
-        return <LandingStudio onBack={() => setActive('w-landing')} />
-      case 'w-landing':
       case 'w-portal':
       case 'w-domains':
-        return <ResellerWebsite key={`${platform?.domainType}-${platform?.customDomain ?? ''}`} section={active} onNavigate={setActive} />
+        return <ResellerWebsite key={`${platform?.domainType}-${platform?.customDomain ?? ''}`} section={active as 'w-portal' | 'w-domains'} onNavigate={setActive} />
       default:
         return <ResellerDashboard stats={statsData} loading={statsLoading} onNavigate={setActive} />
     }
@@ -257,9 +248,10 @@ export default function ResellerPanel({ user, onRefresh, onLogout }: {
         </>
       }
     >
-      {active === 'landing-studio' ? (
-        /* The Landing Studio is a full-screen editor — it renders without the padded page wrapper */
-        <LandingStudio onBack={() => setActive('w-landing')} />
+      {active === 'storefront' ? (
+        /* The Storefront IS the Landing Studio — a full-screen editor that renders
+           without the padded page wrapper. Back → dashboard. */
+        <LandingStudio onBack={() => setActive('dashboard')} />
       ) : (
         <div className="mx-auto max-w-[1300px] p-4 sm:p-6 lg:p-8">{renderSection()}</div>
       )}
@@ -309,7 +301,7 @@ function ResellerDashboard({ stats, loading, onNavigate }: { stats: Stats | null
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label={t('reseller.dash.revenue')} value={money(s.revenue)} icon={TrendingUp} trend={`30d: ${money(s.revenue30)}`} />
+        <StatCard label={t('reseller.dash.revenue')} value={money(s.revenue)} icon={TrendingUp} trend={`${t('reseller.dash.trend30')}: ${money(s.revenue30)}`} />
         <StatCard label={t('reseller.dash.orders')} value={s.orders.toLocaleString()} sub={`${s.orders30} ${t('reseller.dash.ordersSub')}`} icon={ShoppingCart} />
         <StatCard label={t('reseller.dash.clients')} value={String(s.clients)} icon={Users} />
         <StatCard label={t('reseller.dash.activeServices')} value={String(s.services)} icon={Layers} />
@@ -374,7 +366,7 @@ function ResellerDashboard({ stats, loading, onNavigate }: { stats: Stats | null
             <>
               <div className="mt-3 flex items-center justify-between">
                 <Badge style={{ background: 'var(--brand)', color: 'white' }} className="font-extrabold">{plan.name} {t('reseller.dash.plan')}</Badge>
-                <span className="text-[12px] text-zinc-400 dark:text-zinc-500">{money(plan.monthlyPrice)}/mo</span>
+                <span className="text-[12px] text-zinc-400 dark:text-zinc-500">{money(plan.monthlyPrice)}{t('buy.perMonth')}</span>
               </div>
               <p className="mt-4 flex justify-between text-[12px] font-semibold text-zinc-500 dark:text-zinc-400">
                 <span>{t('reseller.dash.services')}</span><span>{s.services} / {plan.maxServices.toLocaleString()}</span>
@@ -450,48 +442,4 @@ function ResellerDashboard({ stats, loading, onNavigate }: { stats: Stats | null
   )
 }
 
-// ─────────────────────── Storefront ───────────────────────
-
-function ResellerStorefront({ onNavigate }: { onNavigate: (k: string) => void }) {
-  const app = useApp()
-  const platform = app.user.platform
-  const url = `${platform?.slug}.growthrush.io`
-
-  return (
-    <>
-      <PanelPageHeader
-        title="Storefront"
-        description="Your public store where clients browse services and place orders."
-        actions={
-          <>
-            <Button variant="outline" size="sm" onClick={() => onNavigate('w-landing')}>
-              <PanelTop className="mr-1.5 h-4 w-4" /> Edit landing
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => onNavigate('w-domains')}>
-              <Globe className="mr-1.5 h-4 w-4" /> Domains
-            </Button>
-          </>
-        }
-      />
-
-      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border bg-white dark:bg-zinc-900 p-4">
-        <div className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg border bg-zinc-50 dark:bg-zinc-900/60 px-3">
-          <Globe className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
-          <code className="truncate text-[13px] font-bold">{url}</code>
-        </div>
-        <Button
-          size="sm" variant="outline" className="font-bold"
-          onClick={() => {
-            navigator.clipboard.writeText(`https://${url}`)
-            toast({ title: 'Link copied!' })
-          }}
-        >
-          <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Copy link
-        </Button>
-      </div>
-
-      <StorefrontPreview />
-    </>
-  )
-}
 

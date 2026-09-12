@@ -116,7 +116,7 @@ export default function AdminPanel({ user, onRefresh, onLogout }: {
         { key: 'appearance', label: t('admin.appearance'), icon: Palette },
         { key: 'staff', label: t('admin.staff'), icon: UserCog },
         { key: 'blacklist', label: t('admin.blacklist'), icon: ShieldAlert },
-        { key: 'email', label: 'Email & Notifications', icon: Mail },
+        { key: 'email', label: t('admin.emailNav'), icon: Mail },
         { key: 'settings', label: t('common.settings'), icon: Settings },
       ],
     },
@@ -130,12 +130,12 @@ export default function AdminPanel({ user, onRefresh, onLogout }: {
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 dark:bg-rose-950/40">
             <ShieldX className="h-7 w-7 text-rose-500" />
           </span>
-          <h1 className="mt-4 text-lg font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">Access denied</h1>
+          <h1 className="mt-4 text-lg font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">{t('admin.denied.title')}</h1>
           <p className="mt-1.5 text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-            The super admin panel is restricted to platform owners. Your role: <b>{user.role.replace(/_/g, ' ')}</b>.
+            {t('admin.denied.desc').replace('{role}', user.role.replace(/_/g, ' '))}
           </p>
           <Button onClick={onRefresh} className="mt-5 w-full rounded-full text-[13px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
-            Back to safety
+            {t('admin.denied.back')}
           </Button>
         </div>
       </div>
@@ -143,7 +143,7 @@ export default function AdminPanel({ user, onRefresh, onLogout }: {
   }
 
   const brandName = publicSettings?.brand_name ? `${publicSettings.brand_name} Admin` : 'GrowthRush Admin'
-  const currentLabel = nav.flatMap((s) => s.items).find((i) => i.key === section)?.label ?? 'Dashboard'
+  const currentLabel = nav.flatMap((s) => s.items).find((i) => i.key === section)?.label ?? t('common.dashboard')
 
   return (
     <PanelShell

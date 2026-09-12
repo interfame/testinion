@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Label } from '@/components/ui/label'
 import { PanelPageHeader } from '@/components/shared/panel-shell'
 import { useApp } from '@/components/shared/app-context'
+import { useI18n } from '@/lib/i18n'
 import { api, mutate, useApi } from '@/lib/api'
 import { THEMES, themeVars, type ThemeKey } from '@/lib/themes'
 import { AdminCard, FieldLabel } from './admin-ui'
@@ -58,6 +59,7 @@ const COPY_FIELDS: { key: keyof LandingCopy; label: string; hint?: string; long?
 ]
 
 export function AppearanceSection() {
+  const { t: tk } = useI18n()
   const { refreshPublic } = useApp()
   const { data, loading, refresh } = useApi<{ settings: Record<string, string> }>('/api/admin/settings')
 
@@ -115,10 +117,10 @@ export function AppearanceSection() {
 
   return (
     <div className="space-y-5">
-      <PanelPageHeader title="Appearance" description="Choose the landing theme and craft the hero copy every visitor sees first." />
+      <PanelPageHeader title={tk('admin.appearance')} description={tk('admin.appear.desc')} />
 
       {/* Theme picker */}
-      <AdminCard title="Landing theme" description="Applied instantly to the public landing page.">
+      <AdminCard title={tk('admin.appear.themeTitle')} description={tk('admin.appear.themeDesc')}>
         {loading && !data ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -164,8 +166,8 @@ export function AppearanceSection() {
       {/* Landing builder */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <AdminCard
-          title="Landing builder"
-          description="Edits the master landing hero + stats."
+          title={tk('admin.qa.landingBuilder')}
+          description={tk('admin.appear.builderDesc')}
           actions={
             <Button onClick={saveCopy} className="h-8 rounded-full px-4 text-[12px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
               <Save className="mr-1 h-3.5 w-3.5" /> Save copy

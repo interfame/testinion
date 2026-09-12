@@ -137,20 +137,20 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
             <CheckCircle2 className="h-10 w-10" />
             <span className="absolute -right-1 -top-2 text-xl">🎉</span>
           </div>
-          <h2 className="text-xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">Order placed successfully!</h2>
+          <h2 className="text-xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">{t('cord.successTitle')}</h2>
           <p className="mt-1 text-[13px] text-zinc-500 dark:text-zinc-400">
-            Your order is now in the queue and will start processing shortly.
+            {t('cord.successDesc')}
           </p>
           <div className="mt-5 space-y-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 p-4 text-left text-[13px]">
-            <div className="flex justify-between"><span className="text-zinc-500 dark:text-zinc-400">Order ID</span><span className="font-mono font-bold text-zinc-900 dark:text-zinc-50">#{success.order.id.slice(0, 8)}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-500 dark:text-zinc-400">{t('cord.orderId')}</span><span className="font-mono font-bold text-zinc-900 dark:text-zinc-50">#{success.order.id.slice(0, 8)}</span></div>
             <div className="flex justify-between"><span className="text-zinc-500 dark:text-zinc-400">{t('common.service')}</span><span className="max-w-[60%] truncate text-right font-semibold text-zinc-900 dark:text-zinc-50">{success.order.serviceName}</span></div>
             <div className="flex justify-between"><span className="text-zinc-500 dark:text-zinc-400">{t('common.quantity')}</span><span className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">{success.order.quantity.toLocaleString()}</span></div>
-            <div className="flex justify-between"><span className="text-zinc-500 dark:text-zinc-400">{t('common.charge')}</span><span className="font-extrabold tabular-nums text-[var(--brand)]">{m(success.order.charge)}</span></div>
-            <div className="flex justify-between border-t border-zinc-200 dark:border-zinc-800 pt-2"><span className="text-zinc-500 dark:text-zinc-400">New balance</span><span className="font-extrabold tabular-nums text-zinc-900 dark:text-zinc-50">{m(success.balance)}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-500 dark:text-zinc-400">{t('common.charge')}</span><span className="font-extrabold tabular-nums text-zinc-900 dark:text-zinc-50">{m(success.order.charge)}</span></div>
+            <div className="flex justify-between border-t border-zinc-200 dark:border-zinc-800 pt-2"><span className="text-zinc-500 dark:text-zinc-400">{t('cord.newBalance')}</span><span className="font-extrabold tabular-nums text-zinc-900 dark:text-zinc-50">{m(success.balance)}</span></div>
           </div>
           <div className="mt-5 flex flex-wrap justify-center gap-2">
-            <BrandButton onClick={onGoOrders}><ShoppingBag className="mr-1.5 h-4 w-4" /> View my orders</BrandButton>
-            <Button variant="outline" onClick={resetForm}><Zap className="mr-1.5 h-4 w-4" /> Place another</Button>
+            <BrandButton onClick={onGoOrders}><ShoppingBag className="mr-1.5 h-4 w-4" /> {t('cord.viewOrders')}</BrandButton>
+            <Button variant="outline" onClick={resetForm}><Zap className="mr-1.5 h-4 w-4" /> {t('cord.placeAnother')}</Button>
           </div>
         </Card>
       </div>
@@ -161,7 +161,7 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
     <div className="mx-auto max-w-[1200px] p-4 sm:p-6 lg:p-8">
       <PanelPageHeader
         title={t('client.placeOrder')}
-        description={catalogLoading ? 'Loading catalog…' : `${categories.reduce((s, c) => s + c.services.length, 0)} services across ${categories.length} categories`}
+        description={catalogLoading ? t('cord.loadingCatalog') : t('cord.catalogDesc').replace('{n}', String(categories.reduce((s, c) => s + c.services.length, 0))).replace('{c}', String(categories.length))}
       />
 
       <div className="grid gap-4 lg:grid-cols-5">
@@ -173,8 +173,8 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
                 {mode === 'single' ? <Zap className="h-4 w-4 text-[var(--brand)]" /> : <Layers className="h-4 w-4 text-[var(--brand)]" />}
               </span>
               <div>
-                <h2 className="text-[15px] font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">{mode === 'single' ? 'Order details' : t('client.massOrder')}</h2>
-                <p className="text-[12px] text-zinc-500 dark:text-zinc-400">{mode === 'single' ? 'Pick a service, drop your link and go' : t('client.massHint')}</p>
+                <h2 className="text-[15px] font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">{mode === 'single' ? t('cord.orderDetails') : t('client.massOrder')}</h2>
+                <p className="text-[12px] text-zinc-500 dark:text-zinc-400">{mode === 'single' ? t('cord.orderDetailsSub') : t('client.massHint')}</p>
               </div>
             </div>
             <div className="flex rounded-full border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 p-0.5">
@@ -208,7 +208,7 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
                 <Label>{t('common.category')}</Label>
                 <Select value={category?.id ?? ''} onValueChange={selectCategory}>
                   <SelectTrigger className="min-h-[40px] w-full">
-                    <SelectValue placeholder={catalogLoading ? 'Loading…' : 'Choose category'} />
+                    <SelectValue placeholder={catalogLoading ? t('cord.loading') : t('cord.chooseCategory')} />
                   </SelectTrigger>
                   <SelectContent className="max-h-72">
                     {categories.map((c) => (
@@ -232,14 +232,14 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
                   disabled={!category || category.services.length === 0}
                 >
                   <SelectTrigger className="min-h-[40px] w-full">
-                    <SelectValue placeholder={category ? 'Choose service' : '—'} />
+                    <SelectValue placeholder={category ? t('cord.chooseService') : '—'} />
                   </SelectTrigger>
                   <SelectContent className="max-h-72">
                     {category?.services.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
                         <span className="flex items-baseline gap-2">
                           <span className="truncate">{s.name}</span>
-                          <span className="shrink-0 text-[11px] font-bold text-[var(--brand)]">{m(s.rate)}/1k</span>
+                          <span className="shrink-0 text-[11px] font-bold text-zinc-900 dark:text-zinc-50">{m(s.rate)}/1k</span>
                         </span>
                       </SelectItem>
                     ))}
@@ -277,7 +277,7 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
               />
               {service && (
                 <p className="text-[11.5px] text-zinc-400 dark:text-zinc-500">
-                  Min {service.min.toLocaleString()} · Max {service.max.toLocaleString()}
+                  Min: {t('cord.minMax').replace('{min}', service.min.toLocaleString()).replace('{max}', service.max.toLocaleString())}
                 </p>
               )}
             </div>
@@ -285,16 +285,16 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
             {service?.type === 'CUSTOM_COMMENTS' && (
               <div className="space-y-1.5">
                 <Label htmlFor="order-comments" className="flex items-center gap-1.5">
-                  <MessageSquareText className="h-3.5 w-3.5 text-[var(--brand)]" /> Custom comments
+                  <MessageSquareText className="h-3.5 w-3.5 text-[var(--brand)]" /> {t('cord.customComments')}
                 </Label>
                 <Textarea
                   id="order-comments"
                   rows={5}
                   value={comments}
                   onChange={(e) => setComments(e.target.value)}
-                  placeholder={'First comment…\nSecond comment…\nOne per line'}
+                  placeholder={t('cord.commentsPh')}
                 />
-                <p className="text-[11.5px] text-zinc-400 dark:text-zinc-500">One comment per line — quantity must match the number of lines.</p>
+                <p className="text-[11.5px] text-zinc-400 dark:text-zinc-500">{t('cord.commentsHint')}</p>
               </div>
             )}
 
@@ -304,8 +304,8 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
                   <div className="flex items-center gap-2">
                     <Droplets className="h-4 w-4 text-[var(--brand)]" />
                     <div>
-                      <p className="text-[13px] font-bold text-zinc-900 dark:text-zinc-50">Drip-feed</p>
-                      <p className="text-[11.5px] text-zinc-500 dark:text-zinc-400">Deliver gradually instead of all at once</p>
+                      <p className="text-[13px] font-bold text-zinc-900 dark:text-zinc-50">{t('cord.dripfeed')}</p>
+                      <p className="text-[11.5px] text-zinc-500 dark:text-zinc-400">{t('cord.dripfeedDesc')}</p>
                     </div>
                   </div>
                   <Switch checked={dripfeed} onCheckedChange={setDripfeed} />
@@ -313,11 +313,11 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
                 {dripfeed && (
                   <div className="mt-3 grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label htmlFor="drip-runs" className="text-[12px]">Runs</Label>
+                      <Label htmlFor="drip-runs" className="text-[12px]">{t('cord.runs')}</Label>
                       <Input id="drip-runs" className="min-h-[40px]" type="number" min={2} value={dripRuns} onChange={(e) => setDripRuns(e.target.value)} />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="drip-int" className="text-[12px]">Interval (minutes)</Label>
+                      <Label htmlFor="drip-int" className="text-[12px]">{t('cord.interval')}</Label>
                       <Input id="drip-int" className="min-h-[40px]" type="number" min={5} value={dripInterval} onChange={(e) => setDripInterval(e.target.value)} />
                     </div>
                   </div>
@@ -332,14 +332,14 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
                 <span className="text-lg font-extrabold tabular-nums text-zinc-900 dark:text-zinc-50">{m(charge)}</span>
               </div>
               <div className="mt-1 flex items-center justify-between text-[12px]">
-                <span className="text-zinc-400 dark:text-zinc-500">Balance after order</span>
+                <span className="text-zinc-400 dark:text-zinc-500">{t('cord.balanceAfter')}</span>
                 <span className={`font-bold tabular-nums ${insufficient ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                   {m(Math.max(balanceAfter, 0))}
                 </span>
               </div>
               {insufficient && (
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 p-2.5 text-[12px] font-semibold text-rose-700 dark:text-rose-400">
-                  <span>Insufficient balance for this order.</span>
+                  <span>{t('cord.insufficient')}</span>
                   <Button size="sm" variant="outline" className="h-8 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/60" onClick={onGoFunds}>
                     <Wallet className="mr-1 h-3.5 w-3.5" /> {t('common.addFunds')}
                   </Button>
@@ -353,7 +353,7 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
               onClick={submit}
             >
               {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
-              {submitting ? 'Placing order…' : `${t('common.submit')} · ${m(charge)}`}
+              {submitting ? t('cord.placing') : `${t('common.submit')} · ${m(charge)}`}
             </BrandButton>
           </div>
           )}
@@ -362,9 +362,9 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
         {/* Service info */}
         <div className="space-y-4 lg:col-span-2">
           <Card>
-            <CardHead icon={Info} title="Service info" />
+            <CardHead icon={Info} title={t('cord.serviceInfo')} />
             {!service ? (
-              <p className="py-6 text-center text-[13px] text-zinc-400 dark:text-zinc-500">Select a service to see details.</p>
+              <p className="py-6 text-center text-[13px] text-zinc-400 dark:text-zinc-500">{t('cord.selectService')}</p>
             ) : (
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
@@ -379,42 +379,42 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
 
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/60 p-2.5">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Rate / 1000</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{t('cord.rate1k')}</p>
                     <p className="mt-0.5 text-[13px] font-extrabold tabular-nums text-zinc-900 dark:text-zinc-50">{m(service.rate)}</p>
                   </div>
                   <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/60 p-2.5">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Min</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{t('cord.min')}</p>
                     <p className="mt-0.5 text-[13px] font-extrabold tabular-nums text-zinc-900 dark:text-zinc-50">{service.min.toLocaleString()}</p>
                   </div>
                   <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/60 p-2.5">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Max</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{t('cord.max')}</p>
                     <p className="mt-0.5 text-[13px] font-extrabold tabular-nums text-zinc-900 dark:text-zinc-50">{service.max.toLocaleString()}</p>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap gap-1.5">
                   <Pill tone={service.refill ? 'emerald' : 'zinc'}>
-                    <Repeat className="h-3 w-3" /> Refill {service.refill ? '✓' : '✗'}
+                    <Repeat className="h-3 w-3" /> {t('client.refill')} {service.refill ? '✓' : '✗'}
                   </Pill>
                   <Pill tone={service.dripfeed ? 'sky' : 'zinc'}>
-                    <Droplets className="h-3 w-3" /> Drip-feed {service.dripfeed ? '✓' : '✗'}
+                    <Droplets className="h-3 w-3" /> {t('cord.dripfeed')} {service.dripfeed ? '✓' : '✗'}
                   </Pill>
                   <Pill tone={service.cancel ? 'amber' : 'zinc'}>
-                    <Ban className="h-3 w-3" /> Cancel {service.cancel ? '✓' : '✗'}
+                    <Ban className="h-3 w-3" /> {t('cord.cancelPill')} {service.cancel ? '✓' : '✗'}
                   </Pill>
-                  {service.type === 'CUSTOM_COMMENTS' && <Pill tone="violet"><MessageSquareText className="h-3 w-3" /> Custom</Pill>}
+                  {service.type === 'CUSTOM_COMMENTS' && <Pill tone="violet"><MessageSquareText className="h-3 w-3" /> {t('cord.custom')}</Pill>}
                 </div>
 
                 {service.description && (
                   <div>
-                    <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Description</p>
+                    <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{t('cord.description')}</p>
                     <p className="whitespace-pre-line text-[12.5px] leading-relaxed text-zinc-600 dark:text-zinc-300">{service.description}</p>
                   </div>
                 )}
 
                 <div className="flex items-start gap-2 rounded-xl bg-[var(--brand)]/5 p-3 text-[12px] leading-relaxed text-zinc-600 dark:text-zinc-300">
                   <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand)]" />
-                  Orders start automatically. Never place a second order for the same link while one is running.
+                  {t('cord.warning')}
                 </div>
               </div>
             )}
@@ -426,12 +426,12 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
                 <BadgeCheck className="h-5 w-5 text-[var(--brand)]" />
               </span>
               <div>
-                <p className="text-[13.5px] font-extrabold text-zinc-900 dark:text-zinc-50">Questions before ordering?</p>
+                <p className="text-[13.5px] font-extrabold text-zinc-900 dark:text-zinc-50">{t('cord.questionsTitle')}</p>
                 <p className="mt-0.5 text-[12.5px] leading-snug text-zinc-500 dark:text-zinc-400">
-                  Our support team can help you pick the right service for your goal.
+                  {t('cord.questionsDesc')}
                 </p>
                 <Button variant="link" className="mt-1 h-auto p-0 text-[12.5px] font-bold text-[var(--brand)]" onClick={onGoTickets}>
-                  Open a support ticket →
+                  {t('cord.openTicket')}
                 </Button>
               </div>
             </div>
@@ -473,16 +473,16 @@ function MassOrderPanel({ services, onDone, onGoFunds }: {
       if (!line) return { raw: line, link: '', qty: 0, charge: 0 }
       const parts = line.split('|').map((p) => p.trim())
       const [serviceId, link, qtyRaw] = parts
-      if (!serviceId || !link || !qtyRaw) return { raw: line, link, qty: 0, charge: 0, error: 'Format: serviceId | link | quantity' }
+      if (!serviceId || !link || !qtyRaw) return { raw: line, link, qty: 0, charge: 0, error: t('cord.massFormat') }
       const svc = byId.get(serviceId)
-      if (!svc) return { raw: line, link, qty: 0, charge: 0, error: 'Unknown service ID' }
+      if (!svc) return { raw: line, link, qty: 0, charge: 0, error: t('cord.massUnknown') }
       const qty = parseInt(qtyRaw)
-      if (!qty || qty <= 0) return { raw: line, link, qty: 0, charge: 0, error: 'Invalid quantity', service: svc }
-      if (qty < svc.min) return { raw: line, link, qty, charge: 0, error: `Min is ${svc.min.toLocaleString()}`, service: svc }
-      if (qty > svc.max) return { raw: line, link, qty, charge: 0, error: `Max is ${svc.max.toLocaleString()}`, service: svc }
+      if (!qty || qty <= 0) return { raw: line, link, qty: 0, charge: 0, error: t('cord.massInvalidQty'), service: svc }
+      if (qty < svc.min) return { raw: line, link, qty, charge: 0, error: t('cord.massMin').replace('{n}', svc.min.toLocaleString()), service: svc }
+      if (qty > svc.max) return { raw: line, link, qty, charge: 0, error: t('cord.massMax').replace('{n}', svc.max.toLocaleString()), service: svc }
       return { raw: line, link, qty, charge: Math.round((qty / 1000) * svc.rate * 100) / 100, service: svc }
     }).filter((l) => l.raw !== '' || l.error)
-  }, [text, byId])
+  }, [text, byId, t])
 
   const valid = parsed.filter((l) => !l.error && l.service)
   const totalCharge = Math.round(valid.reduce((s, l) => s + l.charge, 0) * 100) / 100
@@ -512,7 +512,7 @@ function MassOrderPanel({ services, onDone, onGoFunds }: {
       />
       <div className="flex items-center justify-between text-[11.5px] text-zinc-400 dark:text-zinc-500">
         <span>{t('client.massHint')}</span>
-        <span className="font-semibold tabular-nums">{valid.length}/{parsed.filter((l) => l.raw).length} valid</span>
+        <span className="font-semibold tabular-nums">{t('cord.massValid').replace('{ok}', String(valid.length)).replace('{total}', String(parsed.filter((l) => l.raw).length))}</span>
       </div>
 
       {/* Live line preview (pre-submit) */}
@@ -522,7 +522,7 @@ function MassOrderPanel({ services, onDone, onGoFunds }: {
             <div key={i} className="flex items-center gap-2 text-[11.5px]">
               {l.error
                 ? <><Ban className="h-3.5 w-3.5 shrink-0 text-rose-500" /><span className="min-w-0 flex-1 truncate text-rose-600 dark:text-rose-400">{l.error}</span></>
-                : <><CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" /><span className="min-w-0 flex-1 truncate text-zinc-600 dark:text-zinc-300">{l.service?.name}</span><span className="shrink-0 font-bold tabular-nums text-[var(--brand)]">{m(l.charge)}</span></>}
+                : <><CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" /><span className="min-w-0 flex-1 truncate text-zinc-600 dark:text-zinc-300">{l.service?.name}</span><span className="shrink-0 font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{m(l.charge)}</span></>}
             </div>
           ))}
         </div>
@@ -531,18 +531,18 @@ function MassOrderPanel({ services, onDone, onGoFunds }: {
       {/* Charge summary */}
       <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4">
         <div className="flex items-center justify-between text-[13px]">
-          <span className="text-zinc-500 dark:text-zinc-400">Total ({valid.length} orders)</span>
+          <span className="text-zinc-500 dark:text-zinc-400">{t('cord.massTotal').replace('{n}', String(valid.length))}</span>
           <span className="text-lg font-extrabold tabular-nums text-zinc-900 dark:text-zinc-50">{m(totalCharge)}</span>
         </div>
         <div className="mt-1 flex items-center justify-between text-[12px]">
-          <span className="text-zinc-400 dark:text-zinc-500">Balance after</span>
+          <span className="text-zinc-400 dark:text-zinc-500">{t('cord.balanceAfterMass')}</span>
           <span className={`font-bold tabular-nums ${insufficient ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
             {m(Math.max(user.balance - totalCharge, 0))}
           </span>
         </div>
         {insufficient && (
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 p-2.5 text-[12px] font-semibold text-rose-700 dark:text-rose-400">
-            <span>Insufficient balance for these orders.</span>
+            <span>{t('cord.insufficientMass')}</span>
             <Button size="sm" variant="outline" className="h-8 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/60" onClick={onGoFunds}>
               <Wallet className="mr-1 h-3.5 w-3.5" /> {t('common.addFunds')}
             </Button>
@@ -556,7 +556,7 @@ function MassOrderPanel({ services, onDone, onGoFunds }: {
         onClick={submitMass}
       >
         {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Layers className="mr-2 h-4 w-4" />}
-        {submitting ? 'Placing orders…' : `${t('client.massPlace')} · ${m(totalCharge)}`}
+        {submitting ? t('cord.placingMass') : `${t('client.massPlace')} · ${m(totalCharge)}`}
       </BrandButton>
 
       {/* Server results */}
@@ -564,8 +564,8 @@ function MassOrderPanel({ services, onDone, onGoFunds }: {
         <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-3.5">
           <p className="mb-2 text-[12px] font-extrabold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t('client.massResults')}</p>
           <div className="mb-2.5 flex gap-2">
-            <Pill tone="emerald"><CheckCircle2 className="h-3 w-3" /> {okCount} placed</Pill>
-            {failCount > 0 && <Pill tone="rose"><Ban className="h-3 w-3" /> {failCount} failed</Pill>}
+            <Pill tone="emerald"><CheckCircle2 className="h-3 w-3" /> {t('cord.massPlaced').replace('{n}', String(okCount))}</Pill>
+            {failCount > 0 && <Pill tone="rose"><Ban className="h-3 w-3" /> {t('cord.massFailed').replace('{n}', String(failCount))}</Pill>}
           </div>
           <div className="gr-scroll max-h-44 space-y-1.5 overflow-y-auto">
             {result.results.map((r) => (
@@ -577,7 +577,7 @@ function MassOrderPanel({ services, onDone, onGoFunds }: {
               </div>
             ))}
           </div>
-          <p className="mt-2.5 text-[12px] font-semibold text-zinc-500 dark:text-zinc-400">New balance: <span className="font-extrabold tabular-nums text-zinc-900 dark:text-zinc-50">{m(result.balance)}</span></p>
+          <p className="mt-2.5 text-[12px] font-semibold text-zinc-500 dark:text-zinc-400">{t('cord.newBalance')}: <span className="font-extrabold tabular-nums text-zinc-900 dark:text-zinc-50">{m(result.balance)}</span></p>
         </div>
       )}
     </div>

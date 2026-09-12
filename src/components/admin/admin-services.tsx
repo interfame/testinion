@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -23,7 +24,9 @@ import {
 } from '@/components/ui/alert-dialog'
 import { PanelPageHeader, StatusBadge } from '@/components/shared/panel-shell'
 import { SocialLogo } from '@/components/shared/social-logo'
+import { toast } from '@/hooks/use-toast'
 import { api, mutate, useApi } from '@/lib/api'
+import { useI18n } from '@/lib/i18n'
 import { apiDel } from './admin-ui'
 import {
   AdminCard, EmptyState, FieldLabel, Money, TableShell, useDebounced,
@@ -55,6 +58,7 @@ const EMPTY: SvcForm = {
 }
 
 export function ServicesSection() {
+  const { t } = useI18n()
   const [q, setQ] = useState('')
   const [cat, setCat] = useState('ALL')
   const [status, setStatus] = useState('ALL')
@@ -75,6 +79,17 @@ export function ServicesSection() {
   const [editing, setEditing] = useState<AdminService | 'new' | null>(null)
   const [form, setForm] = useState<SvcForm>(EMPTY)
   const [deleting, setDeleting] = useState<AdminService | null>(null)
+
+  // bulk selection
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [bulkBusy, setBulkBusy] = useState(false)
+  const services = data?.services ?? []
+  const allSelected = services.length > 0 && services.every((s) => selected.has(s.id))
+  const someSelected = services.some((s) => selected.has(s.id))
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(services.map((s) => s.id)))
+  const toggleOne = (id: string) =>
+    setSelected((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
 
   const openEdit = (s: AdminService) => {
     setForm({
@@ -127,16 +142,43 @@ export function ServicesSection() {
     if (ok) { setDeleting(null); refresh() }
   }
 
+  const doBulkDelete = async () => {
+    if (selected.size === 0) return
+    setBulkBusy(true)
+    try {
+      const res = await apiDel<{ deleted: number; blocked: { id: string; name: string; orders: number }[] }>(
+        '/api/admin/services',
+        { ids: [...selected] },
+      )
+      toast({
+        title: `${res.deleted} deleted${res.blocked.length ? `, ${res.blocked.length} skipped (have orders)` : ''}`,
+      })
+      setSelected(new Set())
+      setBulkOpen(false)
+      refresh()
+    } catch (e) {
+      toast({ title: e instanceof Error ? e.message : 'Bulk delete failed', variant: 'destructive' })
+    } finally {
+      setBulkBusy(false)
+    }
+  }
+
   const openCreate = () => {
     setForm({ ...EMPTY, categoryId: cat !== 'ALL' ? cat : catData?.categories[0]?.id ?? '' })
     setEditing('new')
   }
 
+  // read-only provider cost shown in the edit dialog (+ implied markup vs sell rate)
+  const editSvc = editing && editing !== 'new' ? (editing as AdminService) : null
+  const impliedMarkup = editSvc?.cost != null && editSvc.cost > 0
+    ? Math.round(((editSvc.rate - editSvc.cost) / editSvc.cost) * 1000) / 10
+    : null
+
   return (
     <div className="space-y-4">
       <PanelPageHeader
-        title="Master services"
-        description="The catalog offered across every platform. Rates are per 1,000, in USD."
+        title={t('admin.svc.title')}
+        description={t('admin.svc.desc')}
         actions={
           <Button onClick={openCreate} className="h-9 rounded-full px-4 text-[13px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
             <Plus className="mr-1 h-4 w-4" /> New service
@@ -148,10 +190,10 @@ export function ServicesSection() {
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
         <div className="relative flex-1 lg:max-w-xs">
           <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search services…" className="h-9 rounded-full pl-9 text-[13px]" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('admin.svc.searchPh')} className="h-9 rounded-full pl-9 text-[13px]" />
         </div>
         <Select value={cat} onValueChange={setCat}>
-          <SelectTrigger className="h-9 w-full rounded-full text-[12.5px] font-semibold lg:w-52"><SelectValue placeholder="Category" /></SelectTrigger>
+          <SelectTrigger className="h-9 w-full rounded-full text-[12.5px] font-semibold lg:w-52"><SelectValue placeholder={t('common.category')} /></SelectTrigger>
           <SelectContent className="max-h-72">
             <SelectItem value="ALL">All categories</SelectItem>
             {catData?.categories.map((c) => (
@@ -162,7 +204,7 @@ export function ServicesSection() {
           </SelectContent>
         </Select>
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="h-9 w-full rounded-full text-[12.5px] font-semibold lg:w-36"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="h-9 w-full rounded-full text-[12.5px] font-semibold lg:w-36"><SelectValue placeholder={t('common.status')} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All statuses</SelectItem>
             <SelectItem value="ACTIVE">Active</SelectItem>
@@ -175,14 +217,22 @@ export function ServicesSection() {
       {loading && !data ? (
         <div className="space-y-2">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-14 rounded-xl" />)}</div>
       ) : (data?.services.length ?? 0) === 0 ? (
-        <AdminCard><EmptyState title="No services found" hint="Adjust the filters or create a new service." /></AdminCard>
+        <AdminCard><EmptyState title={t('csvc.noneTitle')} hint={t('admin.svc.noneHint')} /></AdminCard>
       ) : (
         <TableShell>
-          <table className="w-full min-w-[860px] text-left text-[13px]">
+          <table className="w-full min-w-[920px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-zinc-100 dark:border-zinc-800/70 text-[11px] uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                <th className="w-10 px-3 py-3">
+                  <Checkbox
+                    checked={allSelected ? true : someSelected ? 'indeterminate' : false}
+                    onCheckedChange={toggleAll}
+                    aria-label={t('admin.svc.selectAllAria')}
+                  />
+                </th>
                 <th className="px-4 py-3 font-bold">Service</th>
                 <th className="px-3 py-3 font-bold">Category</th>
+                <th className="px-3 py-3 text-right font-bold" title={t('admin.svc.costTip')}>Cost /1k</th>
                 <th className="px-3 py-3 text-right font-bold">Rate /1k</th>
                 <th className="px-3 py-3 text-right font-bold">Min–Max</th>
                 <th className="px-3 py-3 font-bold">Type</th>
@@ -194,6 +244,9 @@ export function ServicesSection() {
             <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/60">
               {data?.services.map((s) => (
                 <tr key={s.id} className="transition hover:bg-zinc-50/60 dark:hover:bg-zinc-900/40">
+                  <td className="px-3 py-3">
+                    <Checkbox checked={selected.has(s.id)} onCheckedChange={() => toggleOne(s.id)} aria-label={`Select ${s.name}`} />
+                  </td>
                   <td className="max-w-[260px] px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       {s.featured && <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400" />}
@@ -206,6 +259,9 @@ export function ServicesSection() {
                       <SocialLogo icon={s.category.icon} size={12} />
                       <span className="truncate">{s.category.name}</span>
                     </span>
+                  </td>
+                  <td className="px-3 py-3 text-right tabular-nums text-zinc-500 dark:text-zinc-400">
+                    {s.cost != null ? <Money usd={s.cost} /> : <span className="text-zinc-300 dark:text-zinc-600">—</span>}
                   </td>
                   <td className="px-3 py-3 text-right font-bold text-zinc-800 dark:text-zinc-100"><Money usd={s.rate} /></td>
                   <td className="px-3 py-3 text-right tabular-nums text-zinc-500 dark:text-zinc-400">{s.min.toLocaleString()}–{s.max.toLocaleString()}</td>
@@ -253,7 +309,7 @@ export function ServicesSection() {
               <div>
                 <FieldLabel>Category</FieldLabel>
                 <Select value={form.categoryId} onValueChange={(v) => setForm({ ...form, categoryId: v })}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Pick a category" /></SelectTrigger>
+                  <SelectTrigger className="h-9"><SelectValue placeholder={t('admin.svc.pickCategoryPh')} /></SelectTrigger>
                   <SelectContent className="max-h-64">
                     {catData?.categories.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
@@ -286,6 +342,14 @@ export function ServicesSection() {
                 <FieldLabel>Rate / 1000 (USD)</FieldLabel>
                 <Input type="number" step="0.0001" value={form.rate} onChange={(e) => setForm({ ...form, rate: e.target.value })} />
               </div>
+              {editSvc?.cost != null && (
+                <div>
+                  <FieldLabel hint={impliedMarkup != null ? `≈ ${impliedMarkup}% implied markup` : 'read-only'}>Provider cost /1k</FieldLabel>
+                  <div className="flex h-9 items-center rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/40 px-3 text-[13px] font-semibold tabular-nums text-zinc-600 dark:text-zinc-300">
+                    <Money usd={editSvc.cost} />
+                  </div>
+                </div>
+              )}
               <div><FieldLabel>Min quantity</FieldLabel><Input type="number" value={form.min} onChange={(e) => setForm({ ...form, min: e.target.value })} /></div>
               <div><FieldLabel>Max quantity</FieldLabel><Input type="number" value={form.max} onChange={(e) => setForm({ ...form, max: e.target.value })} /></div>
             </div>
@@ -334,6 +398,54 @@ export function ServicesSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bulk delete confirm */}
+      <AlertDialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selected.size} selected services?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Services with existing orders will be skipped — they cannot be deleted. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 hover:bg-rose-700"
+              disabled={bulkBusy}
+              onClick={(e) => { e.preventDefault(); doBulkDelete() }}
+            >
+              {bulkBusy ? <RefreshCw className="mr-1.5 h-4 w-4 animate-spin" /> : <Trash2 className="mr-1.5 h-4 w-4" />}
+              {bulkBusy ? 'Deleting…' : 'Delete selected'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Floating bulk action bar */}
+      {selected.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
+          <div className="flex items-center gap-2 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 py-2 pl-5 pr-2 shadow-lg backdrop-blur">
+            <span className="text-[13px] font-bold tabular-nums text-zinc-700 dark:text-zinc-200">
+              {selected.size} selected
+            </span>
+            <Button
+              variant="ghost" size="sm"
+              className="h-8 rounded-full text-[12px] font-semibold text-zinc-500 dark:text-zinc-400"
+              onClick={() => setSelected(new Set())}
+            >
+              Clear
+            </Button>
+            <Button
+              size="sm"
+              className="h-8 rounded-full bg-rose-600 px-3.5 text-[12px] font-bold text-white hover:bg-rose-700"
+              onClick={() => setBulkOpen(true)}
+            >
+              <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete selected
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

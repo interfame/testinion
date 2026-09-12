@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch'
 import { PanelPageHeader } from '@/components/shared/panel-shell'
 import { useApp } from '@/components/shared/app-context'
 import { api, mutate, useApi } from '@/lib/api'
+import { useI18n } from '@/lib/i18n'
 import { AdminCard, FieldLabel } from './admin-ui'
 import { cn } from '@/lib/utils'
 
@@ -21,13 +22,14 @@ const PRICING_DEFAULTS = { external_api_price: '19.99', custom_domain_price: '9.
 const ENGINE_DEFAULTS = { engine_enabled: '1', engine_speed: 'normal', engine_partial_rate: '0.07' }
 const REFERRAL_DEFAULTS = { ref_enabled: '1', ref_bonus_amount: '1', ref_welcome_credit: '1' }
 
-const SPEEDS = [
-  { key: 'slow', label: 'Slow', icon: Turtle, hint: '~30s queue · done in ~2 min' },
-  { key: 'normal', label: 'Normal', icon: Cog, hint: '~12s queue · done in ~1 min' },
-  { key: 'turbo', label: 'Turbo', icon: Rocket, hint: '~4s queue · done in ~15 s' },
-] as const
+const SPEEDS: { key: string; labelKey: Parameters<ReturnType<typeof useI18n>['t']>[0]; hintKey: Parameters<ReturnType<typeof useI18n>['t']>[0]; icon: typeof Cog }[] = [
+  { key: 'slow', labelKey: 'admin.set.speedSlow', hintKey: 'admin.set.speedSlowHint', icon: Turtle },
+  { key: 'normal', labelKey: 'admin.set.speedNormal', hintKey: 'admin.set.speedNormalHint', icon: Cog },
+  { key: 'turbo', labelKey: 'admin.set.speedTurbo', hintKey: 'admin.set.speedTurboHint', icon: Rocket },
+]
 
 export function SettingsSection() {
+  const { t } = useI18n()
   const { refreshPublic } = useApp()
   const { data, loading, refresh } = useApi<{ settings: Record<string, string>; platformCount: number }>('/api/admin/settings')
 
@@ -104,14 +106,14 @@ export function SettingsSection() {
 
   const testSync = async () => {
     setSyncing(true)
-    await mutate(() => api.post('/api/admin/currencies/refresh'), { success: 'Rates synced from API' })
+    await mutate(() => api.post('/api/admin/currencies/refresh'), { success: t('admin.cur.toastSynced') })
     setSyncing(false)
   }
 
   if (loading && !data) {
     return (
       <div className="space-y-4">
-        <PanelPageHeader title="Settings" description="…" />
+        <PanelPageHeader title={t('common.settings')} description="…" />
         {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-48 rounded-2xl" />)}
       </div>
     )
@@ -119,63 +121,63 @@ export function SettingsSection() {
 
   return (
     <div className="space-y-5">
-      <PanelPageHeader title="Settings" description="Global configuration for the GrowthRush master platform." />
+      <PanelPageHeader title={t('common.settings')} description={t('admin.set.desc')} />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {/* General */}
-        <AdminCard title="General" description={`${data?.platformCount ?? 0} reseller platform(s) live`}>
+        <AdminCard title={t('admin.set.general')} description={t('admin.set.platformsLive').replace('{n}', String(data?.platformCount ?? 0))}>
           <div className="space-y-3">
-            <div><FieldLabel>Brand name</FieldLabel><Input value={general.brand_name} onChange={(e) => setGeneralEdits({ ...generalEdits, brand_name: e.target.value })} /></div>
-            <div><FieldLabel>Tagline</FieldLabel><Input value={general.brand_tagline} onChange={(e) => setGeneralEdits({ ...generalEdits, brand_tagline: e.target.value })} placeholder="The #1 SMM panel & reseller SaaS" /></div>
-            <div><FieldLabel hint="resellers get slug.subdomain_base">Subdomain base</FieldLabel><Input value={general.subdomain_base} onChange={(e) => setGeneralEdits({ ...generalEdits, subdomain_base: e.target.value })} /></div>
-            <Button onClick={() => saveGroup('general', general, 'General settings saved')} className="h-9 rounded-full px-4 text-[13px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
-              <Save className="mr-1.5 h-4 w-4" /> Save general
+            <div><FieldLabel>{t('admin.set.brandName')}</FieldLabel><Input value={general.brand_name} onChange={(e) => setGeneralEdits({ ...generalEdits, brand_name: e.target.value })} /></div>
+            <div><FieldLabel>{t('admin.set.tagline')}</FieldLabel><Input value={general.brand_tagline} onChange={(e) => setGeneralEdits({ ...generalEdits, brand_tagline: e.target.value })} placeholder={t('admin.set.taglinePlaceholder')} /></div>
+            <div><FieldLabel hint={t('admin.set.subdomainHint')}>{t('admin.set.subdomainBase')}</FieldLabel><Input value={general.subdomain_base} onChange={(e) => setGeneralEdits({ ...generalEdits, subdomain_base: e.target.value })} /></div>
+            <Button onClick={() => saveGroup('general', general, t('admin.set.toastGeneral'))} className="h-9 rounded-full px-4 text-[13px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
+              <Save className="mr-1.5 h-4 w-4" /> {t('admin.set.saveGeneral')}
             </Button>
           </div>
         </AdminCard>
 
         {/* Pricing */}
-        <AdminCard title="Add-on pricing" description="Fees charged to resellers for optional extras (USD)">
+        <AdminCard title={t('admin.set.addonPricing')} description={t('admin.set.addonPricingSub')}>
           <div className="space-y-3">
-            <div><FieldLabel hint="monthly connector fee">External API price</FieldLabel><Input type="number" step="0.01" value={pricing.external_api_price} onChange={(e) => setPricingEdits({ ...pricingEdits, external_api_price: e.target.value })} /></div>
-            <div><FieldLabel hint="one-time setup fee">Custom domain price</FieldLabel><Input type="number" step="0.01" value={pricing.custom_domain_price} onChange={(e) => setPricingEdits({ ...pricingEdits, custom_domain_price: e.target.value })} /></div>
-            <Button onClick={() => saveGroup('pricing', pricing, 'Pricing saved')} className="h-9 rounded-full px-4 text-[13px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
-              <Save className="mr-1.5 h-4 w-4" /> Save pricing
+            <div><FieldLabel hint={t('admin.set.apiPriceHint')}>{t('admin.set.apiPrice')}</FieldLabel><Input type="number" step="0.01" value={pricing.external_api_price} onChange={(e) => setPricingEdits({ ...pricingEdits, external_api_price: e.target.value })} /></div>
+            <div><FieldLabel hint={t('admin.set.domainPriceHint')}>{t('admin.set.domainPrice')}</FieldLabel><Input type="number" step="0.01" value={pricing.custom_domain_price} onChange={(e) => setPricingEdits({ ...pricingEdits, custom_domain_price: e.target.value })} /></div>
+            <Button onClick={() => saveGroup('pricing', pricing, t('admin.set.toastPricing'))} className="h-9 rounded-full px-4 text-[13px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
+              <Save className="mr-1.5 h-4 w-4" /> {t('admin.set.savePricing')}
             </Button>
           </div>
         </AdminCard>
 
         {/* Currency conversion */}
-        <AdminCard title="Currency conversion" description="How display exchange rates are kept fresh" className="xl:col-span-2">
+        <AdminCard title={t('admin.set.conversion')} description={t('admin.set.conversionSub')} className="xl:col-span-2">
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             <div className="space-y-3">
               <RadioGroup value={conversion.conversion_mode} onValueChange={(v) => setConversionEdits({ ...conversionEdits, conversion_mode: v })} className="gap-2">
                 <div className="flex items-start gap-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 p-3">
                   <RadioGroupItem value="manual" id="mode-manual" className="mt-0.5" />
                   <div>
-                    <Label htmlFor="mode-manual" className="text-[13px] font-bold text-zinc-800 dark:text-zinc-100">Manual rates</Label>
-                    <p className="text-[11.5px] text-zinc-500 dark:text-zinc-400">You edit rates by hand in the Currencies section.</p>
+                    <Label htmlFor="mode-manual" className="text-[13px] font-bold text-zinc-800 dark:text-zinc-100">{t('admin.set.manualRates')}</Label>
+                    <p className="text-[11.5px] text-zinc-500 dark:text-zinc-400">{t('admin.set.manualRatesDesc')}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 p-3">
                   <RadioGroupItem value="api" id="mode-api" className="mt-0.5" />
                   <div>
-                    <Label htmlFor="mode-api" className="text-[13px] font-bold text-zinc-800 dark:text-zinc-100">Automatic (API)</Label>
-                    <p className="text-[11.5px] text-zinc-500 dark:text-zinc-400">Pull rates from the endpoint below — any JSON with a rates map.</p>
+                    <Label htmlFor="mode-api" className="text-[13px] font-bold text-zinc-800 dark:text-zinc-100">{t('admin.set.autoRates')}</Label>
+                    <p className="text-[11.5px] text-zinc-500 dark:text-zinc-400">{t('admin.set.autoRatesDesc')}</p>
                   </div>
                 </div>
               </RadioGroup>
               <Button
-                onClick={() => saveGroup('conversion', conversion, 'Conversion settings saved')}
+                onClick={() => saveGroup('conversion', conversion, t('admin.set.toastConversion'))}
                 className="h-9 rounded-full px-4 text-[13px] font-bold text-[var(--on-brand)]"
                 style={{ background: 'var(--brand)' }}
               >
-                <Save className="mr-1.5 h-4 w-4" /> Save conversion
+                <Save className="mr-1.5 h-4 w-4" /> {t('admin.set.saveConversion')}
               </Button>
             </div>
             <div className="space-y-3">
               <div>
-                <FieldLabel hint="try https://open.er-api.com/v6/latest/USD">Conversion API URL</FieldLabel>
+                <FieldLabel hint="try https://open.er-api.com/v6/latest/USD">{t('admin.set.apiUrl')}</FieldLabel>
                 <div className="relative">
                   <Link2 className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
                   <Input
@@ -185,7 +187,7 @@ export function SettingsSection() {
                     placeholder="https://api.exchangerate.host/latest?base=USD"
                   />
                 </div>
-                <p className="mt-1.5 text-[11.5px] text-zinc-400 dark:text-zinc-500">Accepts <code className="rounded bg-zinc-100 dark:bg-zinc-800/60 px-1">{'{rates:{USD:1,…}}'}</code> or a flat <code className="rounded bg-zinc-100 dark:bg-zinc-800/60 px-1">{'{USD:1,…}'}</code> map. 5s timeout.</p>
+                <p className="mt-1.5 text-[11.5px] text-zinc-400 dark:text-zinc-500">{t('admin.set.ratesAccepts')} <code className="rounded bg-zinc-100 dark:bg-zinc-800/60 px-1">{'{rates:{USD:1,…}}'}</code> {t('admin.set.ratesOrFlat')} <code className="rounded bg-zinc-100 dark:bg-zinc-800/60 px-1">{'{USD:1,…}'}</code> {t('admin.set.ratesTimeout')}</p>
               </div>
               <Button
                 variant="outline"
@@ -193,22 +195,22 @@ export function SettingsSection() {
                 disabled={syncing || !conversion.conversion_api_url}
                 className="h-9 rounded-full px-4 text-[13px] font-bold"
               >
-                <RefreshCw className={`mr-1.5 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} /> {syncing ? 'Syncing…' : 'Test & sync now'}
+                <RefreshCw className={`mr-1.5 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} /> {syncing ? t('admin.set.syncing') : t('admin.set.testSync')}
               </Button>
-              <p className="text-[11.5px] text-zinc-400 dark:text-zinc-500">Tip: save the URL first, then test. Synced rates are stored in the Currencies table.</p>
+              <p className="text-[11.5px] text-zinc-400 dark:text-zinc-500">{t('admin.set.syncTip')}</p>
             </div>
           </div>
         </AdminCard>
 
         {/* Delivery engine */}
         <AdminCard
-          title="Delivery engine"
-          description="Simulates provider progress on SMM orders (cron worker)"
+          title={t('admin.set.engine')}
+          description={t('admin.set.engineSub')}
           actions={
             <Switch
               checked={engine.engine_enabled !== '0'}
-              onCheckedChange={(v) => saveGroup('engine', { ...engine, engine_enabled: v ? '1' : '0' }, v ? 'Delivery engine started' : 'Delivery engine paused')}
-              aria-label="Toggle delivery engine"
+              onCheckedChange={(v) => saveGroup('engine', { ...engine, engine_enabled: v ? '1' : '0' }, v ? t('admin.set.toastEngineOn') : t('admin.set.toastEngineOff'))}
+              aria-label={t('admin.set.toggleEngine')}
             />
           }
         >
@@ -219,7 +221,7 @@ export function SettingsSection() {
                 return (
                   <button
                     key={s.key}
-                    onClick={() => saveGroup('engine', { ...engine, engine_speed: s.key }, `Speed set to ${s.label}`)}
+                    onClick={() => saveGroup('engine', { ...engine, engine_speed: s.key }, t('admin.set.toastSpeed').replace('{speed}', t(s.labelKey)))}
                     disabled={engine.engine_enabled === '0'}
                     className={cn(
                       'flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition disabled:opacity-50',
@@ -230,15 +232,15 @@ export function SettingsSection() {
                   >
                     <span className="flex items-center gap-1.5 text-[12.5px] font-extrabold">
                       <s.icon className={cn('h-3.5 w-3.5', active ? 'text-[var(--brand)]' : 'text-zinc-400 dark:text-zinc-500')} />
-                      {s.label}
+                      {t(s.labelKey)}
                     </span>
-                    <span className="text-[10.5px] leading-snug text-zinc-400 dark:text-zinc-500">{s.hint}</span>
+                    <span className="text-[10.5px] leading-snug text-zinc-400 dark:text-zinc-500">{t(s.hintKey)}</span>
                   </button>
                 )
               })}
             </div>
             <div className="max-w-[220px]">
-              <FieldLabel hint="chance an order finishes PARTIAL with auto-refund">Partial delivery rate</FieldLabel>
+              <FieldLabel hint={t('admin.set.partialRateHint')}>{t('admin.set.partialRate')}</FieldLabel>
               <div className="flex items-center gap-2">
                 <Input
                   type="number" min="0" max="90" step="1"
@@ -250,25 +252,25 @@ export function SettingsSection() {
               </div>
             </div>
             <Button
-              onClick={() => saveGroup('engine', engine, 'Delivery engine saved')}
+              onClick={() => saveGroup('engine', engine, t('admin.set.toastEngineSaved'))}
               disabled={engine.engine_enabled === '0'}
               className="h-9 rounded-full px-4 text-[13px] font-bold text-[var(--on-brand)]"
               style={{ background: 'var(--brand)' }}
             >
-              <Save className="mr-1.5 h-4 w-4" /> Save engine
+              <Save className="mr-1.5 h-4 w-4" /> {t('admin.set.saveEngine')}
             </Button>
           </div>
         </AdminCard>
 
         {/* CRM live chatter */}
         <AdminCard
-          title="CRM live chatter"
-          description="Customers keep writing into reseller inboxes (simulated) — conversations on AI mode get instant bot replies"
+          title={t('admin.set.chatter')}
+          description={t('admin.set.chatterSub')}
           actions={
             <Switch
               checked={chatter !== '0'}
-              onCheckedChange={(v) => saveGroup('chatter', { crm_chatter: v ? '1' : '0' }, v ? 'CRM live chatter enabled' : 'CRM live chatter disabled')}
-              aria-label="Toggle CRM live chatter"
+              onCheckedChange={(v) => saveGroup('chatter', { crm_chatter: v ? '1' : '0' }, v ? t('admin.set.toastChatterOn') : t('admin.set.toastChatterOff'))}
+              aria-label={t('admin.set.toggleChatter')}
             />
           }
         >
@@ -277,9 +279,9 @@ export function SettingsSection() {
               <MessagesSquare className="h-4.5 w-4.5 text-cyan-600 dark:text-cyan-400" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-bold">Omnichannel inbox demo traffic</p>
+              <p className="text-[13px] font-bold">{t('admin.set.chatterDemo')}</p>
               <p className="text-[12px] leading-snug text-zinc-500 dark:text-zinc-400">
-                ~1 incoming message per minute across platforms. Unread badges, bell notifications and websocket live-bubbles included.
+                {t('admin.set.chatterDemoSub')}
               </p>
             </div>
             <span
@@ -288,20 +290,20 @@ export function SettingsSection() {
                 chatter !== '0' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400' : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800/60 dark:text-zinc-400',
               )}
             >
-              {chatter !== '0' ? 'LIVE' : 'PAUSED'}
+              {chatter !== '0' ? t('admin.set.live') : t('admin.set.paused')}
             </span>
           </div>
         </AdminCard>
 
         {/* Referral program */}
         <AdminCard
-          title="Referral program"
-          description="Viral growth loop — clients share a link, earn credit on friends' first orders"
+          title={t('admin.set.referral')}
+          description={t('admin.set.referralSub')}
           actions={
             <Switch
               checked={referral.ref_enabled !== '0'}
-              onCheckedChange={(v) => saveGroup('referral', { ...referral, ref_enabled: v ? '1' : '0' }, v ? 'Referral program enabled' : 'Referral program paused')}
-              aria-label="Toggle referral program"
+              onCheckedChange={(v) => saveGroup('referral', { ...referral, ref_enabled: v ? '1' : '0' }, v ? t('admin.set.toastRefOn') : t('admin.set.toastRefOff'))}
+              aria-label={t('admin.set.toggleRef')}
             />
           }
         >
@@ -311,9 +313,9 @@ export function SettingsSection() {
                 <Gift className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-bold">Invite → signup → first order → bonus</p>
+                <p className="text-[13px] font-bold">{t('admin.set.refFlow')}</p>
                 <p className="text-[12px] leading-snug text-zinc-500 dark:text-zinc-400">
-                  Every account gets a unique ?ref= link in Account. When paused, links stop attributing and pending bonuses stop accruing.
+                  {t('admin.set.refFlowSub')}
                 </p>
               </div>
               <span
@@ -322,12 +324,12 @@ export function SettingsSection() {
                   referral.ref_enabled !== '0' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400' : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800/60 dark:text-zinc-400',
                 )}
               >
-                {referral.ref_enabled !== '0' ? 'ACTIVE' : 'PAUSED'}
+                {referral.ref_enabled !== '0' ? t('status.ACTIVE') : t('admin.set.paused')}
               </span>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <FieldLabel hint="credited on friend's first completed order">Referral bonus (USD)</FieldLabel>
+                <FieldLabel hint={t('admin.set.refBonusHint')}>{t('admin.set.refBonus')}</FieldLabel>
                 <Input
                   type="number" min="0" max="100" step="0.5"
                   value={referral.ref_bonus_amount}
@@ -336,7 +338,7 @@ export function SettingsSection() {
                 />
               </div>
               <div>
-                <FieldLabel hint="free credit for every new account">Welcome credit (USD)</FieldLabel>
+                <FieldLabel hint={t('admin.set.refWelcomeHint')}>{t('admin.set.refWelcome')}</FieldLabel>
                 <Input
                   type="number" min="0" max="100" step="0.5"
                   value={referral.ref_welcome_credit}
@@ -345,23 +347,23 @@ export function SettingsSection() {
               </div>
             </div>
             <Button
-              onClick={() => saveGroup('referral', referral, 'Referral program saved')}
+              onClick={() => saveGroup('referral', referral, t('admin.set.toastRefSaved'))}
               className="h-9 rounded-full px-4 text-[13px] font-bold text-[var(--on-brand)]"
               style={{ background: 'var(--brand)' }}
             >
-              <Save className="mr-1.5 h-4 w-4" /> Save referral program
+              <Save className="mr-1.5 h-4 w-4" /> {t('admin.set.saveRef')}
             </Button>
           </div>
         </AdminCard>
 
         {/* Danger zone */}
-        <AdminCard title="Danger zone" description="Irreversible or high-impact actions" className="border-rose-200 dark:border-rose-900/60 xl:col-span-2">
+        <AdminCard title={t('admin.set.danger')} description={t('admin.set.dangerSub')} className="border-rose-200 dark:border-rose-900/60 xl:col-span-2">
           <div className="flex flex-wrap items-center gap-4 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/60 px-4 py-3">
             <AlertTriangle className="h-5 w-5 shrink-0 text-rose-500" />
             <div className="flex-1">
-              <p className="text-[13px] font-bold text-rose-800">Handle with care</p>
+              <p className="text-[13px] font-bold text-rose-800">{t('admin.set.handleCare')}</p>
               <p className="text-[12px] text-rose-600/80">
-                Suspending platforms, banning users and rejecting deposits take effect immediately. Deleting catalog items is blocked while orders exist to preserve financial history.
+                {t('admin.set.dangerNote')}
               </p>
             </div>
           </div>

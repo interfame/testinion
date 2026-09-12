@@ -20,6 +20,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { useI18n, type DictKey } from '@/lib/i18n'
 
 // ── Types ────────────────────────────────
 
@@ -145,11 +146,11 @@ export const convDot: Record<string, string> = {
   CLOSED: 'bg-zinc-400',
 }
 
-export const convDotLabel: Record<string, string> = {
-  OPEN: 'Open',
-  AI: 'AI bot',
-  HANDED: 'Handed to human',
-  CLOSED: 'Closed',
+export const convDotLabel: Record<string, DictKey> = {
+  OPEN: 'crm.stOpen',
+  AI: 'crm.stAi',
+  HANDED: 'crm.stHanded',
+  CLOSED: 'crm.stClosed',
 }
 
 // ── JSON helpers ─────────────────────────
@@ -270,12 +271,13 @@ export function EmptyState({
 }
 
 export function NoPlatform() {
+  const { t } = useI18n()
   return (
     <PageWrap>
       <EmptyState
         icon={Store}
-        title="No platform yet"
-        description="You need an active reseller platform to use the CRM. Purchase a plan first and your omnichannel inbox, AI agents and automations will come to life here."
+        title={t('crm.noPlatform')}
+        description={t('crm.noPlatformSub')}
       />
     </PageWrap>
   )
@@ -303,27 +305,28 @@ export function RowsSkeleton({ n = 6 }: { n?: number }) {
 
 export function ConfirmDelete({
   onConfirm,
-  title = 'Delete item',
-  description = 'This action cannot be undone.',
+  title,
+  description,
 }: {
   onConfirm: () => void
   title?: string
   description?: string
 }) {
+  const { t } = useI18n()
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 dark:text-zinc-500 hover:text-rose-600 dark:hover:text-rose-400" aria-label="Delete">
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 dark:text-zinc-500 hover:text-rose-600 dark:hover:text-rose-400" aria-label={t('admin.deleteCta')}>
           <Trash2 className="h-4 w-4" />
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
+          <AlertDialogTitle>{title ?? t('crm.delItem')}</AlertDialogTitle>
+          <AlertDialogDescription>{description ?? t('rcont.deleteDesc')}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
           <AlertDialogAction
             className="bg-rose-600 text-white hover:bg-rose-700"
             onClick={(e) => {
@@ -331,7 +334,7 @@ export function ConfirmDelete({
               onConfirm()
             }}
           >
-            Delete
+            {t('admin.deleteCta')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

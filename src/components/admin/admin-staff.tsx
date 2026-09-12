@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { PanelPageHeader, StatusBadge } from '@/components/shared/panel-shell'
 import { api, mutate, useApi } from '@/lib/api'
+import { useI18n } from '@/lib/i18n'
 import { apiDel } from './admin-ui'
 import { AdminCard, EmptyState, FieldLabel, InitialAvatar, TableShell, type AdminTeamMember } from './admin-ui'
 
@@ -46,6 +47,7 @@ function parsePerms(s: string): string[] {
 }
 
 export function StaffSection() {
+  const { t } = useI18n()
   const { data, loading, refresh } = useApi<{ staff: AdminTeamMember[] }>('/api/admin/staff')
   const [editing, setEditing] = useState<AdminTeamMember | 'new' | null>(null)
   const [form, setForm] = useState<StaffForm>(EMPTY)
@@ -87,8 +89,8 @@ export function StaffSection() {
   return (
     <div className="space-y-4">
       <PanelPageHeader
-        title="Staff team"
-        description="Teammates operating the master GrowthRush platform (limited access)."
+        title={t('admin.staff.title')}
+        description={t('admin.staff.desc')}
         actions={
           <Button onClick={() => open('new')} className="h-9 rounded-full px-4 text-[13px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
             <Plus className="mr-1 h-4 w-4" /> Add member
@@ -99,7 +101,7 @@ export function StaffSection() {
       {loading && !data ? (
         <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}</div>
       ) : (data?.staff.length ?? 0) === 0 ? (
-        <AdminCard><EmptyState title="No team members yet" hint="Add staff to delegate tickets, finance or content." /></AdminCard>
+        <AdminCard><EmptyState title={t('admin.staff.noneTitle')} hint={t('admin.staff.noneHint')} /></AdminCard>
       ) : (
         <TableShell>
           <table className="w-full min-w-[720px] text-left text-[13px]">
@@ -143,8 +145,8 @@ export function StaffSection() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => open(m)} aria-label="Edit"><Pencil className="h-3.5 w-3.5" /></Button>
-                      <Button variant="outline" size="icon" className="h-8 w-8 rounded-full text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40" onClick={() => setDeleting(m)} aria-label="Delete"><Trash2 className="h-3.5 w-3.5" /></Button>
+                      <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => open(m)} aria-label={t('admin.edit')}><Pencil className="h-3.5 w-3.5" /></Button>
+                      <Button variant="outline" size="icon" className="h-8 w-8 rounded-full text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40" onClick={() => setDeleting(m)} aria-label={t('admin.deleteCta')}><Trash2 className="h-3.5 w-3.5" /></Button>
                     </div>
                   </td>
                 </tr>

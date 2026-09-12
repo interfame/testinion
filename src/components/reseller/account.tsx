@@ -187,29 +187,30 @@ function Referrals() {
 const ROLES = ['ADMIN', 'SUPPORT', 'FINANCE', 'CONTENT', 'CRM'] as const
 
 function Team() {
+  const { t } = useI18n()
   const { data, loading, refresh } = useApi<{ team: Member[] }>('/api/reseller/team')
   const [addOpen, setAddOpen] = useState(false)
   const [form, setForm] = useState({ name: '', email: '', role: 'SUPPORT' })
   const [deleteM, setDeleteM] = useState<Member | null>(null)
 
   const add = async () => {
-    const res = await mutate(() => api.post('/api/reseller/team', form), { success: 'Team member invited ✅' })
+    const res = await mutate(() => api.post('/api/reseller/team', form), { success: t('racc.invited') })
     if (res) { setAddOpen(false); setForm({ name: '', email: '', role: 'SUPPORT' }); refresh() }
   }
 
   const toggle = async (m: Member) => {
-    await mutate(() => api.patch('/api/reseller/team', { id: m.id, status: m.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE' }), { success: 'Updated' })
+    await mutate(() => api.patch('/api/reseller/team', { id: m.id, status: m.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE' }), { success: t('rcat.updated') })
     refresh()
   }
 
   return (
     <>
       <PanelPageHeader
-        title="Team"
-        description="Hire help without handing over the keys — each role only sees what it should."
+        title={t('reseller.team')}
+        description={t('racc.teamDesc')}
         actions={
           <Button size="sm" className="font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }} onClick={() => setAddOpen(true)}>
-            <Plus className="mr-1.5 h-4 w-4" /> Add member
+            <Plus className="mr-1.5 h-4 w-4" /> {t('racc.addMember')}
           </Button>
         }
       />
@@ -228,7 +229,7 @@ function Team() {
             <div className="mt-3 flex items-center justify-between">
               <Badge variant="outline" className="text-[10px] font-extrabold">{m.role}</Badge>
               <span className={`text-[10px] font-bold ${m.status === 'ACTIVE' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400 dark:text-zinc-500'}`}>
-                {m.status === 'ACTIVE' ? '● Active' : '○ Suspended'}
+                {m.status === 'ACTIVE' ? t('racc.active') : t('racc.suspended')}
               </span>
             </div>
             <div className="mt-3 flex flex-wrap gap-1">
@@ -237,7 +238,7 @@ function Team() {
               ))}
             </div>
             <Button variant="ghost" size="sm" className="mt-2 h-7 w-full text-[11px] text-rose-500 opacity-0 transition group-hover:opacity-100" onClick={() => setDeleteM(m)}>
-              <Trash2 className="mr-1 h-3 w-3" /> Remove
+              <Trash2 className="mr-1 h-3 w-3" /> {t('admin.removeCta')}
             </Button>
           </div>
         ))}
@@ -245,22 +246,22 @@ function Team() {
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Add team member</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('racc.addTitle')}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1.5"><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-            <div className="space-y-1.5"><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>{t('rcat.name')}</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>{t('auth.email')}</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
             <div className="space-y-1.5">
-              <Label>Role</Label>
+              <Label>{t('racc.roleLabel')}</Label>
               <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <p className="text-[11px] text-zinc-400 dark:text-zinc-500">Role determines what sections this member can access.</p>
+              <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{t('racc.roleHint')}</p>
             </div>
             <Button className="w-full font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }} disabled={!form.name.trim() || !form.email.trim()} onClick={add}>
-              Send invite
+              {t('racc.sendInvite')}
             </Button>
           </div>
         </DialogContent>
@@ -268,9 +269,9 @@ function Team() {
 
       <AlertDialog open={!!deleteM} onOpenChange={(o) => !o && setDeleteM(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Remove {deleteM?.name}?</AlertDialogTitle></AlertDialogHeader>
+          <AlertDialogHeader><AlertDialogTitle>{t('racc.removeQ').replace('{name}', deleteM?.name ?? '')}</AlertDialogTitle></AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-rose-600 hover:bg-rose-700"
               onClick={async () => {
@@ -278,7 +279,7 @@ function Team() {
                 await fetch('/api/reseller/team', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: deleteM.id }) })
                 setDeleteM(null); refresh()
               }}
-            >Remove</AlertDialogAction>
+            >{t('admin.removeCta')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -290,6 +291,7 @@ function Team() {
 
 function PlatformSettings({ onRefresh }: { onRefresh: () => void }) {
   const app = useApp()
+  const { t } = useI18n()
   const platform = app.user.platform
   const [name, setName] = useState(platform?.name ?? '')
   const [currency, setCurrency] = useState(platform?.currency ?? 'USD')
@@ -299,67 +301,67 @@ function PlatformSettings({ onRefresh }: { onRefresh: () => void }) {
 
   const saveBranding = async () => {
     setSaving(true)
-    const res = await mutate(() => api.patch('/api/platform/mine', { name, currency }), { success: 'Settings saved ✅' })
+    const res = await mutate(() => api.patch('/api/platform/mine', { name, currency }), { success: t('racc.saved') })
     setSaving(false)
     if (res) { app.refresh(); onRefresh() }
   }
 
   const changePassword = async () => {
     setPwBusy(true)
-    const res = await mutate(() => api.patch('/api/me', { currentPassword: pw.current, newPassword: pw.next }), { success: 'Password changed 🔒' })
+    const res = await mutate(() => api.patch('/api/me', { currentPassword: pw.current, newPassword: pw.next }), { success: t('racc.pwChanged') })
     setPwBusy(false)
     if (res) setPw({ current: '', next: '' })
   }
 
   return (
     <>
-      <PanelPageHeader title="Settings" description="Platform and account preferences" />
+      <PanelPageHeader title={t('common.settings')} description={t('racc.settingsDesc')} />
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border bg-white dark:bg-zinc-900 p-6">
-          <p className="flex items-center gap-2 text-sm font-extrabold"><Settings2 className="h-4 w-4" style={{ color: 'var(--brand)' }} /> Platform</p>
+          <p className="flex items-center gap-2 text-sm font-extrabold"><Settings2 className="h-4 w-4" style={{ color: 'var(--brand)' }} /> {t('racc.platformSection')}</p>
           <div className="mt-4 space-y-3.5">
             <div className="space-y-1.5">
-              <Label>Platform name</Label>
+              <Label>{t('racc.platformName')}</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Storefront currency (base)</Label>
+              <Label>{t('racc.baseCurrency')}</Label>
               <Select value={currency} onValueChange={setCurrency}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent className="max-h-52">
                   {app.currencies.map((c) => <SelectItem key={c.code} value={c.code}>{c.code} — {c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <p className="text-[11px] text-zinc-400 dark:text-zinc-500">Clients can still view prices in their own currency (multi-currency conversion).</p>
+              <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{t('racc.currencyHint')}</p>
             </div>
             <Button className="w-full font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }} disabled={saving} onClick={saveBranding}>
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save platform settings
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {t('racc.savePlatform')}
             </Button>
           </div>
         </div>
 
         <div className="space-y-4">
           <div className="rounded-2xl border bg-white dark:bg-zinc-900 p-6">
-            <p className="text-sm font-extrabold">Security</p>
+            <p className="text-sm font-extrabold">{t('racc.security')}</p>
             <div className="mt-4 space-y-3">
-              <div className="space-y-1.5"><Label>Current password</Label><Input type="password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} /></div>
-              <div className="space-y-1.5"><Label>New password</Label><Input type="password" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>{t('racc.currentPassword')}</Label><Input type="password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>{t('racc.newPassword')}</Label><Input type="password" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} /></div>
               <Button variant="outline" className="w-full font-bold" disabled={pwBusy || !pw.current || pw.next.length < 6} onClick={changePassword}>
-                {pwBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : '🔒'} Change password
+                {pwBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : '🔒'} {t('racc.changePassword')}
               </Button>
             </div>
           </div>
           <div className="rounded-2xl border bg-white dark:bg-zinc-900 p-6">
-            <p className="text-sm font-extrabold">Two-factor authentication</p>
+            <p className="text-sm font-extrabold">{t('racc.twoFa')}</p>
             <div className="mt-3 flex items-center justify-between rounded-xl border bg-zinc-50 dark:bg-zinc-900/60 p-3.5">
               <div>
-                <p className="text-[13px] font-bold">2FA (email codes)</p>
-                <p className="text-[11px] text-zinc-400 dark:text-zinc-500">Extra security layer at login</p>
+                <p className="text-[13px] font-bold">{t('racc.twoFaEmail')}</p>
+                <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{t('racc.twoFaSub')}</p>
               </div>
               <Switch
                 checked={app.user.twoFactorEnabled}
                 onCheckedChange={async (v) => {
-                  const res = await mutate(() => api.patch('/api/me', { twoFactorEnabled: v }), { success: v ? '2FA enabled 🔐' : '2FA disabled' })
+                  const res = await mutate(() => api.patch('/api/me', { twoFactorEnabled: v }), { success: v ? t('racc.twoFaOn') : t('racc.twoFaOff') })
                   if (res) app.refresh()
                 }}
               />
@@ -377,6 +379,7 @@ type Integ = { connected: boolean; keyMasked?: string }
 
 function Integrations() {
   const app = useApp()
+  const { t } = useI18n()
   const { data, loading, refresh } = useApi<{ integrations: Record<string, Integ>; meta: Record<string, { name: string; desc: string; requiresExternalApi?: boolean }>; externalApi: boolean }>('/api/reseller/integrations')
   const [connectKey, setConnectKey] = useState<string | null>(null)
   const [apiKeyInput, setApiKeyInput] = useState('')
@@ -394,20 +397,20 @@ function Integrations() {
 
   const toggle = async (key: string, connected: boolean, apiKey?: string) => {
     const res = await mutate(() => api.patch('/api/reseller/integrations', { key, connected, apiKey }), {
-      success: connected ? `${meta[key]?.name} connected ✅` : `${meta[key]?.name} disconnected`,
+      success: connected ? t('racc.connectedToast').replace('{name}', meta[key]?.name ?? '') : t('racc.disconnectedToast').replace('{name}', meta[key]?.name ?? ''),
     })
     if (res) { refresh(); setConnectKey(null); setApiKeyInput('') }
   }
 
   return (
     <>
-      <PanelPageHeader title="Integrations" description="Connect the APIs your panel needs — each with its own step-by-step guide." />
+      <PanelPageHeader title={t('reseller.integrations')} description={t('racc.integDesc')} />
       {!data?.externalApi && (
         <div className="mb-4 flex items-start gap-3 rounded-2xl border border-violet-200 dark:border-violet-900/60 bg-violet-50 dark:bg-violet-950/40 p-4">
           <Lock className="mt-0.5 h-5 w-5 shrink-0 text-violet-600 dark:text-violet-400" />
           <div>
-            <p className="text-[13px] font-extrabold text-violet-900">External API add-on required for some integrations</p>
-            <p className="mt-0.5 text-[12px] text-violet-700 dark:text-violet-400">Custom SMM providers and conversion APIs cost extra per month. Enable the add-on from Plan & Billing.</p>
+            <p className="text-[13px] font-extrabold text-violet-900">{t('racc.addonRequiredTitle')}</p>
+            <p className="mt-0.5 text-[12px] text-violet-700 dark:text-violet-400">{t('racc.addonRequiredDesc')}</p>
           </div>
         </div>
       )}
@@ -420,25 +423,25 @@ function Integrations() {
               <div className="flex items-start justify-between">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-300">{icons[key] ?? <Blocks className="h-5 w-5" />}</span>
                 {locked ? (
-                  <Badge variant="outline" className="text-[10px]"><Lock className="mr-1 h-2.5 w-2.5" />ADD-ON</Badge>
+                  <Badge variant="outline" className="text-[10px]"><Lock className="mr-1 h-2.5 w-2.5" />{t('racc.addon')}</Badge>
                 ) : integ?.connected ? (
-                  <Badge className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400">CONNECTED</Badge>
+                  <Badge className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400">{t('racc.connected')}</Badge>
                 ) : (
-                  <Badge variant="outline" className="text-[10px] text-zinc-400 dark:text-zinc-500">NOT CONNECTED</Badge>
+                  <Badge variant="outline" className="text-[10px] text-zinc-400 dark:text-zinc-500">{t('racc.notConnected')}</Badge>
                 )}
               </div>
               <p className="mt-3 text-sm font-extrabold">{m.name}</p>
               <p className="mt-0.5 min-h-8 text-[12px] text-zinc-500 dark:text-zinc-400">{m.desc}</p>
               {integ?.connected && integ.keyMasked && (
-                <p className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">Key: {integ.keyMasked}</p>
+                <p className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">{t('racc.keyLabel').replace('{key}', integ.keyMasked)}</p>
               )}
               <div className="mt-3">
                 {locked ? (
-                  <Button variant="outline" size="sm" className="w-full font-bold" disabled>Requires add-on</Button>
+                  <Button variant="outline" size="sm" className="w-full font-bold" disabled>{t('racc.requiresAddon')}</Button>
                 ) : integ?.connected ? (
-                  <Button variant="outline" size="sm" className="w-full font-bold text-rose-600 dark:text-rose-400" onClick={() => toggle(key, false)}>Disconnect</Button>
+                  <Button variant="outline" size="sm" className="w-full font-bold text-rose-600 dark:text-rose-400" onClick={() => toggle(key, false)}>{t('rfin.disconnectCta2')}</Button>
                 ) : (
-                  <Button size="sm" className="w-full font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }} onClick={() => setConnectKey(key)}>Connect</Button>
+                  <Button size="sm" className="w-full font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }} onClick={() => setConnectKey(key)}>{t('rfin.connectCta')}</Button>
                 )}
               </div>
             </div>
@@ -448,16 +451,16 @@ function Integrations() {
 
       <Dialog open={!!connectKey} onOpenChange={(o) => !o && setConnectKey(null)}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Connect {connectKey ? meta[connectKey]?.name : ''}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('racc.connectTitle').replace('{name}', connectKey ? meta[connectKey]?.name ?? '' : '')}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <ol className="space-y-1.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 p-3 text-[12px] text-zinc-500 dark:text-zinc-400">
-              <li>1. Create an API key in the provider dashboard.</li>
-              <li>2. Paste it below — we store it encrypted.</li>
-              <li>3. Toggle the integration to start using it.</li>
+              <li>{t('racc.step1')}</li>
+              <li>{t('racc.step2')}</li>
+              <li>{t('racc.step3')}</li>
             </ol>
-            <div className="space-y-1.5"><Label>API key</Label><Input placeholder="paste your key" value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)} /></div>
+            <div className="space-y-1.5"><Label>{t('rcat.apiKey')}</Label><Input placeholder={t('racc.pasteKey')} value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)} /></div>
             <Button className="w-full font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }} disabled={!apiKeyInput.trim()} onClick={() => connectKey && toggle(connectKey, true, apiKeyInput)}>
-              <Check className="mr-1.5 h-4 w-4" /> Connect
+              <Check className="mr-1.5 h-4 w-4" /> {t('rfin.connectCta')}
             </Button>
           </div>
         </DialogContent>
@@ -469,11 +472,12 @@ function Integrations() {
 // ─────────────── Blacklist ───────────────
 
 function Blacklist() {
+  const { t } = useI18n()
   const { data, loading, refresh } = useApi<{ blacklist: BlItem[] }>('/api/reseller/blacklist')
   const [form, setForm] = useState({ type: 'EMAIL', value: '', note: '' })
 
   const add = async () => {
-    const res = await mutate(() => api.post('/api/reseller/blacklist', form), { success: 'Added to blacklist 🚫' })
+    const res = await mutate(() => api.post('/api/reseller/blacklist', form), { success: t('racc.blAdded') })
     if (res) { setForm({ type: 'EMAIL', value: '', note: '' }); refresh() }
   }
 
@@ -484,27 +488,27 @@ function Blacklist() {
 
   return (
     <>
-      <PanelPageHeader title="Blacklist" description="Block abusive emails, domains, IPs or chat keywords." />
+      <PanelPageHeader title={t('reseller.blacklist')} description={t('racc.blDesc')} />
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border bg-white dark:bg-zinc-900 p-5">
-          <p className="text-sm font-extrabold">Add entry</p>
+          <p className="text-sm font-extrabold">{t('racc.addEntry')}</p>
           <div className="mt-3 space-y-3">
             <div className="space-y-1.5">
-              <Label>Type</Label>
+              <Label>{t('rcat.type')}</Label>
               <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="EMAIL">Email / domain pattern</SelectItem>
-                  <SelectItem value="DOMAIN">Domain</SelectItem>
-                  <SelectItem value="IP">IP address</SelectItem>
-                  <SelectItem value="KEYWORD">Chat keyword</SelectItem>
+                  <SelectItem value="EMAIL">{t('racc.blEmail')}</SelectItem>
+                  <SelectItem value="DOMAIN">{t('racc.blDomain')}</SelectItem>
+                  <SelectItem value="IP">{t('racc.blIp')}</SelectItem>
+                  <SelectItem value="KEYWORD">{t('racc.blKeyword')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5"><Label>Value</Label><Input placeholder="*@spam.com or 1.2.3.4" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} /></div>
-            <div className="space-y-1.5"><Label>Note (optional)</Label><Input placeholder="reason" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>{t('admin.bl.value')}</Label><Input placeholder={t('racc.valuePh')} value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>{t('racc.noteLabel')}</Label><Input placeholder={t('racc.notePh')} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></div>
             <Button className="w-full font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }} disabled={!form.value.trim()} onClick={add}>
-              <ShieldBan className="mr-1.5 h-4 w-4" /> Blacklist
+              <ShieldBan className="mr-1.5 h-4 w-4" /> {t('racc.blacklistCta')}
             </Button>
           </div>
         </div>
@@ -527,7 +531,7 @@ function Blacklist() {
             {!(data?.blacklist ?? []).length && (
               <div className="p-10 text-center">
                 <MessageCircle className="mx-auto h-8 w-8 text-zinc-300 dark:text-zinc-600" />
-                <p className="mt-2 text-sm text-zinc-400 dark:text-zinc-500">Blacklist empty — add patterns to auto-flag abuse.</p>
+                <p className="mt-2 text-sm text-zinc-400 dark:text-zinc-500">{t('racc.blEmpty')}</p>
               </div>
             )}
           </div>

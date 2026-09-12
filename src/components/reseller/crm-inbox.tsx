@@ -40,6 +40,7 @@ import {
   type CrmConversation,
   type CrmMessage,
 } from './crm-shared'
+import { useI18n } from '@/lib/i18n'
 
 type Thread = CrmConversation & { messages: CrmMessage[] }
 
@@ -78,6 +79,7 @@ export default function CrmInbox({
   onFocusConsumed?: () => void
 }) {
   const { user, currencyOf, lang } = useApp()
+  const { t } = useI18n()
   const platform = user.platform
 
   // ── data ───────────────────────────────
@@ -205,7 +207,7 @@ export default function CrmInbox({
     if (incoming) {
       const meta = channelMeta(String(e.channel ?? 'WHATSAPP'))
       toast({
-        title: `${e.contactName ?? 'Customer'} · ${meta.label}`,
+        title: t('crm.newChat').replace('{name}', String(e.contactName ?? t('crm.customer'))).replace('{channel}', meta.label),
         description: String(e.preview ?? '').slice(0, 110),
       })
     }
@@ -282,7 +284,7 @@ export default function CrmInbox({
     if (!selectedId || aiBusy) return
     setAiBusy(true)
     const res = await mutate(() => api.post('/api/reseller/crm/ai-reply', { conversationId: selectedId }), {
-      success: 'AI reply sent',
+      success: t('crm.aiReplySent'),
     })
     setAiBusy(false)
     if (res) {
@@ -310,7 +312,7 @@ export default function CrmInbox({
   function copyText(text: string, label: string) {
     navigator.clipboard
       ?.writeText(text)
-      .then(() => toast({ title: `${label} copied to clipboard` }))
+      .then(() => toast({ title: t('crm.copied').replace('{label}', label) }))
       .catch(() => {})
   }
 
@@ -338,16 +340,16 @@ export default function CrmInbox({
                 </span>
               )}
             </h2>
-            <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">{conversations.length} chats</span>
+            <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500">{t('crm.chatsCount').replace('{x}', String(conversations.length))}</span>
           </div>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search name or phone…"
+              placeholder={t('crm.searchConv')}
               className="h-9 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 pl-8 text-[13px]"
-              aria-label="Search conversations"
+              aria-label={t('crm.searchConvAria')}
             />
           </div>
           <div className="relative mt-2">
@@ -360,7 +362,7 @@ export default function CrmInbox({
                 )}
                 style={filter === 'ALL' ? { background: 'var(--brand)' } : undefined}
               >
-                All
+                {t('common.all')}
                 <span className={cn('rounded-full px-1.5 text-[9.5px] font-black', filter === 'ALL' ? 'bg-white/20 text-white' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400')}>
                   {conversations.length}
                 </span>
@@ -403,8 +405,8 @@ export default function CrmInbox({
           ) : filtered.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
               <MessagesSquare className="h-8 w-8 text-zinc-300 dark:text-zinc-600" />
-              <p className="text-[13px] font-semibold text-zinc-500 dark:text-zinc-400">No conversations found</p>
-              <p className="text-xs text-zinc-400 dark:text-zinc-500">New customer chats will appear here in real time.</p>
+              <p className="text-[13px] font-semibold text-zinc-500 dark:text-zinc-400">{t('crm.noConv')}</p>
+              <p className="text-xs text-zinc-400 dark:text-zinc-500">{t('crm.noConvSub')}</p>
             </div>
           ) : (
             <ul className="divide-y divide-zinc-100 dark:divide-zinc-800/70">
@@ -426,7 +428,7 @@ export default function CrmInbox({
                             'absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white',
                             convDot[c.status] ?? 'bg-zinc-400',
                           )}
-                          title={convDotLabel[c.status] ?? c.status}
+                          title={convDotLabel[c.status] ? t(convDotLabel[c.status]) : c.status}
                         />
                       </span>
                       <span className="min-w-0 flex-1">
@@ -475,9 +477,9 @@ export default function CrmInbox({
             <span className="flex h-16 w-16 items-center justify-center rounded-3xl bg-white dark:bg-zinc-900 shadow-sm">
               <MessageSquare className="h-7 w-7" style={{ color: 'var(--brand)' }} />
             </span>
-            <p className="text-[15px] font-bold text-zinc-700 dark:text-zinc-200">Your omnichannel inbox</p>
+            <p className="text-[15px] font-bold text-zinc-700 dark:text-zinc-200">{t('crm.inboxEmptyTitle')}</p>
             <p className="max-w-xs text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-              Select a conversation to reply, assign an agent or let the AI bot handle it.
+              {t('crm.inboxEmptySub')}
             </p>
           </div>
         ) : threadLoading && !threadData ? (
@@ -489,7 +491,7 @@ export default function CrmInbox({
           </div>
         ) : !conv ? (
           <div className="flex h-full items-center justify-center text-sm text-zinc-500 dark:text-zinc-400">
-            Conversation not found.
+            {t('crm.convNotFound')}
           </div>
         ) : (
           <>
@@ -499,7 +501,7 @@ export default function CrmInbox({
                 size="icon"
                 className="h-8 w-8 shrink-0 md:hidden"
                 onClick={() => setSelectedId(null)}
-                aria-label="Back to conversations"
+                aria-label={t('crm.backAria')}
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
@@ -518,7 +520,7 @@ export default function CrmInbox({
                 </p>
               </div>
               <Select value={conv.status} onValueChange={(v) => patchConv({ status: v })}>
-                <SelectTrigger size="sm" className="w-[86px] shrink-0 text-xs lg:w-[98px]" aria-label="Conversation status">
+                <SelectTrigger size="sm" className="w-[86px] shrink-0 text-xs lg:w-[98px]" aria-label={t('crm.statusAria')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -526,7 +528,7 @@ export default function CrmInbox({
                     <SelectItem key={s} value={s} className="text-xs">
                       <span className="flex items-center gap-1.5">
                         <span className={cn('h-1.5 w-1.5 rounded-full', convDot[s])} />
-                        {convDotLabel[s] ?? s}
+                        {convDotLabel[s] ? t(convDotLabel[s]) : s}
                       </span>
                     </SelectItem>
                   ))}
@@ -539,8 +541,8 @@ export default function CrmInbox({
                   if (e.key === 'Enter') saveAssign()
                 }}
                 onBlur={saveAssign}
-                placeholder="Assign to…"
-                aria-label="Assign conversation to teammate"
+                placeholder={t('crm.assignPh')}
+                aria-label={t('crm.assignAria')}
                 className="ml-auto hidden h-8 w-[110px] shrink text-xs 2xl:w-[130px] 2xl:shrink-0 xl:block"
               />
             </header>
@@ -566,7 +568,7 @@ export default function CrmInbox({
                         )}
                         title={formatDateTime(m.createdAt, lang)}
                       >
-                        {m.aiGenerated && <Sparkles className="h-3 w-3" aria-label="Generated by AI" />}
+                        {m.aiGenerated && <Sparkles className="h-3 w-3" aria-label={t('crm.aiGen')} />}
                         {hhmm(m.createdAt, lang)}
                       </span>
                     </div>
@@ -574,7 +576,7 @@ export default function CrmInbox({
                 )
               })}
               {msgs.length === 0 && (
-                <p className="pt-10 text-center text-xs text-zinc-400 dark:text-zinc-500">No messages yet — say hi 👋</p>
+                <p className="pt-10 text-center text-xs text-zinc-400 dark:text-zinc-500">{t('crm.noMessages')}</p>
               )}
             </div>
 
@@ -588,8 +590,8 @@ export default function CrmInbox({
                     send()
                   }
                 }}
-                placeholder="Type a message… (Enter to send)"
-                aria-label="Message"
+                placeholder={t('crm.typePh')}
+                aria-label={t('crm.msgAria')}
                 className="max-h-32 min-h-[42px] w-full resize-none rounded-xl bg-zinc-50 dark:bg-zinc-900/60 py-2.5 text-[13px]"
                 rows={1}
               />
@@ -601,20 +603,20 @@ export default function CrmInbox({
                       variant="outline"
                       size="icon"
                       className="h-9 w-9 shrink-0 rounded-xl"
-                      aria-label="Quick replies"
-                      title="Quick replies"
+                      aria-label={t('crm.quickReplies')}
+                      title={t('crm.quickReplies')}
                     >
                       <Zap className="h-4 w-4" style={{ color: 'var(--brand)' }} />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent align="start" side="top" className="w-80 p-2">
                     <p className="px-1.5 pb-1.5 text-[11px] font-bold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-                      Quick replies
+                      {t('crm.quickReplies')}
                     </p>
                     <div className={cn('max-h-72 space-y-1', scrollClasses)}>
                       {(qrData?.quickReplies ?? []).length === 0 && (
                         <p className="px-1.5 py-3 text-center text-xs text-zinc-400 dark:text-zinc-500">
-                          No quick replies yet — create them under Quick Replies.
+                          {t('crm.noQr')}
                         </p>
                       )}
                       {(qrData?.quickReplies ?? []).map((q) => (
@@ -645,26 +647,26 @@ export default function CrmInbox({
                   size="icon"
                   onClick={aiReply}
                   disabled={aiBusy || !hasActiveAgent}
-                  title={hasActiveAgent ? 'Generate an AI reply' : 'No active AI agent — create one under AI Agents'}
-                  aria-label="Generate an AI reply"
+                  title={hasActiveAgent ? t('crm.aiGenTitle') : t('crm.noAgent')}
+                  aria-label={t('crm.aiGenTitle')}
                   className="h-9 w-9 shrink-0 rounded-xl"
                 >
                   {aiBusy ? <Loader2 className="h-4 w-4 animate-spin text-violet-500" /> : <Sparkles className="h-4 w-4 text-violet-500" />}
                 </Button>
 
                 <span className="ml-auto hidden shrink-0 text-[11px] font-medium text-zinc-400 dark:text-zinc-500 md:block">
-                  Enter ↵ to send · Shift+Enter newline
+                  Enter ↵ {t('crm.enterHint')}
                 </span>
 
                 <Button
                   onClick={send}
                   disabled={sending || !draft.trim()}
-                  aria-label="Send message"
+                  aria-label={t('crm.sendAria')}
                   className="h-9 shrink-0 gap-1.5 rounded-xl px-3 text-[var(--on-brand)]"
                   style={{ background: 'var(--brand)' }}
                 >
                   {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizonal className="h-4 w-4" />}
-                  <span className="hidden text-xs font-bold sm:inline">Send</span>
+                  <span className="hidden text-xs font-bold sm:inline">{t('crm.send')}</span>
                 </Button>
               </div>
             </div>
@@ -681,49 +683,49 @@ export default function CrmInbox({
               <p className="text-[15px] font-extrabold text-zinc-900 dark:text-zinc-50">{conv.contact.name}</p>
               <p className="mt-0.5 flex items-center justify-center gap-1.5 text-[12px] text-zinc-500 dark:text-zinc-400">
                 <ChannelIcon type={conv.contact.channel} size={13} />
-                {channelMeta(conv.contact.channel).label} contact
+                {channelMeta(conv.contact.channel).label} {t('crm.contactWord')}
               </p>
             </div>
             <div className="flex items-center gap-1 rounded-full bg-zinc-50 dark:bg-zinc-900/60 px-2.5 py-1 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">
               <span className={cn('h-1.5 w-1.5 rounded-full', convDot[conv.status] ?? 'bg-zinc-400')} />
-              {convDotLabel[conv.status] ?? conv.status}
+              {convDotLabel[conv.status] ? t(convDotLabel[conv.status]) : conv.status}
             </div>
           </div>
 
           <div className="space-y-4 px-5 py-4 text-[13px]">
             <section>
-              <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Contact details</p>
+              <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">{t('crm.details')}</p>
               <ul className="space-y-1.5">
                 <li className="flex items-center justify-between gap-2">
-                  <span className="min-w-0 truncate text-zinc-600 dark:text-zinc-300">{conv.contact.phone ?? 'No phone'}</span>
+                  <span className="min-w-0 truncate text-zinc-600 dark:text-zinc-300">{conv.contact.phone ?? t('crm.noPhone')}</span>
                   {conv.contact.phone && (
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 shrink-0 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200"
-                      onClick={() => copyText(conv.contact.phone!, 'Phone')}
-                      aria-label="Copy phone"
+                      onClick={() => copyText(conv.contact.phone!, t('crm.phone'))}
+                      aria-label={t('crm.copyPhone')}
                     >
                       <Copy className="h-3.5 w-3.5" />
                     </Button>
                   )}
                 </li>
                 <li className="flex items-center justify-between gap-2">
-                  <span className="min-w-0 truncate text-zinc-600 dark:text-zinc-300">{conv.contact.email ?? 'No email'}</span>
+                  <span className="min-w-0 truncate text-zinc-600 dark:text-zinc-300">{conv.contact.email ?? t('crm.noEmail')}</span>
                   {conv.contact.email && (
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 shrink-0 text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-200"
-                      onClick={() => copyText(conv.contact.email!, 'Email')}
-                      aria-label="Copy email"
+                      onClick={() => copyText(conv.contact.email!, t('auth.email'))}
+                      aria-label={t('crm.copyEmail')}
                     >
                       <Copy className="h-3.5 w-3.5" />
                     </Button>
                   )}
                 </li>
                 <li className="flex items-center justify-between">
-                  <span className="text-zinc-400 dark:text-zinc-500">Last seen</span>
+                  <span className="text-zinc-400 dark:text-zinc-500">{t('crm.lastSeen')}</span>
                   <span className="font-semibold text-zinc-600 dark:text-zinc-300">
                     {conv.contact.lastSeen ? formatDateTime(conv.contact.lastSeen, lang) : '—'}
                   </span>
@@ -732,12 +734,12 @@ export default function CrmInbox({
             </section>
 
             <section>
-              <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Labels</p>
-              <LabelChips labelsJson={conv.contact.labels} labels={labels} empty="No labels yet" />
+              <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">{t('crm.labels')}</p>
+              <LabelChips labelsJson={conv.contact.labels} labels={labels} empty={t('crm.noLabels')} />
             </section>
 
             <section>
-              <p className="mb-1 text-[10.5px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Lifetime value</p>
+              <p className="mb-1 text-[10.5px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">{t('crm.ltv')}</p>
               <p className="text-xl font-extrabold tracking-tight" style={{ color: 'var(--brand)' }}>
                 {formatMoney(conv.contact.totalSpent ?? 0, currencyOf(platform?.currency ?? 'USD'), lang)}
               </p>
@@ -745,7 +747,7 @@ export default function CrmInbox({
 
             {conv.contact.notes && (
               <section>
-                <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Notes</p>
+                <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">{t('crm.notes')}</p>
                 <p className="whitespace-pre-wrap rounded-xl bg-amber-50 dark:bg-amber-950/40 p-2.5 text-[12px] leading-relaxed text-amber-900">
                   {conv.contact.notes}
                 </p>
@@ -758,7 +760,7 @@ export default function CrmInbox({
                 className="w-full rounded-xl text-xs font-bold"
                 onClick={() => onOpenInbox()}
               >
-                View orders
+                {t('crm.viewOrders')}
               </Button>
             )}
           </div>
