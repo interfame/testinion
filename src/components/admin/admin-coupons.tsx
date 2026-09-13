@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Super Admin — Promo coupons: create codes, credit wallets, track redemptions.
@@ -268,7 +269,7 @@ export function CouponsSection({ stats }: { stats?: AdminStats | null }) {
       <Dialog open={adding} onOpenChange={setAdding}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Ticket className="h-4 w-4" style={{ color: 'var(--brand)' }} /> {t('admin.cpn.dialogTitle')}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Ticket className="h-4 w-4" style={{ color: 'var(--brand-ink)' }} /> {t('admin.cpn.dialogTitle')}</DialogTitle>
             <DialogDescription>{t('admin.cpn.dialogDesc')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3.5">

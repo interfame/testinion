@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 // GrowthRush — client portal shared types (scope: src/components/client/**)
 
 import type { AppPlatform } from '@/components/shared/app-context'

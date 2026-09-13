@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 import { db } from '@/lib/db'
 import ZAI from 'z-ai-web-dev-sdk'
 import { emitToUsers } from '@/lib/realtime-server'

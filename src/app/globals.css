@@ -351,3 +351,13 @@
 .gr-check-pop {
   animation: gr-check-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
+
+/* Growthrush — brand "ink" tokens ---------------------------------------------
+   The brand accent (lime #c6e508) is unreadable as TEXT on white.
+   Panels inject `--brand-ink-light` (a darkened accent per theme) via
+   themeVars(); the semantic `--brand-ink` resolves to it in light mode
+   and back to the raw accent in dark mode (lime reads fine on dark). */
+:root { --brand-ink: #55650a; }
+.dark { --brand-ink: #c6e508; }
+[style*="--brand-ink-light"] { --brand-ink: var(--brand-ink-light, #55650a); }
+.dark [style*="--brand-ink-light"] { --brand-ink: var(--brand, #c6e508); }

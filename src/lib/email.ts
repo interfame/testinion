@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 import { randomInt } from 'crypto'
 import nodemailer from 'nodemailer'
 import { db } from '@/lib/db'

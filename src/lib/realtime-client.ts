@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // GrowthRush — realtime client bridge (socket.io)
@@ -91,4 +92,43 @@ export function useRealtimeEvents(types: string[] | null, handler: (e: RealtimeE
     window.addEventListener('gr:rt', onEvent)
     return () => window.removeEventListener('gr:rt', onEvent)
   }, [typesKey])
+}
+
+/**
+ * Server reachability fallback: pings `/api/health` every 30s ONLY while the
+ * realtime socket is down (e.g. self-hosted/Vercel deploys without the
+ * realtime service). Keeps the panel "Live" chip truthful — the platform is
+ * online even when websockets aren't available.
+ */
+export function useServerHealth(pollWhen: boolean) {
+  const [up, setUp] = useState(false)
+
+  useEffect(() => {
+    let dead = false
+    const ping = async () => {
+      try {
+        const res = await fetch('/api/health', { cache: 'no-store' })
+        if (!dead) setUp(res.ok)
+      } catch {
+        if (!dead) setUp(false)
+      }
+    }
+    if (pollWhen) {
+      void ping()
+      const timer = setInterval(ping, 30_000)
+      return () => {
+        dead = true
+        clearInterval(timer)
+      }
+    }
+    // Websocket is back — clear the fallback flag asynchronously (setState
+    // inside callbacks keeps the effect lint-clean).
+    const t = setTimeout(() => { if (!dead) setUp(false) }, 0)
+    return () => {
+      dead = true
+      clearTimeout(t)
+    }
+  }, [pollWhen])
+
+  return up
 }

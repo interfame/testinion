@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Client portal — Account (profile, security, preferences, API key, danger zone)
@@ -339,7 +340,7 @@ export default function AccountSection({ onLogout }: { onLogout: () => void }) {
             </div>
           </div>
           <p className="mt-3 flex items-start gap-1.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 p-3 text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-            <Gift className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: 'var(--brand)' }} />
+            <Gift className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: 'var(--brand-ink)' }} />
             {interpolate(t('account.refHow'), bonusLabel)}
           </p>
 
@@ -349,7 +350,7 @@ export default function AccountSection({ onLogout }: { onLogout: () => void }) {
               <div className="mb-3 flex items-center justify-between gap-2 px-0.5">
                 <div>
                   <p className="flex items-center gap-1.5 text-[13.5px] font-extrabold">
-                    <Medal className="h-4 w-4" style={{ color: 'var(--brand)' }} />
+                    <Medal className="h-4 w-4" style={{ color: 'var(--brand-ink)' }} />
                     {t('account.refSquad')}
                     <span className="rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-1.5 py-px text-[10.5px] font-black text-zinc-500 dark:text-zinc-400">{squad.length}</span>
                   </p>
@@ -366,7 +367,7 @@ export default function AccountSection({ onLogout }: { onLogout: () => void }) {
                         style={
                           f.bonusPaid && i < 3
                             ? { background: SQUAD_MEDALS[i], color: 'white' }
-                            : { background: 'color-mix(in srgb, var(--brand) 12%, transparent)', color: 'var(--brand)' }
+                            : { background: 'color-mix(in srgb, var(--brand) 12%, transparent)', color: 'var(--brand-ink)' }
                         }
                       >
                         {i + 1}

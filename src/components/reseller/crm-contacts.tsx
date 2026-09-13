@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Contacts — searchable CRM address book with labels, LTV and channel filter.

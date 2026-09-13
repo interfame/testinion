@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -104,7 +105,7 @@ function Referrals() {
         {/* Leaderboard */}
         <div className="rounded-2xl border bg-white dark:bg-zinc-900 lg:col-span-3">
           <div className="border-b p-4">
-            <p className="flex items-center gap-1.5 text-sm font-extrabold"><Trophy className="h-4 w-4" style={{ color: 'var(--brand)' }} /> {t('reseller.ref.topReferrers')}</p>
+            <p className="flex items-center gap-1.5 text-sm font-extrabold"><Trophy className="h-4 w-4" style={{ color: 'var(--brand-ink)' }} /> {t('reseller.ref.topReferrers')}</p>
             <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{t('reseller.ref.topReferrersSub')}</p>
           </div>
           <div className="divide-y">
@@ -318,7 +319,7 @@ function PlatformSettings({ onRefresh }: { onRefresh: () => void }) {
       <PanelPageHeader title={t('common.settings')} description={t('racc.settingsDesc')} />
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border bg-white dark:bg-zinc-900 p-6">
-          <p className="flex items-center gap-2 text-sm font-extrabold"><Settings2 className="h-4 w-4" style={{ color: 'var(--brand)' }} /> {t('racc.platformSection')}</p>
+          <p className="flex items-center gap-2 text-sm font-extrabold"><Settings2 className="h-4 w-4" style={{ color: 'var(--brand-ink)' }} /> {t('racc.platformSection')}</p>
           <div className="mt-4 space-y-3.5">
             <div className="space-y-1.5">
               <Label>{t('racc.platformName')}</Label>

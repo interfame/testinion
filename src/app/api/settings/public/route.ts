@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 import { db } from '@/lib/db'
 import { jsonOk, handle } from '@/lib/auth'
 
@@ -26,6 +27,9 @@ export async function GET(req: Request) {
         landing_theme: map.landing_theme || 'rush',
         landing_copy: map.landing_copy || '{}',
         subdomain_base: map.subdomain_base || 'growthrush.io',
+        // Admin-configurable root domain for subdomain storefronts (falls back
+        // to the subdomain base, then to the detected host)
+        root_domain: map.root_domain || map.subdomain_base || appHost || 'growthrush.io',
         // Real install domain detected from the request (falls back to the DB setting)
         app_host: appHost || map.subdomain_base || 'growthrush.io',
         conversion_mode: map.conversion_mode || 'manual',

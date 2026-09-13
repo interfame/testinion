@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Super Admin — Staff team for the master platform: roles, granular permissions, status.
@@ -127,7 +128,7 @@ export function StaffSection() {
                     </div>
                   </td>
                   <td className="px-3 py-3">
-                    <Badge className="rounded-full text-[10.5px] font-bold" style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)', color: 'var(--brand)' }}>{m.role}</Badge>
+                    <Badge className="rounded-full text-[10.5px] font-bold" style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)', color: 'var(--brand-ink)' }}>{m.role}</Badge>
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex flex-wrap gap-1">

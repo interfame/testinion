@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Super Admin — Plans: SaaS pricing CRUD with features, limits and portal designs.

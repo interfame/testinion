@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 import { useState } from 'react'
@@ -324,7 +325,7 @@ function Tickets() {
           {tickets.map((tk) => (
             <button key={tk.id} onClick={() => setOpenTicket(tk)} className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-zinc-50 dark:hover:bg-zinc-900/60">
               <span className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)' }}>
-                <LifeBuoy className="h-4 w-4" style={{ color: 'var(--brand)' }} />
+                <LifeBuoy className="h-4 w-4" style={{ color: 'var(--brand-ink)' }} />
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-bold">{tk.subject}</p>

@@ -1,3 +1,5 @@
+// Growthrush SMM Suite — © Growthrush. All rights reserved.
+
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireRole, handle, jsonError, jsonOk } from '@/lib/auth'
@@ -8,6 +10,11 @@ const ALLOWED_KEYS = [
   'engine_enabled', 'engine_speed', 'engine_partial_rate',
   'crm_chatter',
   'ref_enabled', 'ref_bonus_amount', 'ref_welcome_credit',
+  // SEO & analytics (Admin → Settings → SEO & Analytics)
+  'seo_title', 'seo_description', 'seo_keywords',
+  'ga_measurement_id', 'gsc_verification', 'bing_verification', 'robots_noindex',
+  // Root domain used for subdomain storefronts (slug.<root_domain>)
+  'root_domain',
 ] as const
 
 /** GET /api/admin/settings — all settings as a map + platform count */

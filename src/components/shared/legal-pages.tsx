@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // GrowthRush — Legal pages (Terms of Service, Privacy Policy, Liability &
@@ -94,7 +95,7 @@ export default function LegalPages({ doc }: { doc: LegalKey }) {
                 <ul className="mt-2.5 space-y-1.5">
                   {s.bullets.map((b, i) => (
                     <li key={i} className="flex items-start gap-2 text-[13.5px] leading-relaxed text-zinc-600 dark:text-zinc-300">
-                      <ChevronLeft className="mt-0.5 h-3.5 w-3.5 shrink-0 -scale-x-100" style={{ color: 'var(--brand)' }} />
+                      <ChevronLeft className="mt-0.5 h-3.5 w-3.5 shrink-0 -scale-x-100" style={{ color: 'var(--brand-ink)' }} />
                       <span>{b}</span>
                     </li>
                   ))}

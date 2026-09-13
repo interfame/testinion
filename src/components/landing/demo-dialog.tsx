@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Landing — "See live demo" interactive product tour.
@@ -132,7 +133,7 @@ export function DemoDialog({ open, onOpenChange }: { open: boolean; onOpenChange
         {/* Footer CTA */}
         <div className="flex flex-col items-center justify-between gap-3 border-t border-zinc-100 dark:border-zinc-800/70 bg-[#fbf7f4] dark:bg-zinc-950 px-5 py-4 sm:flex-row">
           <p className="flex items-center gap-1.5 text-[12px] font-semibold text-zinc-500 dark:text-zinc-400">
-            <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--brand)' }} />
+            <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--brand-ink)' }} />
             {t('landing.demo.live')}
           </p>
           <Button

@@ -1,11 +1,13 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Super Admin — Platform settings: brand, pricing, currency conversion and danger zone.
 
 import { useMemo, useState } from 'react'
-import { Save, RefreshCw, Link2, AlertTriangle, Cog, Zap, Turtle, Rocket, MessagesSquare, Gift, Database, CheckCircle2, XCircle, Wrench } from 'lucide-react'
+import { Save, RefreshCw, Link2, AlertTriangle, Cog, Zap, Turtle, Rocket, MessagesSquare, Gift, Database, CheckCircle2, XCircle, Wrench, Search, BarChart3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -22,6 +24,7 @@ const GENERAL_DEFAULTS = { brand_name: 'GrowthRush', brand_tagline: '', subdomai
 const PRICING_DEFAULTS = { external_api_price: '19.99', custom_domain_price: '9.99' }
 const ENGINE_DEFAULTS = { engine_enabled: '1', engine_speed: 'normal', engine_partial_rate: '0.07' }
 const REFERRAL_DEFAULTS = { ref_enabled: '1', ref_bonus_amount: '1', ref_welcome_credit: '1' }
+const SEO_DEFAULTS = { seo_title: '', seo_description: '', seo_keywords: '', ga_measurement_id: '', gsc_verification: '', bing_verification: '', robots_noindex: '0', root_domain: '' }
 
 const SPEEDS: { key: string; labelKey: Parameters<ReturnType<typeof useI18n>['t']>[0]; hintKey: Parameters<ReturnType<typeof useI18n>['t']>[0]; icon: typeof Cog }[] = [
   { key: 'slow', labelKey: 'admin.set.speedSlow', hintKey: 'admin.set.speedSlowHint', icon: Turtle },
@@ -40,6 +43,7 @@ export function SettingsSection() {
   const [conversionEdits, setConversionEdits] = useState<Record<string, string>>({})
   const [engineEdits, setEngineEdits] = useState<Partial<typeof ENGINE_DEFAULTS>>({})
   const [referralEdits, setReferralEdits] = useState<Partial<typeof REFERRAL_DEFAULTS>>({})
+  const [seoEdits, setSeoEdits] = useState<Partial<typeof SEO_DEFAULTS>>({})
   const [syncing, setSyncing] = useState(false)
 
   // Database schema health (detects missing columns/tables after deploys)
@@ -112,8 +116,22 @@ export function SettingsSection() {
     }
   }, [data, referralEdits])
 
+  const seo = useMemo(() => {
+    const s = data?.settings ?? {}
+    return {
+      seo_title: seoEdits.seo_title ?? s.seo_title ?? SEO_DEFAULTS.seo_title,
+      seo_description: seoEdits.seo_description ?? s.seo_description ?? SEO_DEFAULTS.seo_description,
+      seo_keywords: seoEdits.seo_keywords ?? s.seo_keywords ?? SEO_DEFAULTS.seo_keywords,
+      ga_measurement_id: seoEdits.ga_measurement_id ?? s.ga_measurement_id ?? SEO_DEFAULTS.ga_measurement_id,
+      gsc_verification: seoEdits.gsc_verification ?? s.gsc_verification ?? SEO_DEFAULTS.gsc_verification,
+      bing_verification: seoEdits.bing_verification ?? s.bing_verification ?? SEO_DEFAULTS.bing_verification,
+      robots_noindex: seoEdits.robots_noindex ?? s.robots_noindex ?? SEO_DEFAULTS.robots_noindex,
+      root_domain: seoEdits.root_domain ?? s.root_domain ?? SEO_DEFAULTS.root_domain,
+    }
+  }, [data, seoEdits])
+
   const saveGroup = async (
-    group: 'general' | 'pricing' | 'conversion' | 'engine' | 'chatter' | 'referral',
+    group: 'general' | 'pricing' | 'conversion' | 'engine' | 'chatter' | 'referral' | 'seo',
     payload: Record<string, string>,
     success: string,
   ) => {
@@ -123,6 +141,7 @@ export function SettingsSection() {
       else if (group === 'pricing') setPricingEdits({})
       else if (group === 'engine') setEngineEdits({})
       else if (group === 'referral') setReferralEdits({})
+      else if (group === 'seo') setSeoEdits({})
       else if (group === 'chatter') { /* value-only toggle, nothing to clear */ }
       else setConversionEdits({})
       refresh()
@@ -257,7 +276,7 @@ export function SettingsSection() {
                     )}
                   >
                     <span className="flex items-center gap-1.5 text-[12.5px] font-extrabold">
-                      <s.icon className={cn('h-3.5 w-3.5', active ? 'text-[var(--brand)]' : 'text-zinc-400 dark:text-zinc-500')} />
+                      <s.icon className={cn('h-3.5 w-3.5', active ? 'text-[var(--brand-ink)] dark:text-[var(--brand)]' : 'text-zinc-400 dark:text-zinc-500')} />
                       {t(s.labelKey)}
                     </span>
                     <span className="text-[10.5px] leading-snug text-zinc-400 dark:text-zinc-500">{t(s.hintKey)}</span>
@@ -380,6 +399,70 @@ export function SettingsSection() {
               <Save className="mr-1.5 h-4 w-4" /> {t('admin.set.saveRef')}
             </Button>
           </div>
+        </AdminCard>
+
+        {/* SEO & Analytics */}
+        <AdminCard
+          title={t('admin.set.seoTitle')}
+          description={t('admin.set.seoSub')}
+          className="xl:col-span-2"
+          actions={
+            <span className="flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 px-2.5 py-1 text-[11px] font-bold text-zinc-500 dark:text-zinc-400">
+              <BarChart3 className="h-3.5 w-3.5" />
+              {seo.ga_measurement_id ? 'GA4' : '—'}
+            </span>
+          }
+        >
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <div className="space-y-3">
+              <div>
+                <FieldLabel hint={t('admin.set.metaTitleHint')}>
+                  <span className="flex items-center gap-1.5"><Search className="h-3.5 w-3.5" /> {t('admin.set.metaTitle')}</span>
+                </FieldLabel>
+                <Input value={seo.seo_title} maxLength={70} onChange={(e) => setSeoEdits({ ...seoEdits, seo_title: e.target.value })} placeholder="GrowthRush — SMM Panel…" />
+              </div>
+              <div>
+                <FieldLabel hint={t('admin.set.metaDescHint')}>{t('admin.set.metaDesc')}</FieldLabel>
+                <Textarea rows={3} value={seo.seo_description} maxLength={180} onChange={(e) => setSeoEdits({ ...seoEdits, seo_description: e.target.value })} placeholder="Launch your own social media marketing business…" />
+              </div>
+              <div>
+                <FieldLabel hint={t('admin.set.keywordsHint')}>{t('admin.set.keywords')}</FieldLabel>
+                <Input value={seo.seo_keywords} onChange={(e) => setSeoEdits({ ...seoEdits, seo_keywords: e.target.value })} placeholder="smm panel, cheap followers, reseller" />
+              </div>
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-zinc-200 dark:border-zinc-800 p-3">
+                <div className="min-w-0">
+                  <p className="text-[13px] font-bold">{t('admin.set.noindex')}</p>
+                  <p className="text-[11.5px] text-zinc-500 dark:text-zinc-400">{t('admin.set.noindexHint')}</p>
+                </div>
+                <Switch
+                  checked={seo.robots_noindex === '1'}
+                  onCheckedChange={(v) => setSeoEdits({ ...seoEdits, robots_noindex: v ? '1' : '0' })}
+                  aria-label={t('admin.set.noindex')}
+                />
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <FieldLabel hint={t('admin.set.gaIdHint')}>{t('admin.set.gaId')}</FieldLabel>
+                <Input value={seo.ga_measurement_id} onChange={(e) => setSeoEdits({ ...seoEdits, ga_measurement_id: e.target.value })} placeholder="G-XXXXXXXXXX" className="font-mono text-[12.5px]" />
+              </div>
+              <div>
+                <FieldLabel hint={t('admin.set.gscHint')}>{t('admin.set.gsc')}</FieldLabel>
+                <Input value={seo.gsc_verification} onChange={(e) => setSeoEdits({ ...seoEdits, gsc_verification: e.target.value })} placeholder="google-site-verif… / code only" className="font-mono text-[12.5px]" />
+              </div>
+              <div>
+                <FieldLabel hint={t('admin.set.bingHint')}>{t('admin.set.bing')}</FieldLabel>
+                <Input value={seo.bing_verification} onChange={(e) => setSeoEdits({ ...seoEdits, bing_verification: e.target.value })} placeholder="Bing site verification code" className="font-mono text-[12.5px]" />
+              </div>
+              <div>
+                <FieldLabel hint={t('admin.set.rootDomainHint')}>{t('admin.set.rootDomain')}</FieldLabel>
+                <Input value={seo.root_domain} onChange={(e) => setSeoEdits({ ...seoEdits, root_domain: e.target.value })} placeholder="growthrush.io" className="font-mono text-[12.5px]" />
+              </div>
+            </div>
+          </div>
+          <Button onClick={() => saveGroup('seo', seo, t('admin.set.toastSeo'))} className="mt-4 h-9 rounded-full px-4 text-[13px] font-bold text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
+            <Save className="mr-1.5 h-4 w-4" /> {t('admin.set.saveSeo')}
+          </Button>
         </AdminCard>
 
         {/* Database health / one-click repair */}

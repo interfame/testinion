@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 /**
  * Minimal in-memory rate limiter (per process) for auth endpoints.
  *

@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 // GrowthRush — Master landing copy
 // The canonical landing/hero copy owned by the master platform. When a client
 // buys their own platform, this exact copy is cloned into their storefront so

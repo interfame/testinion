@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Super Admin — Overview dashboard: KPIs, revenue chart, orders donut, signups, quick actions.
@@ -209,7 +210,7 @@ export function DashboardSection({ stats, loading, onRefresh, onNavigate }: {
                   className="group flex items-center gap-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 px-3 py-2.5 text-left transition hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-900/60"
                 >
                   <span className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)' }}>
-                    <Icon className="h-3.5 w-3.5" style={{ color: 'var(--brand)' }} />
+                    <Icon className="h-3.5 w-3.5" style={{ color: 'var(--brand-ink)' }} />
                   </span>
                   <span className="text-[12.5px] font-semibold text-zinc-700 dark:text-zinc-200 group-hover:text-zinc-900 dark:group-hover:text-zinc-50">{t(a.labelKey)}</span>
                   <ArrowUpRight className="ml-auto h-3.5 w-3.5 text-zinc-300 dark:text-zinc-600 transition group-hover:text-zinc-500 dark:group-hover:text-zinc-400" />

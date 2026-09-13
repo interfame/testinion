@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // GrowthRush — Landing Studio: full-screen visual editor for the reseller's
@@ -153,12 +154,14 @@ type ConfirmState = {
   onConfirm: () => void
 }
 
+type LandingStudioPropsPlatform = { id: string; name: string; slug: string; theme: string; status?: string }
+
 /* ================================= STUDIO ================================== */
 
 export default function LandingStudio({ onBack }: { onBack: () => void }) {
   const app = useApp()
   const { t } = useI18n()
-  const platform = app.user.platform as { id: string; name: string; slug: string; theme: string } | undefined
+  const platform = app.user.platform as LandingStudioPropsPlatform | undefined
   const { data, loading } = useApi<LandingApiResponse>(platform ? '/api/reseller/landing' : null)
 
   if (!platform) {
@@ -181,7 +184,7 @@ export default function LandingStudio({ onBack }: { onBack: () => void }) {
 }
 
 function StudioBody({ platform, initial, onBack }: {
-  platform: { id: string; name: string; slug: string; theme: string }
+  platform: LandingStudioPropsPlatform
   initial: LandingApiResponse
   onBack: () => void
 }) {
@@ -341,7 +344,19 @@ function StudioBody({ platform, initial, onBack }: {
     }
   }
 
-  const viewLanding = () => window.dispatchEvent(new CustomEvent('gr:storefront', { detail: platform.slug }))
+  /** Opens the public storefront. Guarded: only a live platform (status
+      ACTIVE + slug) actually has a reachable public page. */
+  const viewLanding = () => {
+    if (!platform.slug) {
+      toast({ title: t('rst.noSlug'), variant: 'destructive' })
+      return
+    }
+    if (platform.status && platform.status !== 'ACTIVE') {
+      toast({ title: t('rst.storefrontNotLive'), description: t('rst.storefrontNotLiveDesc'), variant: 'destructive' })
+      return
+    }
+    window.dispatchEvent(new CustomEvent('gr:storefront', { detail: platform.slug }))
+  }
 
   const selectedSection = selectedId ? draft.sections.find((s) => s.id === selectedId) ?? null : null
   const selectedPage = selectedPageId ? draft.pages.find((p) => p.id === selectedPageId) ?? null : null

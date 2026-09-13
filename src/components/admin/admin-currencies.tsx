@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Super Admin — Currencies: inline rate editing, auto flags, FX API sync.
@@ -86,7 +87,7 @@ export function CurrenciesSection({ onNavigate }: { onNavigate: (key: string) =>
       <AdminCard title={t('admin.cur.source')} description={t('admin.cur.sourceSub')}>
         <div className="flex flex-wrap items-center gap-4 text-[13px]">
           <span className="inline-flex items-center gap-2 rounded-full border border-zinc-200 dark:border-zinc-800 px-3 py-1.5 font-semibold text-zinc-600 dark:text-zinc-300">
-            {t('admin.cur.mode')} <b className="capitalize" style={{ color: 'var(--brand)' }}>{mode}</b>
+            {t('admin.cur.mode')} <b className="capitalize" style={{ color: 'var(--brand-ink)' }}>{mode}</b>
           </span>
           {apiUrl ? (
             <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 px-3 py-1.5 text-zinc-500 dark:text-zinc-400">

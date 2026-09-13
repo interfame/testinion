@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // GrowthRush — global command palette (⌘K / Ctrl+K).

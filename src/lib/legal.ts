@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 // GrowthRush — Legal documents (Terms of Service, Privacy Policy, Liability &
 // Trademark Disclaimer). English is the canonical version; Spanish is provided
 // as a courtesy translation. Rendered by src/components/shared/legal-pages.tsx.

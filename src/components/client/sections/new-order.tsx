@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Client portal — New Order (core flow)
@@ -171,7 +172,7 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2.5">
               <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--brand)]/10">
-                {mode === 'single' ? <Zap className="h-4 w-4 text-[var(--brand)]" /> : <Layers className="h-4 w-4 text-[var(--brand)]" />}
+                {mode === 'single' ? <Zap className="h-4 w-4 text-[var(--brand-ink)] dark:text-[var(--brand)]" /> : <Layers className="h-4 w-4 text-[var(--brand-ink)] dark:text-[var(--brand)]" />}
               </span>
               <div>
                 <h2 className="text-[15px] font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">{mode === 'single' ? t('cord.orderDetails') : t('client.massOrder')}</h2>
@@ -286,7 +287,7 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
             {service?.type === 'CUSTOM_COMMENTS' && (
               <div className="space-y-1.5">
                 <Label htmlFor="order-comments" className="flex items-center gap-1.5">
-                  <MessageSquareText className="h-3.5 w-3.5 text-[var(--brand)]" /> {t('cord.customComments')}
+                  <MessageSquareText className="h-3.5 w-3.5 text-[var(--brand-ink)] dark:text-[var(--brand)]" /> {t('cord.customComments')}
                 </Label>
                 <Textarea
                   id="order-comments"
@@ -303,7 +304,7 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
               <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 p-3.5">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <Droplets className="h-4 w-4 text-[var(--brand)]" />
+                    <Droplets className="h-4 w-4 text-[var(--brand-ink)] dark:text-[var(--brand)]" />
                     <div>
                       <p className="text-[13px] font-bold text-zinc-900 dark:text-zinc-50">{t('cord.dripfeed')}</p>
                       <p className="text-[11.5px] text-zinc-500 dark:text-zinc-400">{t('cord.dripfeedDesc')}</p>
@@ -414,7 +415,7 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
                 )}
 
                 <div className="flex items-start gap-2 rounded-xl bg-[var(--brand)]/5 p-3 text-[12px] leading-relaxed text-zinc-600 dark:text-zinc-300">
-                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand)]" />
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand-ink)] dark:text-[var(--brand)]" />
                   {t('cord.warning')}
                 </div>
               </div>
@@ -424,14 +425,14 @@ export default function NewOrderSection({ seed, onRefresh, onGoOrders, onGoFunds
           <Card>
             <div className="flex items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--brand)]/10">
-                <BadgeCheck className="h-5 w-5 text-[var(--brand)]" />
+                <BadgeCheck className="h-5 w-5 text-[var(--brand-ink)] dark:text-[var(--brand)]" />
               </span>
               <div>
                 <p className="text-[13.5px] font-extrabold text-zinc-900 dark:text-zinc-50">{t('cord.questionsTitle')}</p>
                 <p className="mt-0.5 text-[12.5px] leading-snug text-zinc-500 dark:text-zinc-400">
                   {t('cord.questionsDesc')}
                 </p>
-                <Button variant="link" className="mt-1 h-auto p-0 text-[12.5px] font-bold text-[var(--brand)]" onClick={onGoTickets}>
+                <Button variant="link" className="mt-1 h-auto p-0 text-[12.5px] font-bold text-[var(--brand-ink)] dark:text-[var(--brand)]" onClick={onGoTickets}>
                   {t('cord.openTicket')}
                 </Button>
               </div>

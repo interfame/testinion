@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 import { createContext, useContext } from 'react'
@@ -76,6 +77,8 @@ export type PublicSettings = {
   landing_theme: string
   landing_copy: string
   subdomain_base: string
+  /** Admin-configurable root domain for subdomain storefronts (slug.<root>) */
+  root_domain?: string
   /** Domain this instance is actually installed on, detected from the request */
   app_host: string
   conversion_mode: string

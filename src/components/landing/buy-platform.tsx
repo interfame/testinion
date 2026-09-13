@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // GrowthRush — "Buy Platform" rental wizard (also reachable from the client panel).
@@ -193,7 +194,7 @@ export default function BuyPlatform() {
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:py-12">
         <div className="text-center">
-          <Badge className="mb-3 rounded-full px-3 py-1 text-[12px] font-bold border-0" style={{ background: 'color-mix(in srgb, var(--brand) 14%, transparent)', color: 'var(--brand)' }}>
+          <Badge className="mb-3 rounded-full px-3 py-1 text-[12px] font-bold border-0" style={{ background: 'color-mix(in srgb, var(--brand) 14%, transparent)', color: 'var(--brand-ink)' }}>
             <Crown className="mr-1 h-3 w-3" /> {t('buy.badge')}
           </Badge>
           <h1 className="text-3xl font-black tracking-tight sm:text-4xl">{t('buy.title')}</h1>
@@ -467,7 +468,7 @@ export default function BuyPlatform() {
                 <Button
                   key={a} variant="outline" size="sm"
                   className={`flex-1 font-bold ${topupAmount === String(a) ? 'border-current' : ''}`}
-                  style={topupAmount === String(a) ? { color: 'var(--brand)' } : undefined}
+                  style={topupAmount === String(a) ? { color: 'var(--brand-ink)' } : undefined}
                   onClick={() => setTopupAmount(String(a))}
                 >
                   ${a}

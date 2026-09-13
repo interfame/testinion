@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 /**
  * Round UP (ceil) to 2 decimals — the single pricing rounding used everywhere
  * markups and charges are computed. Keeps client-facing prices clean (2 decimals)

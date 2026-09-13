@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 /**
  * GrowthRush — Order Engine (cron worker)
  *

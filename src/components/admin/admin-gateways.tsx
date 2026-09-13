@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Super Admin — Payment gateways: the 6 platform providers (PayPal, MercadoPago,
@@ -161,7 +162,7 @@ export function GatewaysSection() {
               <div key={g.id} className={`flex flex-col rounded-2xl border bg-white dark:bg-zinc-900 p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition hover:shadow-md ${g.enabled ? 'border-zinc-200 dark:border-zinc-800' : 'border-dashed border-zinc-300 dark:border-zinc-700 opacity-75'}`}>
                 <div className="flex items-start justify-between">
                   <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)' }}>
-                    <Icon className="h-5 w-5" style={{ color: 'var(--brand)' }} />
+                    <Icon className="h-5 w-5" style={{ color: 'var(--brand-ink)' }} />
                   </span>
                   <div className="flex items-center gap-2">
                     <Switch checked={g.enabled} onCheckedChange={(c) => toggle(g, c)} aria-label={`Toggle ${g.name}`} />

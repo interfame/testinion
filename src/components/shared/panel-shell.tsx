@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 import { useState } from 'react'
@@ -12,7 +13,7 @@ import { themeVars, themeOf } from '@/lib/themes'
 import { NotificationBell } from '@/components/shared/notifications'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { CommandPalette, PaletteTrigger, PaletteTriggerMobile, type ServiceSearch } from '@/components/shared/command-palette'
-import { useRealtimeBridge } from '@/lib/realtime-client'
+import { useRealtimeBridge, useServerHealth } from '@/lib/realtime-client'
 import { useI18n, type DictKey } from '@/lib/i18n'
 
 /** Status enum → i18n key (falls back to the raw enum, underscores spaced) */
@@ -99,8 +100,12 @@ export function PanelShell({
   topbarLeft, topbarRight, user, children, onExit, onLogout, accent, serviceSearch,
 }: PanelShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
-  // ONE websocket per panel — events are mirrored onto window as `gr:rt`
-  const realtimeUp = useRealtimeBridge(user.id)
+  // ONE websocket per panel — events are mirrored onto window as `gr:rt`.
+  // When websockets aren't available (serverless/self-hosted), fall back to
+  // polling /api/health so the Live chip reflects real platform status.
+  const wsUp = useRealtimeBridge(user.id)
+  const serverUp = useServerHealth(!wsUp)
+  const realtimeUp = wsUp || serverUp
 
   const navList = (
     <nav className="gr-scroll-dark flex-1 overflow-y-auto px-3 py-4 space-y-5 scroll-smooth">
@@ -221,7 +226,7 @@ export function PanelShell({
           <div className="flex shrink-0 items-center gap-2">
             <PaletteTrigger />
             <PaletteTriggerMobile />
-            <LiveChip up={realtimeUp} />
+            <LiveChip up={realtimeUp} pulsing={wsUp} />
             <ThemeToggle className="h-9 w-9 rounded-full" />
             <NotificationBell userId={user.id} onNavigate={onSelect} />
             {topbarRight}
@@ -251,12 +256,17 @@ function ExitButton({ onExit }: { onExit: () => void }) {
   )
 }
 
-/** Tiny pill showing the realtime link state (websocket up = pulsing LIVE). */
-export function LiveChip({ up }: { up: boolean }) {
+/**
+ * Tiny pill showing the platform link state.
+ * - up + pulsing: realtime websocket connected (live events)
+ * - up, steady: server reachable via /api/health polling (no websocket service)
+ * - down: server unreachable
+ */
+export function LiveChip({ up, pulsing = false }: { up: boolean; pulsing?: boolean }) {
   const { t } = useI18n()
   return (
     <span
-      title={up ? t('shell.rtUp') : t('shell.rtDown')}
+      title={up ? (pulsing ? t('shell.rtUp') : t('shell.rtPolling')) : t('shell.rtDown')}
       className={cn(
         'hidden h-9 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-extrabold uppercase tracking-wide sm:flex',
         up
@@ -265,7 +275,7 @@ export function LiveChip({ up }: { up: boolean }) {
       )}
     >
       <span className="relative flex h-1.5 w-1.5">
-        {up && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
+        {up && pulsing && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />}
         <span className={cn('relative inline-flex h-1.5 w-1.5 rounded-full', up ? 'bg-emerald-500' : 'bg-zinc-400')} />
       </span>
       {up ? t('shell.live') : t('shell.off')}

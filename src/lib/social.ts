@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 // Brand icons (Simple Icons, CC0) served locally from /brand/*.svg
 // Rendered with CSS mask + official brand color.
 

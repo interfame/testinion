@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 import { useState } from 'react'
@@ -138,7 +139,7 @@ export default function ResellerContent({ section }: { section: string }) {
           {items.map((item) => (
             <div key={item.id} className="group flex items-start gap-3 rounded-2xl border bg-white dark:bg-zinc-900 p-4 transition hover:shadow-md">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)' }}>
-                <Icon className="h-4 w-4" style={{ color: 'var(--brand)' }} />
+                <Icon className="h-4 w-4" style={{ color: 'var(--brand-ink)' }} />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">

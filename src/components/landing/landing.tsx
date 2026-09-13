@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // GrowthRush — public marketing homepage (RedFamosa-style codecanyon sales page)
@@ -631,7 +632,7 @@ export default function Landing() {
                     )}
                     <span
                       className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110"
-                      style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)', color: 'var(--brand)' }}
+                      style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)', color: 'var(--brand-ink)' }}
                     >
                       <f.icon className="h-5 w-5" />
                     </span>
@@ -799,7 +800,7 @@ export default function Landing() {
                   <div key={a.title} className="flex items-start gap-3 rounded-2xl border border-zinc-200/80 bg-white dark:bg-zinc-900 p-4 shadow-sm">
                     <span
                       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-                      style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)', color: 'var(--brand)' }}
+                      style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)', color: 'var(--brand-ink)' }}
                     >
                       <a.icon className="h-4 w-4" />
                     </span>

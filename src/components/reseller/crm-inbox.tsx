@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Omnichannel inbox — flagship 3-pane CRM view (list / thread / contact context).
@@ -329,7 +330,7 @@ export default function CrmInbox({
         <div className="border-b border-zinc-100 dark:border-zinc-800/70 px-3 pb-2.5 pt-3">
           <div className="mb-2.5 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-[15px] font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
-              <Inbox className="h-4 w-4" style={{ color: 'var(--brand)' }} />
+              <Inbox className="h-4 w-4" style={{ color: 'var(--brand-ink)' }} />
               Inbox
               {!!totalUnread && (
                 <span
@@ -475,7 +476,7 @@ export default function CrmInbox({
         {!selectedId ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
             <span className="flex h-16 w-16 items-center justify-center rounded-3xl bg-white dark:bg-zinc-900 shadow-sm">
-              <MessageSquare className="h-7 w-7" style={{ color: 'var(--brand)' }} />
+              <MessageSquare className="h-7 w-7" style={{ color: 'var(--brand-ink)' }} />
             </span>
             <p className="text-[15px] font-bold text-zinc-700 dark:text-zinc-200">{t('crm.inboxEmptyTitle')}</p>
             <p className="max-w-xs text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
@@ -606,7 +607,7 @@ export default function CrmInbox({
                       aria-label={t('crm.quickReplies')}
                       title={t('crm.quickReplies')}
                     >
-                      <Zap className="h-4 w-4" style={{ color: 'var(--brand)' }} />
+                      <Zap className="h-4 w-4" style={{ color: 'var(--brand-ink)' }} />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent align="start" side="top" className="w-80 p-2">
@@ -740,7 +741,7 @@ export default function CrmInbox({
 
             <section>
               <p className="mb-1 text-[10.5px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">{t('crm.ltv')}</p>
-              <p className="text-xl font-extrabold tracking-tight" style={{ color: 'var(--brand)' }}>
+              <p className="text-xl font-extrabold tracking-tight" style={{ color: 'var(--brand-ink)' }}>
                 {formatMoney(conv.contact.totalSpent ?? 0, currencyOf(platform?.currency ?? 'USD'), lang)}
               </p>
             </section>

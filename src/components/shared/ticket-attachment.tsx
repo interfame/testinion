@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Shared ticket attachment bits: upload helper, pending-file chip and message attachment renderer.

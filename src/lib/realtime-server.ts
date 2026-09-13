@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 // GrowthRush — realtime server-side emitter (Next.js backend → realtime service)
 //
 // Fire-and-forget push to the socket.io mini-service (`mini-services/realtime`,

@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { handle, jsonOk } from '@/lib/auth'

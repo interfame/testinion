@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 // GrowthRush — Payment gateway provider registry
 // Shared by admin gateways, reseller "My Payment Methods" and checkout.
 // Each provider defines the API credential fields the store owner must configure.

@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Super Admin — Analytics: revenue bars, orders by category, top services, reseller leaderboard.
@@ -146,7 +147,7 @@ export function AnalyticsSection({ stats, loading }: { stats: AdminStats | null;
                   <tr key={s.id} className="transition hover:bg-zinc-50/60 dark:hover:bg-zinc-900/40">
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-2">
-                        <span className="flex h-5 w-5 items-center justify-center rounded-md text-[10px] font-extrabold" style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)', color: 'var(--brand)' }}>{i + 1}</span>
+                        <span className="flex h-5 w-5 items-center justify-center rounded-md text-[10px] font-extrabold" style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)', color: 'var(--brand-ink)' }}>{i + 1}</span>
                         <span className="max-w-[220px] truncate font-semibold text-zinc-800 dark:text-zinc-100">{s.name}</span>
                       </div>
                     </td>

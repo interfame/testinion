@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 import { useState } from 'react'
@@ -441,7 +442,7 @@ function PaymentGateways() {
             >
               <div className="flex items-start justify-between">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)' }}>
-                  <Icon className="h-5 w-5" style={{ color: 'var(--brand)' }} />
+                  <Icon className="h-5 w-5" style={{ color: 'var(--brand-ink)' }} />
                 </span>
                 {configured ? (
                   live
@@ -481,7 +482,7 @@ function PaymentGateways() {
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Plug className="h-4 w-4" style={{ color: 'var(--brand)' }} />
+              <Plug className="h-4 w-4" style={{ color: 'var(--brand-ink)' }} />
               {editing?.gateway ? t('rfin.updateNamed').replace('{name}', GATEWAY_PROVIDERS[editing.code]?.name ?? '') : t('rfin.connectNamed').replace('{name}', GATEWAY_PROVIDERS[editing?.code ?? '']?.name ?? '')}
             </DialogTitle>
             <DialogDescription>
@@ -1045,7 +1046,7 @@ function ResellerCoupons() {
           <p className="min-w-0 flex-1 text-[13px] text-zinc-600 dark:text-zinc-300">
             <span className="font-extrabold text-zinc-900 dark:text-zinc-50">Show it off.</span> Your storefront hero displays your best active coupon automatically — visitors see it before they sign up.
           </p>
-          <Badge variant="outline" className="shrink-0 rounded-full text-[10px] font-extrabold" style={{ borderColor: 'var(--brand)', color: 'var(--brand)' }}>
+          <Badge variant="outline" className="shrink-0 rounded-full text-[10px] font-extrabold" style={{ borderColor: 'var(--brand)', color: 'var(--brand-ink)' }}>
             {activeCount} LIVE
           </Badge>
         </div>
@@ -1150,7 +1151,7 @@ function ResellerCoupons() {
       <Dialog open={adding} onOpenChange={setAdding}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><TicketPercent className="h-4 w-4" style={{ color: 'var(--brand)' }} /> New promo coupon</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><TicketPercent className="h-4 w-4" style={{ color: 'var(--brand-ink)' }} /> New promo coupon</DialogTitle>
             <DialogDescription>Your clients redeem it once in Add funds → the bonus lands in their wallet instantly.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3.5">

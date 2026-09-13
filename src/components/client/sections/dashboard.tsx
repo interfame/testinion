@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Client portal — Dashboard
@@ -83,7 +84,7 @@ export default function DashboardSection({ onNavigate }: { onNavigate: (key: str
             <button
               onClick={() => onNavigate('new-order')}
               className="flex min-h-[40px] items-center gap-1.5 rounded-full bg-white dark:bg-zinc-900 px-4 py-2 text-[13px] font-extrabold shadow-md transition hover:opacity-90"
-              style={{ color: 'var(--brand)' }}
+              style={{ color: 'var(--brand-ink)' }}
             >
               <Plus className="h-4 w-4" /> {t('common.newOrder')}
             </button>
@@ -148,7 +149,7 @@ export default function DashboardSection({ onNavigate }: { onNavigate: (key: str
             >
               <div className="flex items-center justify-between">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand)]/10">
-                  <Icon className="h-4 w-4 text-[var(--brand)]" />
+                  <Icon className="h-4 w-4 text-[var(--brand-ink)] dark:text-[var(--brand)]" />
                 </span>
                 <ArrowRight className="h-4 w-4 text-zinc-300 dark:text-zinc-600 transition group-hover:translate-x-0.5 group-hover:text-[var(--brand)]" />
               </div>
@@ -191,7 +192,7 @@ export default function DashboardSection({ onNavigate }: { onNavigate: (key: str
             right={
               <button
                 onClick={() => onNavigate('orders')}
-                className="flex min-h-[32px] items-center gap-1 text-[12px] font-bold text-[var(--brand)] transition hover:opacity-80"
+                className="flex min-h-[32px] items-center gap-1 text-[12px] font-bold text-[var(--brand-ink)] dark:text-[var(--brand)] transition hover:opacity-80"
               >
                 {t('client.viewAll')} <ArrowRight className="h-3.5 w-3.5" />
               </button>
@@ -236,14 +237,14 @@ export default function DashboardSection({ onNavigate }: { onNavigate: (key: str
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--brand)]/10">
-              <Ticket className="h-5 w-5 text-[var(--brand)]" />
+              <Ticket className="h-5 w-5 text-[var(--brand-ink)] dark:text-[var(--brand)]" />
             </span>
             <div>
               <p className="text-[14px] font-extrabold text-zinc-900 dark:text-zinc-50">{t('client.needHelp')}</p>
               <p className="text-[12.5px] text-zinc-500 dark:text-zinc-400">{t('client.needHelpSub')}</p>
             </div>
           </div>
-          <BrandButton variant="outline" className="border-[var(--brand)] text-[var(--brand)] hover:bg-[var(--brand)]/10" onClick={() => onNavigate('tickets')}>
+          <BrandButton variant="outline" className="border-[var(--brand)] text-[var(--brand-ink)] dark:text-[var(--brand)] hover:bg-[var(--brand)]/10" onClick={() => onNavigate('tickets')}>
             {t('common.support')} <ArrowRight className="ml-1 h-3.5 w-3.5" />
           </BrandButton>
         </div>

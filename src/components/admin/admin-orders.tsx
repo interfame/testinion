@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Super Admin — Orders: status tabs, search, manual status control and details.
@@ -163,7 +164,7 @@ export function OrdersSection() {
                     )}
                   </td>
                   <td className="max-w-[180px] px-3 py-3">
-                    <a href={o.link} target="_blank" rel="noreferrer" className="flex items-center gap-1 truncate text-[12px] text-zinc-500 dark:text-zinc-400 underline-offset-2 hover:underline" style={{ color: 'var(--brand)' }}>
+                    <a href={o.link} target="_blank" rel="noreferrer" className="flex items-center gap-1 truncate text-[12px] text-zinc-500 dark:text-zinc-400 underline-offset-2 hover:underline" style={{ color: 'var(--brand-ink)' }}>
                       <span className="truncate">{o.link}</span> <ExternalLink className="h-3 w-3 shrink-0" />
                     </a>
                   </td>
@@ -217,7 +218,7 @@ export function OrdersSection() {
               </div>
             )}
             {viewing?.link && (
-              <a href={viewing.link} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 break-all text-[12.5px] underline-offset-2 hover:underline" style={{ color: 'var(--brand)' }}>
+              <a href={viewing.link} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 break-all text-[12.5px] underline-offset-2 hover:underline" style={{ color: 'var(--brand-ink)' }}>
                 {viewing.link} <ExternalLink className="h-3 w-3 shrink-0" />
               </a>
             )}

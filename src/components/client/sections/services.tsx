@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Client portal — Services price list
@@ -179,12 +180,12 @@ function ServiceRow({ s, m, expanded, onToggle, onOrder, badges }: {
         <td className="whitespace-nowrap px-4 py-2.5 font-mono text-[11.5px] text-zinc-400 dark:text-zinc-500 sm:px-6">{s.id.slice(0, 8)}</td>
         <td className="max-w-[280px] px-3 py-2.5">
           <button onClick={onToggle} className="group flex items-center gap-1.5 text-left" aria-expanded={expanded}>
-            <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-zinc-300 dark:text-zinc-600 transition-transform ${expanded ? 'rotate-180 text-[var(--brand)]' : 'group-hover:text-zinc-500 dark:group-hover:text-zinc-400'}`} />
+            <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-zinc-300 dark:text-zinc-600 transition-transform ${expanded ? 'rotate-180 text-[var(--brand-ink)] dark:text-[var(--brand)]' : 'group-hover:text-zinc-500 dark:group-hover:text-zinc-400'}`} />
             <span className="line-clamp-2 font-semibold text-zinc-900 dark:text-zinc-50">{s.name}</span>
             {s.featured && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
           </button>
         </td>
-        <td className="whitespace-nowrap px-3 py-2.5 text-right font-extrabold tabular-nums text-[var(--brand)]">{m(s.rate)}</td>
+        <td className="whitespace-nowrap px-3 py-2.5 text-right font-extrabold tabular-nums text-[var(--brand-ink)] dark:text-[var(--brand)]">{m(s.rate)}</td>
         <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-zinc-600 dark:text-zinc-300">
           {s.min.toLocaleString()} – {s.max.toLocaleString()}
         </td>

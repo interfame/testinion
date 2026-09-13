@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // GrowthRush client portal — small shared UI bits
@@ -33,7 +34,7 @@ export function CardHead({ title, sub, right, icon: Icon }: {
       <div className="flex items-center gap-2.5">
         {Icon && (
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--brand)]/10">
-            <Icon className="h-4 w-4 text-[var(--brand)]" />
+            <Icon className="h-4 w-4 text-[var(--brand-ink)] dark:text-[var(--brand)]" />
           </span>
         )}
         <div>
@@ -59,7 +60,7 @@ export function Pill({ children, tone = 'zinc', className }: {
     rose: 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-900/60',
     sky: 'bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-900/60',
     violet: 'bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-900/60',
-    brand: 'bg-[var(--brand)]/10 text-[var(--brand)] border-[var(--brand)]/25',
+    brand: 'bg-[var(--brand)]/10 text-[var(--brand-ink)] dark:text-[var(--brand)] border-[var(--brand)]/25',
   }
   return (
     <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide', tones[tone], className)}>
@@ -78,7 +79,7 @@ export function EmptyState({ icon: Icon, title, message, action }: {
   return (
     <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50/60 dark:bg-zinc-900/40 px-6 py-12 text-center">
       <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand)]/10">
-        <Icon className="h-5 w-5 text-[var(--brand)]" />
+        <Icon className="h-5 w-5 text-[var(--brand-ink)] dark:text-[var(--brand)]" />
       </span>
       <p className="text-[14px] font-bold text-zinc-800 dark:text-zinc-100">{title}</p>
       {message && <p className="max-w-sm text-[12.5px] text-zinc-500 dark:text-zinc-400">{message}</p>}

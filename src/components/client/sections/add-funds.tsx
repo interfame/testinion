@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Client portal — Add Funds (gateways, deposits, saved cards)
@@ -358,7 +359,7 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${selected ? 'bg-[var(--brand)]/15' : 'bg-zinc-100 dark:bg-zinc-800/60'}`}>
-                          <Icon className={`h-4 w-4 ${selected ? 'text-[var(--brand)]' : 'text-zinc-500 dark:text-zinc-400'}`} />
+                          <Icon className={`h-4 w-4 ${selected ? 'text-[var(--brand-ink)] dark:text-[var(--brand)]' : 'text-zinc-500 dark:text-zinc-400'}`} />
                         </span>
                         {selected && (
                           <span className="flex h-5 w-5 items-center justify-center rounded-full text-[var(--on-brand)]" style={{ background: 'var(--brand)' }}>
@@ -488,14 +489,14 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
             <span aria-hidden className="absolute -left-2.5 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full border border-dashed border-[var(--brand)]/45 bg-background" />
             <span aria-hidden className="absolute -right-2.5 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full border border-dashed border-[var(--brand)]/45 bg-background" />
             <div className="flex items-start gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--brand)]/12 text-[var(--brand)]">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--brand)]/12 text-[var(--brand-ink)] dark:text-[var(--brand)]">
                 <Ticket className="h-4.5 w-4.5" />
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-[13.5px] font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">{t('client.promo.title')}</p>
                 <p className="text-[11.5px] text-zinc-500 dark:text-zinc-400">{t('client.promo.sub')}</p>
               </div>
-              <Sparkles className="h-4 w-4 shrink-0 text-[var(--brand)]/60" />
+              <Sparkles className="h-4 w-4 shrink-0 text-[var(--brand-ink)]/60 dark:text-[var(--brand)]/60" />
             </div>
             {promoDone ? (
               <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/40 p-3">

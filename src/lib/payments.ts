@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 // GrowthRush — Real payment engine (server-only).
 //
 // Every deposit starts as PENDING — funds are NEVER credited instantly at

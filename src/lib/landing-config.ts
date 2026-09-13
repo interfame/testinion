@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 // GrowthRush — Landing Studio configuration model
 // A reseller's public storefront landing is 100% driven by this config:
 // section ORDER, section VISIBILITY and per-section COPY — plus the PAGES

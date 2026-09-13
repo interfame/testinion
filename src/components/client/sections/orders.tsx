@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Client portal — Orders history with actions
@@ -223,7 +224,7 @@ function OrderRow({ o, m, busy, expanded, onToggle, onCancel, onRefill }: {
         <td className="whitespace-nowrap px-4 py-3 text-zinc-500 dark:text-zinc-400">{formatDateTime(o.createdAt)}</td>
         <td className="whitespace-nowrap px-3 py-3">
           <button onClick={onToggle} className="group flex items-center gap-1 font-mono text-[11.5px] font-bold text-zinc-600 dark:text-zinc-300" aria-expanded={expanded}>
-            <ChevronDown className={`h-3 w-3 text-zinc-300 dark:text-zinc-600 transition-transform group-hover:text-[var(--brand)] ${expanded ? 'rotate-180 text-[var(--brand)]' : ''}`} />
+            <ChevronDown className={`h-3 w-3 text-zinc-300 dark:text-zinc-600 transition-transform group-hover:text-[var(--brand)] ${expanded ? 'rotate-180 text-[var(--brand-ink)] dark:text-[var(--brand)]' : ''}`} />
             #{o.id.slice(0, 8)}
           </button>
         </td>
@@ -232,7 +233,7 @@ function OrderRow({ o, m, busy, expanded, onToggle, onCancel, onRefill }: {
           {['IN_PROGRESS', 'PENDING'].includes(o.status) && (
             <div className="mt-1.5 flex items-center gap-2">
               <Progress value={deliveredPct(o)} className="h-1.5 w-24" />
-              <span className="text-[10px] font-bold tabular-nums text-[var(--brand)]">{Math.floor(deliveredPct(o))}%</span>
+              <span className="text-[10px] font-bold tabular-nums text-[var(--brand-ink)] dark:text-[var(--brand)]">{Math.floor(deliveredPct(o))}%</span>
             </div>
           )}
           {o.status === 'PARTIAL' && (
@@ -268,7 +269,7 @@ function OrderRow({ o, m, busy, expanded, onToggle, onCancel, onRefill }: {
             {onRefill && (
               <Button
                 size="icon" variant="outline"
-                className="h-8 w-8 min-h-[32px] rounded-full border-[var(--brand)]/30 text-[var(--brand)] hover:bg-[var(--brand)]/10"
+                className="h-8 w-8 min-h-[32px] rounded-full border-[var(--brand)]/30 text-[var(--brand-ink)] dark:text-[var(--brand)] hover:bg-[var(--brand)]/10"
                 disabled={busy}
                 onClick={onRefill}
                 aria-label={t('client.refill')}

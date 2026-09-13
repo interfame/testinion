@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // CRM Settings — away hours, away message and AI auto-assignment,
@@ -93,7 +94,7 @@ function SettingsForm({
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="flex items-center gap-2 text-[15px] font-bold text-zinc-900 dark:text-zinc-50">
-              <Settings className="h-4 w-4" style={{ color: 'var(--brand)' }} />
+              <Settings className="h-4 w-4" style={{ color: 'var(--brand-ink)' }} />
               {t('crm.autoAssign')}
             </h2>
             <p className="mt-1 max-w-md text-[12.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">

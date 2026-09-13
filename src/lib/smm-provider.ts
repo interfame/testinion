@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 // Standard SMM Panel API v2 client.
 // Providers expose a POST endpoint accepting {key, action}. Some accept JSON,
 // some form-encoded — we try JSON first and automatically fall back to

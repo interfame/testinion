@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // CRM Router — entry point for the reseller omnichannel CRM suite.

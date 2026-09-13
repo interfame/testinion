@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
@@ -88,7 +89,7 @@ function Margins({ data, refresh, onNavigate }: { data: CatalogData | null; refr
         <div className="rounded-2xl border bg-white dark:bg-zinc-900 p-6 lg:col-span-2">
           <div className="flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: 'color-mix(in srgb, var(--brand) 12%, white)' }}>
-              <Percent className="h-5 w-5" style={{ color: 'var(--brand)' }} />
+              <Percent className="h-5 w-5" style={{ color: 'var(--brand-ink)' }} />
             </span>
             <div>
               <p className="text-sm font-extrabold">{t('rcat.globalMargin')}</p>
@@ -779,6 +780,7 @@ function Providers({ data, refresh, onNavigate }: { data: CatalogData | null; re
   const [wizardStep, setWizardStep] = useState<0 | 1 | 2 | 3>(0)
   const [selectedCats, setSelectedCats] = useState<Set<string>>(new Set())
   const [catSearch, setCatSearch] = useState('')
+  const [svcSearch, setSvcSearch] = useState('')
   const [priceMode, setPriceMode] = useState<'percent' | 'manual'>('percent')
   const [percent, setPercent] = useState(20)
   const [manualPrices, setManualPrices] = useState<Record<string, string>>({})
@@ -802,6 +804,7 @@ function Providers({ data, refresh, onNavigate }: { data: CatalogData | null; re
   const openWizard = () => {
     setSelectedCats(new Set())
     setCatSearch('')
+    setSvcSearch('')
     setPriceMode('percent')
     setPercent(20)
     setManualPrices({})
@@ -868,6 +871,14 @@ function Providers({ data, refresh, onNavigate }: { data: CatalogData | null; re
   }
 
   const filledCount = selectedServices.filter((ms) => { const v = parseFloat(manualPrices[ms.id] ?? ''); return Number.isFinite(v) && v > 0 }).length
+
+  /** Manual-pricing list: filtered + capped so huge imports (1000+ services)
+      stay smooth and never overflow the dialog. Plain derivations (no hooks:
+      this component early-returns on loading, so useMemo would be illegal). */
+  const MANUAL_RENDER_CAP = 150
+  const svcQuery = svcSearch.trim().toLowerCase()
+  const filteredSvcList = svcQuery ? selectedServices.filter((ms) => ms.name.toLowerCase().includes(svcQuery)) : selectedServices
+  const shownSvcList = filteredSvcList.slice(0, MANUAL_RENDER_CAP)
 
   const runImport = async () => {
     if (!selectedMasterCats.length) return
@@ -1058,10 +1069,10 @@ function Providers({ data, refresh, onNavigate }: { data: CatalogData | null; re
 
       {/* ── Bulk import wizard ── */}
       <Dialog open={wizardStep > 0} onOpenChange={(o) => { if (!o) setWizardStep(0) }}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Rocket className="h-4 w-4" style={{ color: 'var(--brand)' }} /> {t('rcat.wizardTitle')}
+              <Rocket className="h-4 w-4" style={{ color: 'var(--brand-ink)' }} /> {t('rcat.wizardTitle')}
             </DialogTitle>
             <div className="flex items-center gap-1.5 pt-1">
               {[t('rcat.stepCategories'), t('rcat.stepPricing'), t('rcat.stepReview')].map((label, i) => (
@@ -1125,7 +1136,7 @@ function Providers({ data, refresh, onNavigate }: { data: CatalogData | null; re
                   className={`rounded-xl border p-3 text-left transition dark:bg-zinc-900 ${priceMode === 'percent' ? 'border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_8%,white)]' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/60'}`}
                 >
                   <div className="flex items-center gap-2">
-                    <Percent className="h-4 w-4" style={{ color: 'var(--brand)' }} />
+                    <Percent className="h-4 w-4" style={{ color: 'var(--brand-ink)' }} />
                     <span className="text-[13px] font-extrabold">{t('rcat.percentMode')}</span>
                   </div>
                   <p className="mt-1 text-[12px] text-zinc-500 dark:text-zinc-400">{t('rcat.percentModeDesc')}</p>
@@ -1137,7 +1148,7 @@ function Providers({ data, refresh, onNavigate }: { data: CatalogData | null; re
                   className={`rounded-xl border p-3 text-left transition dark:bg-zinc-900 ${priceMode === 'manual' ? 'border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_8%,white)]' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/60'}`}
                 >
                   <div className="flex items-center gap-2">
-                    <ListOrdered className="h-4 w-4" style={{ color: 'var(--brand)' }} />
+                    <ListOrdered className="h-4 w-4" style={{ color: 'var(--brand-ink)' }} />
                     <span className="text-[13px] font-extrabold">{t('rcat.manualMode')}</span>
                   </div>
                   <p className="mt-1 text-[12px] text-zinc-500 dark:text-zinc-400">{t('rcat.manualModeDesc')}</p>
@@ -1174,16 +1185,21 @@ function Providers({ data, refresh, onNavigate }: { data: CatalogData | null; re
                     <Button variant="outline" size="sm" className="font-bold" onClick={applyPercentToEmpty} disabled={importing}>{t('rcat.applyToEmpty')}</Button>
                     <span className="text-[12px] text-zinc-500 dark:text-zinc-400">{t('rcat.manualProgress').replace('{filled}', String(filledCount)).replace('{total}', String(selectedServices.length))}</span>
                   </div>
-                  <div className="gr-scroll max-h-96 divide-y overflow-y-auto rounded-xl border dark:bg-zinc-900">
-                    {selectedServices.map((ms) => (
+                  {/* Filter so 1000+ row imports stay usable and never break the layout */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
+                    <Input className="pl-9" placeholder={t('rcat.filterServices')} value={svcSearch} onChange={(e) => setSvcSearch(e.target.value)} disabled={importing} />
+                  </div>
+                  <div className="gr-scroll max-h-96 divide-y overflow-y-auto overflow-x-hidden rounded-xl border dark:bg-zinc-900">
+                    {shownSvcList.map((ms) => (
                       <div key={ms.id} className="flex items-center gap-3 px-3 py-2">
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-[13px] font-semibold">{ms.name}</p>
+                          <p className="truncate text-[13px] font-semibold" title={ms.name}>{ms.name}</p>
                           <p className="text-[11px] text-zinc-500 dark:text-zinc-400">{t('rcat.masterRate').replace('{money}', formatMoney(ms.rate, currency, lang))}</p>
                         </div>
                         <Input
                           type="number" step="0.01" min={0.01} inputMode="decimal"
-                          className="w-28 text-right" placeholder={round2(ms.rate * 1.2).toFixed(2)}
+                          className="w-28 shrink-0 text-right" placeholder={round2(ms.rate * 1.2).toFixed(2)}
                           value={manualPrices[ms.id] ?? ''}
                           onFocus={() => { if (!manualPrices[ms.id]) setManualPrices((p) => ({ ...p, [ms.id]: round2(ms.rate * 1.2).toFixed(2) })) }}
                           onChange={(e) => setManualPrices((p) => ({ ...p, [ms.id]: e.target.value }))}
@@ -1191,7 +1207,11 @@ function Providers({ data, refresh, onNavigate }: { data: CatalogData | null; re
                         />
                       </div>
                     ))}
+                    {shownSvcList.length === 0 && <p className="py-6 text-center text-[12px] text-zinc-400">{t('rcat.noCatsMatch').replace('{q}', svcSearch)}</p>}
                   </div>
+                  {filteredSvcList.length > MANUAL_RENDER_CAP && (
+                    <p className="text-[11.5px] text-zinc-400 dark:text-zinc-500">{t('rcat.showingOf').replace('{shown}', String(shownSvcList.length)).replace('{total}', String(filteredSvcList.length))}</p>
+                  )}
                 </div>
               )}
             </div>
@@ -1222,10 +1242,11 @@ function Providers({ data, refresh, onNavigate }: { data: CatalogData | null; re
                 <p className="text-[12px] font-bold text-zinc-500 dark:text-zinc-400">{t('rcat.pricePreview')}</p>
                 <div className="mt-2 space-y-1.5">
                   {selectedServices.slice(0, 3).map((ms) => (
-                    <div key={ms.id} className="flex items-center justify-between gap-3 text-[13px]">
-                      <span className="truncate">{ms.name}</span>
-                      <span className="shrink-0 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
-                        {formatMoney(ms.rate, currency, lang)} → <b className="text-[13px]" style={{ color: 'var(--brand)' }}>{formatMoney(finalPrice(ms), currency, lang)}</b>
+                    <div key={ms.id} className="flex min-w-0 items-center justify-between gap-3 text-[13px]">
+                      <span className="min-w-0 flex-1 truncate" title={ms.name}>{ms.name}</span>
+                      <span className="shrink-0 whitespace-nowrap text-right font-mono text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                        {formatMoney(ms.rate, currency, lang)} →{' '}
+                        <b className="text-[13px]" style={{ color: 'var(--brand-ink)' }}>{formatMoney(finalPrice(ms), currency, lang)}</b>
                       </span>
                     </div>
                   ))}

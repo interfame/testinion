@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 /**
  * Shared HTML sanitizer for user/admin-authored rich text (blog posts, CMS pages).
  *

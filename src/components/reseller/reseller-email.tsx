@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // GrowthRush — Reseller → Email (Task 2-d)
@@ -283,7 +284,7 @@ function TemplatesTab() {
               <p className="flex flex-wrap items-center gap-1.5 text-[13.5px] font-extrabold">
                 {tm.label}
                 <code className="rounded bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 text-[10px] font-bold text-zinc-500 dark:text-zinc-400">{tm.key}</code>
-                {tm.overridden && <Badge className="bg-[color-mix(in_srgb,var(--brand)_18%,transparent)] text-[10px] font-extrabold" style={{ color: 'var(--brand)' }}>CUSTOM</Badge>}
+                {tm.overridden && <Badge className="bg-[color-mix(in_srgb,var(--brand)_18%,transparent)] text-[10px] font-extrabold" style={{ color: 'var(--brand-ink)' }}>CUSTOM</Badge>}
               </p>
               <p className="truncate text-[12px] text-zinc-500 dark:text-zinc-400">{tm.subject}</p>
             </div>

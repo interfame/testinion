@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -228,7 +229,7 @@ function PortalDesigns({ onNavigate }: { onNavigate: (k: string) => void }) {
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Eye className="h-4 w-4" style={{ color: 'var(--brand)' }} />
+              <Eye className="h-4 w-4" style={{ color: 'var(--brand-ink)' }} />
               {tr('rweb.livePreview')}{previewTheme ? ` — ${THEMES[previewTheme as keyof typeof THEMES]?.name ?? previewTheme}` : ''}
             </DialogTitle>
             <DialogDescription>

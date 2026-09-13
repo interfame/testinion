@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Public blog — master (slug=null) or per-platform (slug=<platform slug>).
@@ -36,7 +37,7 @@ function Cover({ post }: { post: { cover: string | null; title: string } }) {
         className="absolute inset-0 opacity-[0.07] dark:opacity-[0.1]"
         style={{ backgroundImage: 'linear-gradient(rgba(0,0,0,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.5) 1px, transparent 1px)', backgroundSize: '28px 28px' }}
       />
-      <Newspaper className="relative h-10 w-10" style={{ color: 'var(--brand)' }} />
+      <Newspaper className="relative h-10 w-10" style={{ color: 'var(--brand-ink)' }} />
     </div>
   )
 }
@@ -93,7 +94,7 @@ function ListView({ data, loading, lang, onOpen }: {
         ) : !posts.length ? (
           <div className="mx-auto max-w-md rounded-3xl border border-dashed p-12 text-center">
             <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl" style={{ background: 'color-mix(in srgb, var(--brand) 12%, transparent)' }}>
-              <Newspaper className="h-6 w-6" style={{ color: 'var(--brand)' }} />
+              <Newspaper className="h-6 w-6" style={{ color: 'var(--brand-ink)' }} />
             </span>
             <h2 className="mt-4 text-lg font-extrabold">{t('rblog.noneTitle')}</h2>
             <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('rblog.noneDesc')}</p>
@@ -147,7 +148,7 @@ function ListView({ data, loading, lang, onOpen }: {
                       </span>
                       <h3 className="text-[15px] font-extrabold leading-snug">{p.title}</h3>
                       {p.excerpt && <p className="line-clamp-2 text-[12.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">{p.excerpt}</p>}
-                      <span className="mt-auto inline-flex items-center gap-1 pt-2 text-[12px] font-bold" style={{ color: 'var(--brand)' }}>
+                      <span className="mt-auto inline-flex items-center gap-1 pt-2 text-[12px] font-bold" style={{ color: 'var(--brand-ink)' }}>
                         {t('rblog.readMore')} <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                       </span>
                     </div>
@@ -215,7 +216,7 @@ function ArticleView({ platform, slug, lang, onBack }: {
       <div className="mt-4 flex flex-wrap items-center gap-3 text-[12.5px] text-zinc-500 dark:text-zinc-400">
         <span className="flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5" /> {formatDate(post.publishedAt, lang)}</span>
         <span className="h-1 w-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
-        <span className="font-bold" style={{ color: 'var(--brand)' }}>{data?.platform?.name ?? 'GrowthRush'}</span>
+        <span className="font-bold" style={{ color: 'var(--brand-ink)' }}>{data?.platform?.name ?? 'GrowthRush'}</span>
       </div>
 
       {post.cover && (

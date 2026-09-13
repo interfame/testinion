@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 import { useCallback, useState } from 'react'
@@ -389,7 +390,7 @@ function ResellerDashboard({ stats, loading, onNavigate }: { stats: Stats | null
         <div className="rounded-2xl border bg-white dark:bg-zinc-900">
           <div className="flex items-center justify-between border-b p-4">
             <p className="text-sm font-extrabold">{t('reseller.dash.latestOrders')}</p>
-            <Button variant="ghost" size="sm" className="text-[12px] font-bold" style={{ color: 'var(--brand)' }} onClick={() => onNavigate('orders')}>
+            <Button variant="ghost" size="sm" className="text-[12px] font-bold" style={{ color: 'var(--brand-ink)' }} onClick={() => onNavigate('orders')}>
               {t('reseller.dash.viewAll')} <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -417,14 +418,14 @@ function ResellerDashboard({ stats, loading, onNavigate }: { stats: Stats | null
         <div className="rounded-2xl border bg-white dark:bg-zinc-900">
           <div className="flex items-center justify-between border-b p-4">
             <p className="text-sm font-extrabold">{t('reseller.dash.topServices')}</p>
-            <Button variant="ghost" size="sm" className="text-[12px] font-bold" style={{ color: 'var(--brand)' }} onClick={() => onNavigate('services')}>
+            <Button variant="ghost" size="sm" className="text-[12px] font-bold" style={{ color: 'var(--brand-ink)' }} onClick={() => onNavigate('services')}>
               {t('reseller.dash.manage')} <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           </div>
           <div className="divide-y">
             {stats.topServices.map((svc, i) => (
               <div key={svc.name} className="flex items-center gap-3 px-4 py-3">
-                <span className="flex h-6 w-6 items-center justify-center rounded-md text-[11px] font-extrabold" style={{ background: 'color-mix(in srgb, var(--brand) 12%, white)', color: 'var(--brand)' }}>
+                <span className="flex h-6 w-6 items-center justify-center rounded-md text-[11px] font-extrabold" style={{ background: 'color-mix(in srgb, var(--brand) 12%, white)', color: 'var(--brand-ink)' }}>
                   {i + 1}
                 </span>
                 <p className="min-w-0 flex-1 truncate text-[13px] font-semibold">{svc.name}</p>

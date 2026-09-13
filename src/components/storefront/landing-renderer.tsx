@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // GrowthRush — config-driven storefront renderer (Landing Studio).
@@ -698,7 +699,7 @@ export function LandingRenderer({ platform, data, config, preview }: {
                   <div className="group relative h-full rounded-2xl border border-zinc-200/80 bg-white dark:bg-zinc-900 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[var(--brand)] hover:shadow-[0_16px_44px_-16px_var(--brand-glow)]">
                     <span
                       className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110"
-                      style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)', color: 'var(--brand)' }}
+                      style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)', color: 'var(--brand-ink)' }}
                     >
                       <Icon className="h-5 w-5" />
                     </span>
@@ -760,7 +761,7 @@ export function LandingRenderer({ platform, data, config, preview }: {
                     key={m}
                     className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-[13px] font-bold text-zinc-700 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-200"
                   >
-                    <Icon className="h-4 w-4" style={{ color: 'var(--brand)' }} /> {meta.label}
+                    <Icon className="h-4 w-4" style={{ color: 'var(--brand-ink)' }} /> {meta.label}
                   </span>
                 )
               })}

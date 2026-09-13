@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // CRM shared helpers, types and micro-components for the reseller CRM suite.

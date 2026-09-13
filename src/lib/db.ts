@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 import { PrismaClient } from '@prisma/client'
 
 const globalForPrisma = globalThis as unknown as {

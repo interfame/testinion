@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Client portal — Support tickets (list + chat thread)
@@ -123,7 +124,7 @@ export default function TicketsSection() {
                 className="flex w-full items-start gap-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition hover:-translate-y-0.5 hover:shadow-md"
               >
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--brand)]/10">
-                  <LifeBuoy className="h-4 w-4 text-[var(--brand)]" />
+                  <LifeBuoy className="h-4 w-4 text-[var(--brand-ink)] dark:text-[var(--brand)]" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -312,7 +313,7 @@ function TicketThread({ id, onBack }: { id: string; onBack: () => void }) {
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.isStaff ? 'justify-start' : 'justify-end'}`}>
                   <div className={`max-w-[85%] sm:max-w-[75%] ${msg.isStaff ? '' : 'items-end'}`}>
-                    <p className={`mb-1 text-[11px] font-bold ${msg.isStaff ? 'text-zinc-500 dark:text-zinc-400' : 'text-right text-[var(--brand)]'}`}>
+                    <p className={`mb-1 text-[11px] font-bold ${msg.isStaff ? 'text-zinc-500 dark:text-zinc-400' : 'text-right text-[var(--brand-ink)] dark:text-[var(--brand)]'}`}>
                       {msg.isStaff ? `🎧 ${msg.senderName}` : msg.senderName} · {formatDateTime(msg.createdAt)}
                     </p>
                     <div

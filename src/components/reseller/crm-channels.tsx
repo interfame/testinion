@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Channels — grid of omnichannel cards with simulated connect flow + setup guide.

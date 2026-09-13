@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // CRM Reports — KPIs, channel mix, status donut and 7-day contact growth.

@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 // Minimal SMM Panel API v2 mock — proves the import pipeline end-to-end.
 Bun.serve({
   port: 3099,

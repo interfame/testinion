@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 "use client"
 
 import { useToast } from "@/hooks/use-toast"

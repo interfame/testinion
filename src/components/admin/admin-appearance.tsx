@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Super Admin — Landing Studio: edit the public landing SECTION BY SECTION.
@@ -246,7 +247,7 @@ function StatsPreview({ copy, themeKey }: { copy: StudioCopy; themeKey: ThemeKey
 function HeadPreview({ eyebrow, title, sub, themeKey }: { eyebrow: string; title: string; sub?: string; themeKey: ThemeKey }) {
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-6 text-center dark:border-zinc-800 dark:bg-zinc-900" style={themeVars(themeKey)}>
-      <p className="mb-2 text-[10px] font-black uppercase tracking-[0.22em] text-[var(--brand)]">{eyebrow}</p>
+      <p className="mb-2 text-[10px] font-black uppercase tracking-[0.22em] text-[var(--brand-ink)] dark:text-[var(--brand)]">{eyebrow}</p>
       <p className="text-[17px] font-black tracking-tight text-zinc-900 dark:text-zinc-50">{title}</p>
       {sub ? <p className="mx-auto mt-2 max-w-sm text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">{sub}</p> : null}
     </div>

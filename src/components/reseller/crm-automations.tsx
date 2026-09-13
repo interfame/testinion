@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Automations — trigger → action rules that run without human input.
@@ -205,7 +206,7 @@ export default function CrmAutomations({ platformId }: { platformId: string }) {
                           key={i}
                           className="flex items-center gap-2 rounded-lg border border-zinc-100 dark:border-zinc-800/70 bg-zinc-50/60 dark:bg-zinc-900/40 px-2.5 py-1.5 text-[12px]"
                         >
-                          <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--brand)' }} />
+                          <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--brand-ink)' }} />
                           <span className="truncate font-semibold text-zinc-700 dark:text-zinc-200">
                             {t(ACTION_TYPES.find((at) => at.value === act.type)?.labelKey ?? 'crm.actSend')}
                           </span>

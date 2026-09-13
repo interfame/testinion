@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 // GrowthRush portal/landing themes — Nova, Horizon, Boost, Rush
 // Each theme drives: accent, gradient, dark tone, radius feel.
 
@@ -15,6 +16,10 @@ export type ThemePreset = {
   /** Text color that sits ON TOP of the accent background (WCAG contrast).
    *  Light accents like the lime #c6e508 MUST use black text. */
   onBrand: string
+  /** Darkened accent used as TEXT on light (white) surfaces — the raw accent
+   *  is often too light to read on white (lime on white ≈ invisible).
+   *  Dark mode keeps using --brand, so --brand-ink only targets light mode. */
+  ink: string
 }
 
 /**
@@ -44,6 +49,7 @@ export const THEMES: Record<ThemeKey, ThemePreset> = {
     pattern: 'grid',
     preview: ['#c6e508', '#15180a'],
     onBrand: '#0b0d03', // lime is light — black text always
+    ink: '#55650a', // dark olive — lime darkened for white surfaces
   },
   nova: {
     key: 'nova',
@@ -55,6 +61,7 @@ export const THEMES: Record<ThemeKey, ThemePreset> = {
     pattern: 'rings',
     preview: ['#7c3aed', '#16121f'],
     onBrand: '#ffffff',
+    ink: '#6d28d9',
   },
   horizon: {
     key: 'horizon',
@@ -66,6 +73,7 @@ export const THEMES: Record<ThemeKey, ThemePreset> = {
     pattern: 'waves',
     preview: ['#0d9488', '#0c1717'],
     onBrand: '#ffffff',
+    ink: '#0f766e',
   },
   boost: {
     key: 'boost',
@@ -77,6 +85,7 @@ export const THEMES: Record<ThemeKey, ThemePreset> = {
     pattern: 'grid',
     preview: ['#ea580c', '#1a120c'],
     onBrand: '#ffffff',
+    ink: '#c2410c',
   },
 }
 
@@ -94,5 +103,9 @@ export function themeVars(key?: string | null): React.CSSProperties {
     ['--brand-dark' as string]: t.dark,
     ['--brand-glow' as string]: t.glow,
     ['--on-brand' as string]: t.onBrand,
+    // AA-readable accent for TEXT on white cards. Declared as a "raw" var —
+    // globals.css maps it onto --brand-ink per color-scheme (dark mode flips
+    // back to the raw accent, which reads fine on dark backgrounds).
+    ['--brand-ink-light' as string]: t.ink,
   }
 }

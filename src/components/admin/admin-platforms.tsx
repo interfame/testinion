@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Super Admin — Reseller platforms: status moderation + custom domain approvals.
@@ -94,7 +95,7 @@ export function PlatformsSection() {
                         <p className="text-[11.5px] text-zinc-400 dark:text-zinc-500">{p.owner?.email}</p>
                       </td>
                       <td className="px-3 py-3">
-                        <Badge className="rounded-full text-[10.5px] font-bold" style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)', color: 'var(--brand)' }}>
+                        <Badge className="rounded-full text-[10.5px] font-bold" style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)', color: 'var(--brand-ink)' }}>
                           {p.plan?.name}
                         </Badge>
                         <p className="mt-0.5 text-[11px] text-zinc-400 dark:text-zinc-500"><Money usd={p.plan?.monthlyPrice ?? 0} />/mo</p>
@@ -154,7 +155,7 @@ export function PlatformsSection() {
                         {p.domainType === 'CUSTOM' && p.customDomain ? p.customDomain : `${p.slug}.${base}`}
                       </p>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <Badge className="rounded-full text-[10px] font-bold" style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)', color: 'var(--brand)' }}>{p.plan?.name}</Badge>
+                        <Badge className="rounded-full text-[10px] font-bold" style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)', color: 'var(--brand-ink)' }}>{p.plan?.name}</Badge>
                         <StatusBadge status={p.status} />
                         {p.domainType === 'CUSTOM' && <StatusBadge status={p.domainStatus} />}
                       </div>

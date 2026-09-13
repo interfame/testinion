@@ -1,3 +1,4 @@
+// Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
 // Super Admin — Upstream providers: API endpoints, markup and balances.
@@ -231,7 +232,7 @@ export function ProvidersSection() {
                     </span>
                   </td>
                   <td className="px-3 py-3 text-right">
-                    <Badge className="rounded-full text-[10.5px] font-bold" style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)', color: 'var(--brand)' }}>
+                    <Badge className="rounded-full text-[10.5px] font-bold" style={{ background: 'color-mix(in srgb, var(--brand) 10%, white)', color: 'var(--brand-ink)' }}>
                       +{p.markup}%
                     </Badge>
                   </td>
