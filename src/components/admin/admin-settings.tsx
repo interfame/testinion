@@ -3,7 +3,7 @@
 // Super Admin — Platform settings: brand, pricing, currency conversion and danger zone.
 
 import { useMemo, useState } from 'react'
-import { Save, RefreshCw, Link2, AlertTriangle, Cog, Zap, Turtle, Rocket, MessagesSquare, Gift } from 'lucide-react'
+import { Save, RefreshCw, Link2, AlertTriangle, Cog, Zap, Turtle, Rocket, MessagesSquare, Gift, Database, CheckCircle2, XCircle, Wrench } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
 import { PanelPageHeader } from '@/components/shared/panel-shell'
 import { useApp } from '@/components/shared/app-context'
+import { toast } from '@/hooks/use-toast'
 import { api, mutate, useApi } from '@/lib/api'
 import { useI18n } from '@/lib/i18n'
 import { AdminCard, FieldLabel } from './admin-ui'
@@ -40,6 +41,31 @@ export function SettingsSection() {
   const [engineEdits, setEngineEdits] = useState<Partial<typeof ENGINE_DEFAULTS>>({})
   const [referralEdits, setReferralEdits] = useState<Partial<typeof REFERRAL_DEFAULTS>>({})
   const [syncing, setSyncing] = useState(false)
+
+  // Database schema health (detects missing columns/tables after deploys)
+  const dbCheck = useApi<{ ok: boolean; missing: string[]; managed?: boolean }>('/api/admin/system/db')
+  const [repairing, setRepairing] = useState(false)
+
+  const runRepair = async () => {
+    setRepairing(true)
+    try {
+      const res = await api.post<{ ok: boolean; repaired: number; failed: { label: string; error?: string }[]; missing: string[] }>(
+        '/api/admin/system/db',
+        {},
+      )
+      if (res.ok) {
+        toast({ title: `Database repaired — ${res.repaired} checks applied. Schema is now up to date.` })
+      } else {
+        const detail = res.failed?.map((f) => `${f.label}: ${f.error ?? 'failed'}`).join(' · ') || res.missing?.join(', ')
+        toast({ title: 'Repair finished with issues', description: detail || 'Some items could not be applied', variant: 'destructive' })
+      }
+      dbCheck.refresh()
+    } catch (e) {
+      toast({ title: e instanceof Error ? e.message : 'Repair failed', variant: 'destructive' })
+    } finally {
+      setRepairing(false)
+    }
+  }
 
   const general = useMemo(() => {
     const s = data?.settings ?? {}
@@ -353,6 +379,46 @@ export function SettingsSection() {
             >
               <Save className="mr-1.5 h-4 w-4" /> {t('admin.set.saveRef')}
             </Button>
+          </div>
+        </AdminCard>
+
+        {/* Database health / one-click repair */}
+        <AdminCard
+          title="Database"
+          description="Schema health check — after a deploy the code may expect new columns your database does not have yet (that makes imports fail with “Internal server error”). Repair adds whatever is missing without touching your data."
+          className="xl:col-span-2"
+        >
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed px-4 py-3">
+            <Database className="h-5 w-5 shrink-0 text-zinc-400 dark:text-zinc-500" />
+            {dbCheck.loading && !dbCheck.data ? (
+              <Skeleton className="h-5 w-64" />
+            ) : dbCheck.data?.ok ? (
+              <span className="flex items-center gap-1.5 text-[13px] font-bold text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="h-4 w-4" />
+                Schema is up to date — everything the platform needs exists.
+              </span>
+            ) : (
+              <>
+                <span className="flex min-w-0 flex-1 items-start gap-1.5 text-[13px] font-bold text-amber-600 dark:text-amber-400">
+                  <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span className="min-w-0">
+                    Missing in your database:
+                    <span className="mt-0.5 block font-mono text-[11.5px] font-semibold text-zinc-500 dark:text-zinc-400">
+                      {(dbCheck.data?.missing ?? []).join(' · ') || 'unknown'}
+                    </span>
+                  </span>
+                </span>
+                <Button
+                  onClick={runRepair}
+                  disabled={repairing}
+                  className="h-9 shrink-0 rounded-full px-4 text-[13px] font-bold text-[var(--on-brand)]"
+                  style={{ background: 'var(--brand)' }}
+                >
+                  {repairing ? <RefreshCw className="mr-1.5 h-4 w-4 animate-spin" /> : <Wrench className="mr-1.5 h-4 w-4" />}
+                  {repairing ? 'Repairing…' : 'Repair database'}
+                </Button>
+              </>
+            )}
           </div>
         </AdminCard>
 

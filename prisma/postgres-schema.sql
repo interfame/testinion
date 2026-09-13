@@ -693,7 +693,7 @@ DO $$ BEGIN ALTER TABLE "LandingLead" ADD CONSTRAINT "LandingLead_platformId_fke
 -- IDEMPOTENT UPGRADE (safe to re-run on an existing database — e.g. Neon)
 -- Adds tables/columns introduced after the first install. Existing data is kept.
 -- ─────────────────────────────────────────────────────────────────────────────
-ALTER TABLE "Service" ADD COLUMN IF NOT EXISTS "providerRate" DOUBLE PRECISION;
+ALTER TABLE "Service" ADD COLUMN IF NOT EXISTS "cost" DOUBLE PRECISION;
 ALTER TABLE "TicketMessage" ADD COLUMN IF NOT EXISTS "fileUrl" TEXT;
 ALTER TABLE "TicketMessage" ADD COLUMN IF NOT EXISTS "fileName" TEXT;
 ALTER TABLE "TicketMessage" ADD COLUMN IF NOT EXISTS "fileMime" TEXT;

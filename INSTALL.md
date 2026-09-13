@@ -19,6 +19,13 @@ No necesitas escribir ni un comando: todo se hace desde el navegador.
 3. Igual con **`prisma/seed.postgres.sql`** → copiar → pegar → **Run**. ✔️ Carga el catálogo (172 servicios, 60 categorías), planes, pasarelas, usuarios demo, FAQs, blog, CRM de ejemplo y ajustes.
 4. Comprueba en la barra lateral de Neon (*Tables*) que las tablas existen.
 
+**1.b. Si tu base de datos ya existía de una instalación anterior (upgrades):**
+
+Cuando un deploy nuevo espera columnas/tablas que tu base de datos no tiene (síntoma: *"Internal server error"* al importar servicios o crear servicios), tienes dos salidas:
+
+- **Opción fácil (recomendada):** entra a tu panel → **Admin → Settings → Database** → verás lo que falta y un botón **“Repair database”** que lo arregla con un clic (solo añade lo que falta, nunca borra datos).
+- **Opción SQL:** abre en GitHub **`prisma/postgres-upgrade.sql`** → *Copy raw file* → pégalo en el SQL Editor de Neon → **Run**. Es 100% inocuo (idempotente): puedes ejecutarlo las veces que quieras y conserva todos tus datos.
+
 **2. Desplegar en Vercel (importar y 2 variables):**
 
 1. Entra en [vercel.com/new](https://vercel.com/new) → **Import** el repositorio.
