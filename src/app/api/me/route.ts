@@ -2,6 +2,7 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk, hashPassword, verifyPassword, generateApiKey } from '@/lib/auth'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 
 export async function GET() {
   return handle(async () => {
@@ -15,7 +16,7 @@ export async function GET() {
       try {
         user = await db.user.update({ where: { id: user.id }, data: { refCode: code } })
       } catch {
-        /* unique collision (virtually impossible) — retry once with a suffix */
+        // Collision (virtually impossible) — retry once with a suffix
         user = await db.user.update({
           where: { id: user.id },
           data: { refCode: `${code}${Math.floor(Math.random() * 90 + 10)}` },
@@ -24,10 +25,8 @@ export async function GET() {
     }
 
     const [platform, storefront, referralCount, referralEarned] = await Promise.all([
-      db.platform.findUnique({
-        where: { ownerId: user.id },
-        include: { plan: true },
-      }),
+      // Schema-drift safe: never fails, even on a database missing new columns
+      resilientPlatformForOwner(user.id),
       // The reseller storefront this user belongs to (for white-label branding)
       user.platformId
         ? db.platform.findUnique({
@@ -87,7 +86,8 @@ export async function PATCH(req: NextRequest) {
     const fresh = await db.user.findUnique({ where: { id: session.id } })
     if (!fresh) return jsonError('User not found', 404)
     const [platform, storefront] = await Promise.all([
-      db.platform.findUnique({ where: { ownerId: session.id }, include: { plan: true } }),
+      // Schema-drift safe (same helper as GET)
+      resilientPlatformForOwner(session.id),
       fresh.platformId
         ? db.platform.findUnique({
             where: { id: fresh.platformId },

@@ -17,6 +17,7 @@ import BuyPlatform from '@/components/landing/buy-platform'
 import StorefrontPublic from '@/components/storefront/storefront-public'
 import LegalPages, { isLegalDoc } from '@/components/shared/legal-pages'
 import BlogView from '@/components/shared/blog-view'
+import { ErrorBoundary } from '@/components/shared/error-boundary'
 import type { LegalKey } from '@/lib/legal'
 import { AppContext, type AppUser, type PublicSettings } from '@/components/shared/app-context'
 import { api } from '@/lib/api'
@@ -69,7 +70,7 @@ export default function AppRoot({ initialStorefront }: { initialStorefront?: str
     } catch { /* ignore */ }
   }, [])
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (retries = 1): Promise<AppUser | null> => {
     try {
       const d = await api.get<MeResponse>('/api/me')
       const u = d.user as AppUser
@@ -77,6 +78,11 @@ export default function AppRoot({ initialStorefront }: { initialStorefront?: str
       if (u.language && ['en', 'es', 'pt'].includes(u.language)) setLangState(u.language as Lang)
       return u
     } catch {
+      // A single automatic retry — deploys/cold starts can fail transiently
+      if (retries > 0) {
+        await new Promise((r) => setTimeout(r, 800))
+        return refresh(retries - 1)
+      }
       setUser(null)
       return null
     }
@@ -265,6 +271,12 @@ export default function AppRoot({ initialStorefront }: { initialStorefront?: str
       const u = await refresh()
       setAuthOpen(null)
       setForm({ name: '', email: '', password: '', currency: 'USD' })
+      if (!u) {
+        // Login worked but the session could not be loaded — tell the user
+        // instead of silently staying on the landing page.
+        toast({ title: translate(lang, 'auth.sessionLoadFailed') , variant: 'destructive' })
+        return
+      }
       const finalLang = u?.language && ['en', 'es', 'pt'].includes(u.language) ? (u.language as Lang) : lang
       toast({ title: translate(finalLang, mode === 'login' ? 'auth.welcomeBackToast' : 'auth.accountCreatedToast') })
       if (u?.role === 'SUPER_ADMIN') setView('admin')
@@ -341,16 +353,18 @@ export default function AppRoot({ initialStorefront }: { initialStorefront?: str
     <I18nContext.Provider value={i18nState}>
       <AppContext.Provider value={appState}>
         <div className="flex min-h-screen flex-col bg-[#fbf7f4] dark:bg-zinc-950">
-          {view === 'landing' && <Landing />}
-          {view === 'buy' && <BuyPlatform />}
-          {view === 'storefront' && <StorefrontPublic />}
-          {view === 'legal' && <LegalPages doc={legalDoc} />}
-          {view === 'blog' && <BlogView slug={blogScope?.slug ?? null} />}
-          {view === 'client' && user && (
-            <ClientPanel user={user} onRefresh={refresh} onLogout={logout} />
-          )}
-          {view === 'reseller' && user && <ResellerPanel user={user} onRefresh={refresh} onLogout={logout} />}
-          {view === 'admin' && user && <AdminPanel user={user} onRefresh={refresh} onLogout={logout} />}
+          <ErrorBoundary>
+            {view === 'landing' && <Landing />}
+            {view === 'buy' && <BuyPlatform />}
+            {view === 'storefront' && <StorefrontPublic />}
+            {view === 'legal' && <LegalPages doc={legalDoc} />}
+            {view === 'blog' && <BlogView slug={blogScope?.slug ?? null} />}
+            {view === 'client' && user && (
+              <ClientPanel user={user} onRefresh={refresh} onLogout={logout} />
+            )}
+            {view === 'reseller' && user && <ResellerPanel user={user} onRefresh={refresh} onLogout={logout} />}
+            {view === 'admin' && user && <AdminPanel user={user} onRefresh={refresh} onLogout={logout} />}
+          </ErrorBoundary>
 
           {/* Auth dialog */}
           <Dialog open={authOpen !== null} onOpenChange={(o) => !o && setAuthOpen(null)}>
