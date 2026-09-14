@@ -2,12 +2,13 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 
 const ROLES = ['ADMIN', 'SUPPORT', 'FINANCE', 'CONTENT', 'CRM']
 const STATUSES = ['ACTIVE', 'SUSPENDED']
 
 async function myPlatform(userId: string) {
-  const p = await db.platform.findUnique({ where: { ownerId: userId } })
+  const p = await resilientPlatformForOwner(userId)
   if (!p) throw jsonError('No platform', 404)
   return p
 }

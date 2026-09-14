@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
 import { sendOutboundMessage } from '@/lib/crm-engine'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 
 const CONTACT_SELECT = {
   id: true,
@@ -19,7 +20,7 @@ const CONTACT_SELECT = {
 const CONV_STATUSES = ['OPEN', 'AI', 'HANDED', 'CLOSED']
 
 async function requirePlatform(userId: string) {
-  const platform = await db.platform.findUnique({ where: { ownerId: userId } })
+  const platform = await resilientPlatformForOwner(userId)
   if (!platform) throw jsonError('No platform found for this account', 404)
   return platform
 }

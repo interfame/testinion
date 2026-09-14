@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
         .replace(/[^a-z0-9-]/g, '')
         .slice(0, 30)
       if (slug.length < 3) return jsonError('Subdomain must be at least 3 characters (letters, numbers, dashes)')
-      const taken = await db.platform.findUnique({ where: { slug } })
+      const taken = await db.platform.findUnique({ where: { slug }, select: { id: true } })
       if (taken) return jsonError(`"${slug}" is already taken — try another subdomain`)
     }
 

@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     // Optional: register under a reseller storefront (white-label sign-up)
     let platformId: string | null = null
     if (storefrontSlug) {
-      const storefront = await db.platform.findUnique({ where: { slug: String(storefrontSlug) } })
+      const storefront = await db.platform.findUnique({ where: { slug: String(storefrontSlug) }, select: { id: true, status: true } })
       if (!storefront || storefront.status !== 'ACTIVE') return jsonError('This storefront is not accepting registrations')
       platformId = storefront.id
     }

@@ -3,13 +3,14 @@ import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
 import { EMAIL_KEYS, DEFAULT_TEMPLATES, EMAIL_KEY_LABELS, type EmailKey, type Vars } from '@/lib/email'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 
 /**
  * GET /api/reseller/email/templates — platform override ?? master default ?? built-in, plus `defaults` for reset
  * PUT /api/reseller/email/templates — { key, subject, body } upsert override · { key, reset: true } removes it
  */
 async function myPlatform(userId: string) {
-  const p = await db.platform.findUnique({ where: { ownerId: userId } })
+  const p = await resilientPlatformForOwner(userId)
   if (!p) throw jsonError('No platform', 404)
   return p
 }

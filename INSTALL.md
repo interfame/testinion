@@ -242,11 +242,24 @@ El panel de revendedor ofrece **dos formas de vincular WhatsApp** en CRM → Can
 | Modo | Qué necesitas | Cómo funciona |
 |---|---|---|
 | **Cloud API (Meta)** | App de Meta + token + Phone Number ID | Validación en vivo contra Graph API; webhook oficial. |
-| **QR (WhatsApp Web)** | Tu **puente** siempre encendido (gratis en Railway) | Se genera un QR real; lo escaneás con *WhatsApp → Dispositivos vinculados*; los chats entran al Inbox. |
+| **QR (WhatsApp Web)** | **Puente del panel** (cero configuración) **o** tu puente propio (gratis en Railway) | Se genera un QR real; lo escaneás con *WhatsApp → Dispositivos vinculados*; los chats entran al Inbox. |
 
 **¿Por qué hace falta un puente para el QR?** El protocolo de WhatsApp Web necesita un socket
 siempre abierto — algo que el hosting serverless (Vercel) **no puede mantener**. El puente vive
-en tu propia cuenta de Railway/Render (plan gratuito alcanza) y el panel se comunica con él.
+en un host siempre encendido y el panel se comunica con él.
+
+**Opción A — Puente del panel (0 pasos):** la pestaña QR viene con *"Panel bridge · 0 setup"*
+seleccionada por defecto. Solo hay que decirle al panel **dónde está el puente**:
+
+- En Vercel: **Settings → Environment Variables** → `WA_BRIDGE_URL` = la URL pública del puente
+  (p. ej. `https://tu-puente.up.railway.app`) → **Redeploy**. Listo: todos los revendedores
+  vinculan por QR sin pegar nada.
+- El panel muestra un indicador **BRIDGE ONLINE / OFFLINE** en el diálogo — si dice OFFLINE,
+  el puente no está desplegado o la variable no está configurada.
+
+**Opción B — Puente propio del revendedor (sin variables):** en la pestaña QR elegí
+*"My bridge URL"* y pegá la URL pública del puente. Sirve cuando cada revendedor quiere su
+propio puente aislado.
 
 **Montar el puente 100% desde el navegador (sin terminal):**
 
@@ -265,8 +278,9 @@ en tu propia cuenta de Railway/Render (plan gratuito alcanza) y el panel se comu
 2. En [railway.com](https://railway.com) → **New Project → Deploy from GitHub repo** → elegí tu
    repo. En **Settings → Networking → Generate Domain** exponé el puerto **3040**.
 3. Copiá la URL pública (p. ej. `https://tu-puente.up.railway.app`).
-4. En el panel: **CRM → Canales → WhatsApp → Conectar → pestaña QR** → pegá la URL →
-   **Generate QR** → escanealo con el teléfono. Queda vinculado solo.
+4. En Vercel poné esa URL en la variable `WA_BRIDGE_URL` (Opción A) **o** pegala en la pestaña
+   QR → *My bridge URL* (Opción B) → **Generate QR** → escanealo con el teléfono. Queda
+   vinculado solo.
 
 > El puente guarda la sesión en su disco (`sessions/`), así que **no hay que re-escanear** después
 > de un reinicio. Cualquier mensaje entrante se reenvía al Inbox vía el webhook del canal.

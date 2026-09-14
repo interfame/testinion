@@ -2,6 +2,7 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 
 const INTEGRATION_META: Record<string, { name: string; desc: string; requiresExternalApi?: boolean }> = {
   meta: { name: 'Meta / WhatsApp', desc: 'WhatsApp Business Cloud API + Instagram DM.' },
@@ -17,7 +18,7 @@ const INTEGRATION_META: Record<string, { name: string; desc: string; requiresExt
 export async function GET() {
   return handle(async () => {
     const user = await requireUser()
-    const platform = await db.platform.findUnique({ where: { ownerId: user.id } })
+    const platform = await resilientPlatformForOwner(user.id)
     if (!platform) return jsonError('No platform', 404)
     let integrations: Record<string, { connected: boolean; keyMasked?: string }> = {}
     try {
@@ -30,7 +31,7 @@ export async function GET() {
 export async function PATCH(req: NextRequest) {
   return handle(async () => {
     const user = await requireUser()
-    const platform = await db.platform.findUnique({ where: { ownerId: user.id } })
+    const platform = await resilientPlatformForOwner(user.id)
     if (!platform) return jsonError('No platform', 404)
     const { key, connected, apiKey } = await req.json()
     if (!key || !(key in INTEGRATION_META)) return jsonError('Unknown integration')

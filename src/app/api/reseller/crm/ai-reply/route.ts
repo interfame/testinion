@@ -3,11 +3,12 @@ import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
 import { generateAgentReply } from '@/lib/ai-agent'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 
 export async function POST(req: NextRequest) {
   return handle(async () => {
     const user = await requireUser()
-    const platform = await db.platform.findUnique({ where: { ownerId: user.id } })
+    const platform = await resilientPlatformForOwner(user.id)
     if (!platform) return jsonError('No platform found for this account', 404)
 
     const body = await req.json().catch(() => ({}))

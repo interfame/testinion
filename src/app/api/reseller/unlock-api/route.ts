@@ -2,12 +2,13 @@
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
 import { getExternalApiPrice } from '@/lib/addon-price'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 
 /** GET — pricing + current status for the Providers UI */
 export async function GET() {
   return handle(async () => {
     const user = await requireUser()
-    const platform = await db.platform.findUnique({ where: { ownerId: user.id } })
+    const platform = await resilientPlatformForOwner(user.id)
     if (!platform) return jsonError('No platform', 404)
     const price = await getExternalApiPrice(platform.id)
     return jsonOk({ unlocked: platform.externalApi, price })
@@ -22,7 +23,7 @@ export async function GET() {
 export async function POST() {
   return handle(async () => {
     const user = await requireUser()
-    const platform = await db.platform.findUnique({ where: { ownerId: user.id } })
+    const platform = await resilientPlatformForOwner(user.id)
     if (!platform) return jsonError('No platform', 404)
     if (platform.externalApi) return jsonError('Third-party APIs are already unlocked')
 

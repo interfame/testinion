@@ -1,12 +1,13 @@
 // Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 
 /** Reseller dashboard stats */
 export async function GET() {
   return handle(async () => {
     const user = await requireUser()
-    const platform = await db.platform.findUnique({ where: { ownerId: user.id } })
+    const platform = await resilientPlatformForOwner(user.id)
     if (!platform) return jsonError('No platform', 404)
 
     const since30 = new Date(Date.now() - 30 * 86400000)

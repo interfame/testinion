@@ -1,6 +1,7 @@
 // Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonOk } from '@/lib/auth'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 
 /**
  * Reseller referral program — ambassador leaderboard.
@@ -13,7 +14,7 @@ import { requireUser, handle, jsonOk } from '@/lib/auth'
 export async function GET() {
   return handle(async () => {
     const user = await requireUser()
-    const platform = await db.platform.findUnique({ where: { ownerId: user.id } })
+    const platform = await resilientPlatformForOwner(user.id)
     if (!platform) {
       return jsonOk({ leaderboard: [], recent: [], totals: { referred: 0, bonusPaid: 0, ambassadors: 0 } })
     }

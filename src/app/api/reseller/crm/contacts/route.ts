@@ -2,11 +2,12 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 
 const CHANNELS = ['WHATSAPP', 'INSTAGRAM', 'TELEGRAM', 'MESSENGER', 'EMAIL', 'WEBCHAT']
 
 async function requirePlatform(userId: string) {
-  const platform = await db.platform.findUnique({ where: { ownerId: userId } })
+  const platform = await resilientPlatformForOwner(userId)
   if (!platform) throw jsonError('No platform found for this account', 404)
   return platform
 }

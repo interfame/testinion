@@ -2,6 +2,7 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 
 /**
  * Reseller promo coupons — scoped to the reseller's own platform clients.
@@ -19,7 +20,7 @@ function normalizeCode(raw: string): string {
 }
 
 async function myPlatform(userId: string) {
-  const p = await db.platform.findUnique({ where: { ownerId: userId } })
+  const p = await resilientPlatformForOwner(userId)
   if (!p) throw jsonError('No platform', 404)
   return p
 }

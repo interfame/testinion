@@ -3,12 +3,13 @@ import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
 import { fetchProviderBalance } from '@/lib/smm-provider'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 
 /** POST /api/reseller/providers/test — {id} or {apiUrl, apiKey} → balance check (platform-scoped) */
 export async function POST(req: NextRequest) {
   return handle(async () => {
     const user = await requireUser()
-    const platform = await db.platform.findUnique({ where: { ownerId: user.id } })
+    const platform = await resilientPlatformForOwner(user.id)
     if (!platform) return jsonError('Platform not found', 404)
     if (!platform.externalApi) return jsonError('External API add-on required', 403)
 

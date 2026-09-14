@@ -1,11 +1,12 @@
 // Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 
 export async function GET() {
   return handle(async () => {
     const user = await requireUser()
-    const platform = await db.platform.findUnique({ where: { ownerId: user.id } })
+    const platform = await resilientPlatformForOwner(user.id)
     if (!platform) return jsonError('No platform found for this account', 404)
 
     const [contacts, conversations, agents] = await Promise.all([

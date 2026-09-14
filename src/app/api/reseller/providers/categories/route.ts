@@ -3,12 +3,13 @@ import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
 import { fetchProviderServices } from '@/lib/smm-provider'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 
 /** GET /api/reseller/providers/categories?id=<providerId> — distinct provider-side categories with counts (platform-scoped) */
 export async function GET(req: NextRequest) {
   return handle(async () => {
     const user = await requireUser()
-    const platform = await db.platform.findUnique({ where: { ownerId: user.id } })
+    const platform = await resilientPlatformForOwner(user.id)
     if (!platform) return jsonError('Platform not found', 404)
     if (!platform.externalApi) return jsonError('External API add-on required', 403)
 

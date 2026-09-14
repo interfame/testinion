@@ -133,6 +133,8 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
   // WhatsApp QR linking state (bridge mode)
   const [waMode, setWaMode] = useState<'cloud' | 'qr'>('cloud')
   const [bridgeUrl, setBridgeUrl] = useState('')
+  const [bridgeSource, setBridgeSource] = useState<'panel' | 'custom'>('panel')
+  const [bridgeHealth, setBridgeHealth] = useState<'unknown' | 'checking' | 'online' | 'offline'>('unknown')
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [qrState, setQrState] = useState<'idle' | 'loading' | 'waiting' | 'connected' | 'error'>('idle')
   const [qrError, setQrError] = useState<string | null>(null)
@@ -141,35 +143,62 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
   useEffect(() => {
     try {
       const saved = localStorage.getItem('gr_wa_bridge')
-      if (saved) setBridgeUrl(saved)
+      if (saved) {
+        setBridgeUrl(saved)
+        setBridgeSource('custom')
+      }
     } catch { /* ignore */ }
     return () => {
       if (qrPollRef.current) clearInterval(qrPollRef.current)
     }
   }, [])
 
-  /** Ask the reseller's bridge for a fresh WhatsApp QR and poll until scanned. */
+  /** Panel-hosted bridge liveness (shown as a chip so the user knows WHY a QR isn't appearing). */
+  useEffect(() => {
+    if (!connectTarget || waMode !== 'qr' || bridgeSource !== 'panel') return
+    setBridgeHealth('checking')
+    let cancelled = false
+    api.get<{ ok?: boolean }>('/api/reseller/crm/wa-bridge?health=1')
+      .then((d) => { if (!cancelled) setBridgeHealth(d.ok ? 'online' : 'offline') })
+      .catch(() => { if (!cancelled) setBridgeHealth('offline') })
+    return () => { cancelled = true }
+  }, [connectTarget, waMode, bridgeSource])
+
+  /** Ask the bridge for a fresh WhatsApp QR and poll until scanned. Works in
+   *  two modes: the panel-hosted bridge (zero setup — proxied server-side) or
+   *  the reseller's own public bridge URL (direct browser → bridge). */
   async function generateQr() {
     if (!connectTarget) return
+    const session = `wa-${connectTarget.id}`
+    const isPanel = bridgeSource === 'panel'
     const base = bridgeUrl.trim().replace(/\/+$/, '')
-    if (!base) {
+    if (!isPanel && !base) {
       setQrState('error')
       setQrError('Paste your bridge URL first (it must be public, e.g. https://your-bridge.up.railway.app)')
       return
     }
-    try {
-      localStorage.setItem('gr_wa_bridge', base)
-    } catch { /* ignore */ }
+    if (!isPanel) {
+      try {
+        localStorage.setItem('gr_wa_bridge', base)
+      } catch { /* ignore */ }
+    }
     setQrState('loading')
     setQrError(null)
     setQrDataUrl(null)
     try {
-      const res = await fetch(`${base}/session/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session: `wa-${connectTarget.id}` }),
-      })
-      const d = (await res.json().catch(() => ({}))) as { status?: string; qr?: string | null }
+      const res = isPanel
+        ? await fetch('/api/reseller/crm/wa-bridge', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'start', session }),
+          })
+        : await fetch(`${base}/session/start`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session }),
+          })
+      const d = (await res.json().catch(() => ({}))) as { status?: string; qr?: string | null; error?: string }
+      if (!res.ok) throw new Error(d.error || 'bridge error')
       if (d.qr) {
         setQrDataUrl(d.qr)
         setQrState('waiting')
@@ -180,7 +209,9 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
       if (qrPollRef.current) clearInterval(qrPollRef.current)
       qrPollRef.current = setInterval(async () => {
         try {
-          const r = await fetch(`${base}/session/wa-${connectTarget.id}`)
+          const r = isPanel
+            ? await fetch(`/api/reseller/crm/wa-bridge?session=${encodeURIComponent(session)}`)
+            : await fetch(`${base}/session/${session}`)
           const s = (await r.json().catch(() => ({}))) as { status?: string; qr?: string | null; user?: string }
           if (s.qr && s.status === 'qr') {
             setQrDataUrl(s.qr)
@@ -194,7 +225,7 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
               () => api.patch('/api/reseller/crm/channels', {
                 id: connectTarget.id,
                 action: 'connect',
-                config: { mode: 'qr', bridgeUrl: base, bridgeSession: `wa-${connectTarget.id}` },
+                config: { mode: 'qr', bridgeUrl: isPanel ? '@panel' : base, bridgeSession: session },
               }),
               { success: 'WhatsApp linked — incoming chats now land in your Inbox' },
             )
@@ -203,9 +234,13 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
           }
         } catch { /* transient poll failure — keep trying */ }
       }, 2500)
-    } catch {
+    } catch (e) {
       setQrState('error')
-      setQrError('Could not reach the bridge — check the URL and that the service is online')
+      setQrError(
+        isPanel
+          ? (e instanceof Error && e.message !== 'bridge error' ? e.message : 'The panel bridge is not reachable — deploy it (Railway) and set WA_BRIDGE_URL, or connect a custom bridge URL below.')
+          : 'Could not reach the bridge — check the URL and that the service is online',
+      )
     }
   }
 
@@ -425,20 +460,65 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
 
             {connectTarget?.type === 'WHATSAPP' && waMode === 'qr' ? (
               <div className="space-y-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="wa-bridge">Bridge URL</Label>
-                  <Input
-                    id="wa-bridge"
-                    value={bridgeUrl}
-                    onChange={(e) => setBridgeUrl(e.target.value)}
-                    placeholder="https://your-whatsapp-bridge.up.railway.app"
-                    className="rounded-xl"
-                    autoComplete="off"
-                  />
-                  <p className="text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500">
-                    Your own always-on WhatsApp bridge (free on Railway). It pairs the phone by QR and relays chats — the panel never stores your session.
-                  </p>
+                {/* Bridge source — panel-hosted (zero setup) or the reseller's own public bridge */}
+                <div className="grid grid-cols-2 gap-1 rounded-xl bg-zinc-100 dark:bg-zinc-800/70 p-1">
+                  <button
+                    type="button"
+                    onClick={() => { setBridgeSource('panel'); setQrState('idle'); setQrError(null); setQrDataUrl(null) }}
+                    className={cn(
+                      'rounded-lg px-2 py-1.5 text-[11.5px] font-bold transition',
+                      bridgeSource === 'panel' ? 'bg-white dark:bg-zinc-900 shadow-sm text-zinc-900 dark:text-zinc-50' : 'text-zinc-500 dark:text-zinc-400',
+                    )}
+                  >
+                    Panel bridge · 0 setup
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setBridgeSource('custom'); setQrState('idle'); setQrError(null); setQrDataUrl(null) }}
+                    className={cn(
+                      'rounded-lg px-2 py-1.5 text-[11.5px] font-bold transition',
+                      bridgeSource === 'custom' ? 'bg-white dark:bg-zinc-900 shadow-sm text-zinc-900 dark:text-zinc-50' : 'text-zinc-500 dark:text-zinc-400',
+                    )}
+                  >
+                    My bridge URL
+                  </button>
                 </div>
+
+                {bridgeSource === 'custom' && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="wa-bridge">Bridge URL</Label>
+                    <Input
+                      id="wa-bridge"
+                      value={bridgeUrl}
+                      onChange={(e) => setBridgeUrl(e.target.value)}
+                      placeholder="https://your-whatsapp-bridge.up.railway.app"
+                      className="rounded-xl"
+                      autoComplete="off"
+                    />
+                    <p className="text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500">
+                      Your own always-on WhatsApp bridge (free on Railway). It pairs the phone by QR and relays chats — the panel never stores your session.
+                    </p>
+                  </div>
+                )}
+
+                {bridgeSource === 'panel' && (
+                  <div className="flex items-center justify-between gap-2 rounded-xl border border-dashed bg-zinc-50 dark:bg-zinc-900/60 px-3 py-2">
+                    <p className="text-[11.5px] leading-snug text-zinc-500 dark:text-zinc-400">
+                      Uses the WhatsApp bridge connected to this panel (server-side). No URL to paste.
+                    </p>
+                    <span
+                      className={cn(
+                        'flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-extrabold uppercase tracking-wide',
+                        bridgeHealth === 'online' && 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400',
+                        bridgeHealth === 'offline' && 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400',
+                        (bridgeHealth === 'checking' || bridgeHealth === 'unknown') && 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400',
+                      )}
+                    >
+                      {bridgeHealth === 'checking' && <Loader2 className="h-3 w-3 animate-spin" />}
+                      {bridgeHealth === 'online' ? 'bridge online' : bridgeHealth === 'offline' ? 'bridge offline' : 'checking…'}
+                    </span>
+                  </div>
+                )}
                 <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed p-4">
                   {qrState === 'loading' && (
                     <div className="flex h-48 w-48 items-center justify-center rounded-xl bg-zinc-50 dark:bg-zinc-900/60">

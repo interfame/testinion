@@ -3,15 +3,13 @@ import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
 import { notify } from '@/lib/notify'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 
 /** Reseller: read + update own platform (branding, theme, landing copy, domains, addons). */
 export async function GET() {
   return handle(async () => {
     const user = await requireUser()
-    const platform = await db.platform.findUnique({
-      where: { ownerId: user.id },
-      include: { plan: true },
-    })
+    const platform = await resilientPlatformForOwner(user.id)
     if (!platform) return jsonError('You do not own a platform', 404)
     const [clients, orders, services] = await Promise.all([
       db.user.count({ where: { platformId: platform.id } }),
@@ -25,7 +23,7 @@ export async function GET() {
 export async function PATCH(req: NextRequest) {
   return handle(async () => {
     const user = await requireUser()
-    const platform = await db.platform.findUnique({ where: { ownerId: user.id }, include: { plan: true } })
+    const platform = await resilientPlatformForOwner(user.id)
     if (!platform) return jsonError('You do not own a platform', 404)
 
     const body = await req.json()
@@ -52,7 +50,7 @@ export async function PATCH(req: NextRequest) {
         })
       })
       await notify(user.id, 'MONEY', `Storefront renewed ✅`, `${platform.name} is back online until ${until.toISOString().slice(0, 10)}.`, 'plan-billing')
-      const updated = await db.platform.findUnique({ where: { ownerId: user.id }, include: { plan: true } })
+      const updated = await resilientPlatformForOwner(user.id)
       const fresh = await db.user.findUnique({ where: { id: user.id }, select: { balance: true } })
       return jsonOk({ platform: updated, balance: fresh?.balance ?? 0 })
     }
@@ -77,7 +75,7 @@ export async function PATCH(req: NextRequest) {
         })
       })
       await notify(user.id, 'MONEY', `Plan upgraded to ${newPlan.name} 👑`, `$${newPlan.monthlyPrice.toFixed(2)} charged. New features are active now.`, 'plan-billing')
-      const updated = await db.platform.findUnique({ where: { ownerId: user.id }, include: { plan: true } })
+      const updated = await resilientPlatformForOwner(user.id)
       const fresh = await db.user.findUnique({ where: { id: user.id }, select: { balance: true } })
       return jsonOk({ platform: updated, balance: fresh?.balance ?? 0 })
     }
@@ -145,7 +143,7 @@ export async function PATCH(req: NextRequest) {
 
     if (Object.keys(data).length) await db.platform.update({ where: { id: platform.id }, data })
 
-    const updated = await db.platform.findUnique({ where: { ownerId: user.id }, include: { plan: true } })
+    const updated = await resilientPlatformForOwner(user.id)
     const fresh = await db.user.findUnique({ where: { id: user.id }, select: { balance: true } })
     return jsonOk({ platform: updated, balance: fresh?.balance ?? 0 })
   })

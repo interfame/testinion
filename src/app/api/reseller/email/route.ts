@@ -6,9 +6,10 @@ import {
   getMailConfig, maskMailConfig, savePlatformMailConfig, sendTemplateEmail,
   ensureTemplates, EMAIL_KEYS, type MailConfig,
 } from '@/lib/email'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 
 async function myPlatform(userId: string) {
-  const p = await db.platform.findUnique({ where: { ownerId: userId } })
+  const p = await resilientPlatformForOwner(userId)
   if (!p) throw jsonError('No platform', 404)
   return p
 }

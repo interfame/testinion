@@ -5,6 +5,8 @@ import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
 import { encryptSecret, decryptSecret, maskSecret } from '@/lib/crypto'
 import { validateChannel, type ChannelCreds } from '@/lib/crm-send'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
+import { WA_BRIDGE_PANEL, waBridgeBase } from '@/lib/wa-bridge'
 
 const TYPES = ['WHATSAPP', 'INSTAGRAM', 'TELEGRAM', 'MESSENGER', 'EMAIL', 'WEBCHAT']
 const STATUSES = ['CONNECTED', 'DISCONNECTED', 'PENDING']
@@ -14,7 +16,7 @@ const SECRET_KEYS = ['botToken', 'accessToken', 'password', 'apiKey']
 const PLAIN_KEYS = ['phoneNumberId', 'verifyToken', 'email', 'host', 'mode', 'bridgeUrl', 'bridgeSession']
 
 async function requirePlatform(userId: string) {
-  const platform = await db.platform.findUnique({ where: { ownerId: userId } })
+  const platform = await resilientPlatformForOwner(userId)
   if (!platform) throw jsonError('No platform found for this account', 404)
   return platform
 }
@@ -152,11 +154,12 @@ export async function PATCH(req: NextRequest) {
         }
       })()
 
-      // WhatsApp QR mode — validated against the reseller's own bridge
-      // (Baileys/WhatsApp-Web protocol needs a persistent socket, so it runs
-      // on their self-hosted bridge, not on serverless).
+      // WhatsApp QR mode — validated against the bridge (the reseller's own
+      // hosted bridge, or the panel-hosted one via '@panel'). Baileys/WhatsApp-Web
+      // protocol needs a persistent socket, so it never runs on serverless itself.
       if (existing.type === 'WHATSAPP' && parsedNext.mode === 'qr') {
-        const bridgeUrl = String(parsedNext.bridgeUrl ?? '').trim().replace(/\/+$/, '')
+        const rawBridge = String(parsedNext.bridgeUrl ?? '').trim().replace(/\/+$/, '')
+        const bridgeUrl = rawBridge === WA_BRIDGE_PANEL ? waBridgeBase() : rawBridge
         const bridgeSession = String(parsedNext.bridgeSession ?? existing.id)
         if (!bridgeUrl) {
           if (data.config) await db.channel.update({ where: { id: existing.id }, data })
@@ -164,7 +167,7 @@ export async function PATCH(req: NextRequest) {
         }
         try {
           const res = await fetch(`${bridgeUrl}/session/${encodeURIComponent(bridgeSession)}`, {
-            signal: AbortSignal.timeout(8000),
+            signal: AbortSignal.timeout(10000),
           })
           const state = (await res.json().catch(() => ({}))) as { status?: string; user?: string }
           if (state.status !== 'connected') {

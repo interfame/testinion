@@ -2,12 +2,13 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 
 /** Round UP to 2 decimals — markups never lose money (owner request). */
 const ceil2 = (n: number) => Math.ceil(Math.round(n * 1e6) / 1e6 * 100) / 100
 
 async function myPlatform(userId: string) {
-  const p = await db.platform.findUnique({ where: { ownerId: userId } })
+  const p = await resilientPlatformForOwner(userId)
   if (!p) throw jsonError('No platform', 404)
   return p
 }

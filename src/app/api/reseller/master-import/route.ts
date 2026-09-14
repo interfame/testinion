@@ -2,6 +2,7 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 
 /** Round UP to 2 decimals — sell prices stay round for clients while the markup never loses money. */
 const ceil2 = (n: number) => Math.ceil(Math.round(n * 1e6) / 1e6 * 100) / 100
@@ -18,10 +19,7 @@ const ceil2 = (n: number) => Math.ceil(Math.round(n * 1e6) / 1e6 * 100) / 100
 export async function POST(req: NextRequest) {
   return handle(async () => {
     const user = await requireUser()
-    const platform = await db.platform.findUnique({
-      where: { ownerId: user.id },
-      include: { plan: { select: { maxServices: true } } },
-    })
+    const platform = await resilientPlatformForOwner(user.id)
     if (!platform) return jsonError('No platform', 404)
 
     const body = await req.json().catch(() => ({})) as {

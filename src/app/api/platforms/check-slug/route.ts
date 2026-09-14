@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
       .toLowerCase()
       .replace(/[^a-z0-9-]/g, '')
     if (slug.length < 3) return jsonOk({ available: false, reason: 'Min 3 characters' })
-    const taken = await db.platform.findUnique({ where: { slug } })
+    const taken = await db.platform.findUnique({ where: { slug }, select: { id: true } })
     const reserved = ['www', 'api', 'app', 'admin', 'mail', 'smtp', 'growthrush', 'panel']
     if (taken || reserved.includes(slug)) return jsonOk({ available: false, reason: `"${slug}" is not available` })
     return jsonOk({ available: true })

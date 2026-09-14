@@ -1,5 +1,6 @@
 // Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 import { db } from '@/lib/db'
+import { resilientPlatformById } from '@/lib/platform-safe'
 
 /**
  * Price of the External API add-on (one-time debit from the reseller's wallet).
@@ -8,10 +9,7 @@ import { db } from '@/lib/db'
  * this price is only charged at unlock time.
  */
 export async function getExternalApiPrice(platformId: string): Promise<number> {
-  const platform = await db.platform.findUnique({
-    where: { id: platformId },
-    include: { plan: { select: { externalApiPrice: true } } },
-  })
+  const platform = await resilientPlatformById(platformId)
   const planPrice = platform?.plan?.externalApiPrice
   if (typeof planPrice === 'number' && Number.isFinite(planPrice) && planPrice > 0) return planPrice
   const setting = await db.setting.findUnique({ where: { key: 'external_api_price' } })

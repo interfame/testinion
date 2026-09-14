@@ -15,7 +15,7 @@
 import { db } from '@/lib/db'
 import type { Plan, Platform } from '@prisma/client'
 
-type PlatformWithPlan = Platform & { plan: Plan | null }
+type PlatformWithPlan = Platform & { plan: Plan }
 
 /** Long-standing columns every Platform table has had since the first release. */
 const LEGACY_SELECT = {

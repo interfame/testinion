@@ -2,6 +2,7 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'crypto'
 import { cookies } from 'next/headers'
 import { db } from '@/lib/db'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 import { NextResponse } from 'next/server'
 
 const SECRET = process.env.AUTH_SECRET || 'growthrush-dev-secret-key-v1'
@@ -136,5 +137,5 @@ export async function handle(fn: () => Promise<Response>): Promise<Response> {
 
 // ── Platform scope helpers ─────────────────
 export async function getOwnedPlatform(userId: string) {
-  return db.platform.findUnique({ where: { ownerId: userId }, include: { plan: true } })
+  return resilientPlatformForOwner(userId)
 }

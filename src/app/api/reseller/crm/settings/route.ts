@@ -2,6 +2,7 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
+import { resilientPlatformForOwner } from '@/lib/platform-safe'
 
 const CRM_DEFAULTS = {
   autoAssignAi: true,
@@ -23,7 +24,7 @@ function readCrmSettings(settingsJson: string): CrmSettings {
 export async function GET() {
   return handle(async () => {
     const user = await requireUser()
-    const platform = await db.platform.findUnique({ where: { ownerId: user.id } })
+    const platform = await resilientPlatformForOwner(user.id)
     if (!platform) return jsonError('No platform found for this account', 404)
     return jsonOk({ crm: readCrmSettings(platform.settings) })
   })
@@ -32,7 +33,7 @@ export async function GET() {
 export async function PATCH(req: NextRequest) {
   return handle(async () => {
     const user = await requireUser()
-    const platform = await db.platform.findUnique({ where: { ownerId: user.id } })
+    const platform = await resilientPlatformForOwner(user.id)
     if (!platform) return jsonError('No platform found for this account', 404)
 
     const body = await req.json().catch(() => ({}))
