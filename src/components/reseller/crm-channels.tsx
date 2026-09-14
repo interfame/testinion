@@ -431,7 +431,7 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3.5 py-1">
+          <div className="min-w-0 space-y-3.5 py-1">
             {/* WhatsApp: two real linking modes — Meta Cloud API or QR via the reseller's bridge */}
             {connectTarget?.type === 'WHATSAPP' && (
               <div className="grid grid-cols-2 gap-1 rounded-xl bg-zinc-100 dark:bg-zinc-800/70 p-1">
@@ -519,28 +519,28 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
                     </span>
                   </div>
                 )}
-                <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed p-4">
+                <div className="flex min-w-0 flex-col items-center gap-3 rounded-xl border border-dashed p-4">
                   {qrState === 'loading' && (
-                    <div className="flex h-48 w-48 items-center justify-center rounded-xl bg-zinc-50 dark:bg-zinc-900/60">
+                    <div className="flex h-40 w-40 max-w-full items-center justify-center rounded-xl bg-zinc-50 dark:bg-zinc-900/60 sm:h-48 sm:w-48">
                       <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
                     </div>
                   )}
                   {qrState === 'waiting' && qrDataUrl && (
                     <>
-                      <img src={qrDataUrl} alt="WhatsApp QR — scan with Linked devices" className="h-48 w-48 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white" />
-                      <p className="text-center text-[12px] font-semibold text-zinc-500 dark:text-zinc-400">
+                      <img src={qrDataUrl} alt="WhatsApp QR — scan with Linked devices" className="h-40 w-40 max-w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white sm:h-48 sm:w-48" />
+                      <p className="text-center text-[12px] font-semibold break-words text-zinc-500 dark:text-zinc-400">
                         WhatsApp → Settings → Linked devices → scan. Linking automatically when connected…
                       </p>
                     </>
                   )}
                   {qrState === 'connected' && (
-                    <div className="flex h-48 w-48 flex-col items-center justify-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30">
+                    <div className="flex h-40 w-40 max-w-full flex-col items-center justify-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 sm:h-48 sm:w-48">
                       <Check className="h-8 w-8 text-emerald-500" />
                       <p className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400">Phone linked!</p>
                     </div>
                   )}
                   {(qrState === 'idle' || qrState === 'error') && (
-                    <div className="flex h-48 w-48 items-center justify-center rounded-xl bg-zinc-50 dark:bg-zinc-900/60">
+                    <div className="flex h-40 w-40 max-w-full items-center justify-center rounded-xl bg-zinc-50 dark:bg-zinc-900/60 sm:h-48 sm:w-48">
                       <QrCode className="h-10 w-10 text-zinc-300 dark:text-zinc-700" />
                     </div>
                   )}
@@ -553,7 +553,7 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
                   >
                     <RefreshCw className="h-4 w-4" /> {qrState === 'waiting' || qrState === 'connected' ? 'Generate new QR' : 'Generate QR'}
                   </Button>
-                  {qrError && <p className="text-center text-[12px] font-semibold text-rose-500">{qrError}</p>}
+                  {qrError && <p className="text-center text-[12px] font-semibold break-words text-rose-500">{qrError}</p>}
                 </div>
               </div>
             ) : (
@@ -580,7 +580,7 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
               <div className="space-y-1.5 rounded-xl border border-dashed bg-zinc-50 dark:bg-zinc-900/60 p-3">
                 <Label className="text-[11px] uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Webhook URL</Label>
                 <div className="flex items-center gap-2">
-                  <code className="min-w-0 flex-1 truncate rounded-lg bg-white dark:bg-zinc-900 px-2 py-1.5 text-[11px] text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800">
+                  <code className="min-w-0 flex-1 truncate rounded-lg bg-white dark:bg-zinc-900 px-2 py-1.5 text-[11px] break-all text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800">
                     {connectTarget.webhookUrl}
                   </code>
                   <Button
@@ -601,7 +601,7 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
             )}
 
             {connectError && (
-              <p className="rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 px-3 py-2 text-[12px] font-semibold text-rose-600 dark:text-rose-400">
+              <p className="rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 px-3 py-2 text-[12px] font-semibold break-words text-rose-600 dark:text-rose-400">
                 {connectError}
               </p>
             )}
