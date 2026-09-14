@@ -235,6 +235,44 @@ node index.ts        # o: bun index.ts
 
 ---
 
+### WhatsApp por QR (puente propio — estilo "Linked devices")
+
+El panel de revendedor ofrece **dos formas de vincular WhatsApp** en CRM → Canales → Conectar:
+
+| Modo | Qué necesitas | Cómo funciona |
+|---|---|---|
+| **Cloud API (Meta)** | App de Meta + token + Phone Number ID | Validación en vivo contra Graph API; webhook oficial. |
+| **QR (WhatsApp Web)** | Tu **puente** siempre encendido (gratis en Railway) | Se genera un QR real; lo escaneás con *WhatsApp → Dispositivos vinculados*; los chats entran al Inbox. |
+
+**¿Por qué hace falta un puente para el QR?** El protocolo de WhatsApp Web necesita un socket
+siempre abierto — algo que el hosting serverless (Vercel) **no puede mantener**. El puente vive
+en tu propia cuenta de Railway/Render (plan gratuito alcanza) y el panel se comunica con él.
+
+**Montar el puente 100% desde el navegador (sin terminal):**
+
+1. En GitHub: entra a `interfame/testinion` → carpeta `mini-services/whatsapp-bridge` → copiá
+   esos 2 archivos en un **repo nuevo propio** (mismos nombres: `package.json`, `index.ts`)
+   con un `Dockerfile` mínimo:
+   ```dockerfile
+   FROM oven/bun:1
+   WORKDIR /app
+   COPY package.json ./
+   RUN bun install
+   COPY . .
+   EXPOSE 3040
+   CMD ["bun", "index.ts"]
+   ```
+2. En [railway.com](https://railway.com) → **New Project → Deploy from GitHub repo** → elegí tu
+   repo. En **Settings → Networking → Generate Domain** exponé el puerto **3040**.
+3. Copiá la URL pública (p. ej. `https://tu-puente.up.railway.app`).
+4. En el panel: **CRM → Canales → WhatsApp → Conectar → pestaña QR** → pegá la URL →
+   **Generate QR** → escanealo con el teléfono. Queda vinculado solo.
+
+> El puente guarda la sesión en su disco (`sessions/`), así que **no hay que re-escanear** después
+> de un reinicio. Cualquier mensaje entrante se reenvía al Inbox vía el webhook del canal.
+
+---
+
 ### Usuarios de demostración (creados por el seed — ¡cámbialos!)
 
 | Rol | Email | Contraseña |

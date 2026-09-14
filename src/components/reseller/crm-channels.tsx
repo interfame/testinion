@@ -14,8 +14,8 @@
 // · INSTAGRAM / MESSENGER / EMAIL: credentials stored, marked PENDING until
 //   the provider review completes.
 
-import { useState } from 'react'
-import { BookOpen, Check, Copy, Plus, Radio, Settings2, ShieldAlert } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { BookOpen, Check, Copy, Loader2, Plus, QrCode, Radio, RefreshCw, Settings2, ShieldAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { api, mutate, useApi } from '@/lib/api'
 import { formatDate } from '@/lib/format'
@@ -76,10 +76,10 @@ const CRED_FIELDS: Record<string, { key: string; label: string; placeholder: str
 
 const GUIDE_STEPS: Record<string, string[]> = {
   WHATSAPP: [
-    'Create a Meta developer app and add the "WhatsApp" product (developers.facebook.com).',
-    'Copy the temporary (or permanent) access token and the Phone Number ID from the WhatsApp → API Setup page.',
-    'Press Connect here — the credentials are validated against the Meta Graph API in real time.',
-    'Copy the Webhook URL from the connect dialog and paste it in the app\'s Webhooks section (use the same verify token), subscribing to the "messages" field.',
+    'Option A — Cloud API (business numbers): create a Meta developer app, add the "WhatsApp" product, then paste the access token + Phone Number ID here. Everything is validated live.',
+    'Option B — QR link (any personal/business number): deploy your WhatsApp bridge once (Railway free tier, see Admin guide) and paste its URL in the QR tab.',
+    'QR flow: press "Generate QR" → WhatsApp → Settings → Linked devices → scan.',
+    'Both options deliver incoming chats straight into your Inbox; replies go out through the same channel.',
   ],
   INSTAGRAM: [
     'Switch your account to a Professional / Business account.',
@@ -130,6 +130,85 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
   const [connectError, setConnectError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
+  // WhatsApp QR linking state (bridge mode)
+  const [waMode, setWaMode] = useState<'cloud' | 'qr'>('cloud')
+  const [bridgeUrl, setBridgeUrl] = useState('')
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
+  const [qrState, setQrState] = useState<'idle' | 'loading' | 'waiting' | 'connected' | 'error'>('idle')
+  const [qrError, setQrError] = useState<string | null>(null)
+  const qrPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('gr_wa_bridge')
+      if (saved) setBridgeUrl(saved)
+    } catch { /* ignore */ }
+    return () => {
+      if (qrPollRef.current) clearInterval(qrPollRef.current)
+    }
+  }, [])
+
+  /** Ask the reseller's bridge for a fresh WhatsApp QR and poll until scanned. */
+  async function generateQr() {
+    if (!connectTarget) return
+    const base = bridgeUrl.trim().replace(/\/+$/, '')
+    if (!base) {
+      setQrState('error')
+      setQrError('Paste your bridge URL first (it must be public, e.g. https://your-bridge.up.railway.app)')
+      return
+    }
+    try {
+      localStorage.setItem('gr_wa_bridge', base)
+    } catch { /* ignore */ }
+    setQrState('loading')
+    setQrError(null)
+    setQrDataUrl(null)
+    try {
+      const res = await fetch(`${base}/session/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session: `wa-${connectTarget.id}` }),
+      })
+      const d = (await res.json().catch(() => ({}))) as { status?: string; qr?: string | null }
+      if (d.qr) {
+        setQrDataUrl(d.qr)
+        setQrState('waiting')
+      } else {
+        setQrState('waiting')
+      }
+      // Poll until the phone scans it (or the dialog closes)
+      if (qrPollRef.current) clearInterval(qrPollRef.current)
+      qrPollRef.current = setInterval(async () => {
+        try {
+          const r = await fetch(`${base}/session/wa-${connectTarget.id}`)
+          const s = (await r.json().catch(() => ({}))) as { status?: string; qr?: string | null; user?: string }
+          if (s.qr && s.status === 'qr') {
+            setQrDataUrl(s.qr)
+            setQrState('waiting')
+          }
+          if (s.status === 'connected') {
+            setQrState('connected')
+            if (qrPollRef.current) clearInterval(qrPollRef.current)
+            // Auto-link the channel now that the bridge session is live
+            await mutate(
+              () => api.patch('/api/reseller/crm/channels', {
+                id: connectTarget.id,
+                action: 'connect',
+                config: { mode: 'qr', bridgeUrl: base, bridgeSession: `wa-${connectTarget.id}` },
+              }),
+              { success: 'WhatsApp linked — incoming chats now land in your Inbox' },
+            )
+            refresh()
+            setConnectTarget(null)
+          }
+        } catch { /* transient poll failure — keep trying */ }
+      }, 2500)
+    } catch {
+      setQrState('error')
+      setQrError('Could not reach the bridge — check the URL and that the service is online')
+    }
+  }
+
   /** Open the connect dialog (or connect instantly for WEBCHAT). */
   function openConnect(c: ChannelView) {
     if (c.status === 'CONNECTED') {
@@ -147,6 +226,10 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
     setConnectError(null)
     setCopied(false)
     setCreds({})
+    setWaMode('cloud')
+    setQrDataUrl(null)
+    setQrState('idle')
+    setQrError(null)
     setConnectTarget(c)
   }
 
@@ -314,6 +397,87 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
           </DialogHeader>
 
           <div className="space-y-3.5 py-1">
+            {/* WhatsApp: two real linking modes — Meta Cloud API or QR via the reseller's bridge */}
+            {connectTarget?.type === 'WHATSAPP' && (
+              <div className="grid grid-cols-2 gap-1 rounded-xl bg-zinc-100 dark:bg-zinc-800/70 p-1">
+                <button
+                  type="button"
+                  onClick={() => setWaMode('cloud')}
+                  className={cn(
+                    'rounded-lg px-3 py-1.5 text-[12px] font-bold transition',
+                    waMode === 'cloud' ? 'bg-white dark:bg-zinc-900 shadow-sm text-zinc-900 dark:text-zinc-50' : 'text-zinc-500 dark:text-zinc-400',
+                  )}
+                >
+                  Cloud API (Meta)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWaMode('qr')}
+                  className={cn(
+                    'rounded-lg px-3 py-1.5 text-[12px] font-bold transition flex items-center justify-center gap-1.5',
+                    waMode === 'qr' ? 'bg-white dark:bg-zinc-900 shadow-sm text-zinc-900 dark:text-zinc-50' : 'text-zinc-500 dark:text-zinc-400',
+                  )}
+                >
+                  <QrCode className="h-3.5 w-3.5" /> QR (WhatsApp Web)
+                </button>
+              </div>
+            )}
+
+            {connectTarget?.type === 'WHATSAPP' && waMode === 'qr' ? (
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="wa-bridge">Bridge URL</Label>
+                  <Input
+                    id="wa-bridge"
+                    value={bridgeUrl}
+                    onChange={(e) => setBridgeUrl(e.target.value)}
+                    placeholder="https://your-whatsapp-bridge.up.railway.app"
+                    className="rounded-xl"
+                    autoComplete="off"
+                  />
+                  <p className="text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500">
+                    Your own always-on WhatsApp bridge (free on Railway). It pairs the phone by QR and relays chats — the panel never stores your session.
+                  </p>
+                </div>
+                <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed p-4">
+                  {qrState === 'loading' && (
+                    <div className="flex h-48 w-48 items-center justify-center rounded-xl bg-zinc-50 dark:bg-zinc-900/60">
+                      <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+                    </div>
+                  )}
+                  {qrState === 'waiting' && qrDataUrl && (
+                    <>
+                      <img src={qrDataUrl} alt="WhatsApp QR — scan with Linked devices" className="h-48 w-48 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white" />
+                      <p className="text-center text-[12px] font-semibold text-zinc-500 dark:text-zinc-400">
+                        WhatsApp → Settings → Linked devices → scan. Linking automatically when connected…
+                      </p>
+                    </>
+                  )}
+                  {qrState === 'connected' && (
+                    <div className="flex h-48 w-48 flex-col items-center justify-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30">
+                      <Check className="h-8 w-8 text-emerald-500" />
+                      <p className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400">Phone linked!</p>
+                    </div>
+                  )}
+                  {(qrState === 'idle' || qrState === 'error') && (
+                    <div className="flex h-48 w-48 items-center justify-center rounded-xl bg-zinc-50 dark:bg-zinc-900/60">
+                      <QrCode className="h-10 w-10 text-zinc-300 dark:text-zinc-700" />
+                    </div>
+                  )}
+                  <Button
+                    type="button"
+                    className="rounded-xl text-[var(--on-brand)]"
+                    style={{ background: 'var(--brand)' }}
+                    onClick={generateQr}
+                    disabled={qrState === 'loading'}
+                  >
+                    <RefreshCw className="h-4 w-4" /> {qrState === 'waiting' || qrState === 'connected' ? 'Generate new QR' : 'Generate QR'}
+                  </Button>
+                  {qrError && <p className="text-center text-[12px] font-semibold text-rose-500">{qrError}</p>}
+                </div>
+              </div>
+            ) : (
+            <>
             {(connectTarget ? CRED_FIELDS[connectTarget.type] ?? [] : []).map((field) => (
               <div key={field.key} className="space-y-1.5">
                 <Label htmlFor={`cred-${field.key}`}>{field.label}</Label>
@@ -328,6 +492,8 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
                 />
               </div>
             ))}
+            </>
+            )}
 
             {/* Webhook URL — shown once credentials validate or already exist */}
             {connectTarget?.webhookUrl && connectTarget.type !== 'WEBCHAT' && (
@@ -365,14 +531,16 @@ export default function CrmChannels({ platformId }: { platformId: string }) {
             <Button variant="outline" className="rounded-xl" onClick={() => setConnectTarget(null)}>
               {t('common.cancel')}
             </Button>
-            <Button
-              className="rounded-xl text-[var(--on-brand)]"
-              style={{ background: 'var(--brand)' }}
-              onClick={confirmConnect}
-              disabled={busyId === connectTarget?.id}
-            >
-              <Settings2 className="h-4 w-4" /> {busyId === connectTarget?.id ? t('crm.connecting') : t('crm.connectValidate')}
-            </Button>
+            {!(connectTarget?.type === 'WHATSAPP' && waMode === 'qr') && (
+              <Button
+                className="rounded-xl text-[var(--on-brand)]"
+                style={{ background: 'var(--brand)' }}
+                onClick={confirmConnect}
+                disabled={busyId === connectTarget?.id}
+              >
+                <Settings2 className="h-4 w-4" /> {busyId === connectTarget?.id ? t('crm.connecting') : t('crm.connectValidate')}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

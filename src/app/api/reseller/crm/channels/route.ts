@@ -11,7 +11,7 @@ const STATUSES = ['CONNECTED', 'DISCONNECTED', 'PENDING']
 
 // Config keys that hold credentials → encrypted at rest, masked on read.
 const SECRET_KEYS = ['botToken', 'accessToken', 'password', 'apiKey']
-const PLAIN_KEYS = ['phoneNumberId', 'verifyToken', 'email', 'host']
+const PLAIN_KEYS = ['phoneNumberId', 'verifyToken', 'email', 'host', 'mode', 'bridgeUrl', 'bridgeSession']
 
 async function requirePlatform(userId: string) {
   const platform = await db.platform.findUnique({ where: { ownerId: userId } })
@@ -144,26 +144,61 @@ export async function PATCH(req: NextRequest) {
     // REAL connect flow — validate the credentials against the provider API.
     if (action === 'connect') {
       const nextConfig = data.config ?? existing.config
-      const creds: ChannelCreds = (() => {
+      const parsedNext: Record<string, unknown> = (() => {
         try {
-          const parsed = JSON.parse(String(nextConfig || '{}')) as Record<string, unknown>
-          const out: ChannelCreds = {}
-          for (const key of ['botToken', 'accessToken', 'phoneNumberId', 'verifyToken']) {
-            if (parsed[key] !== undefined) out[key] = decryptSecret(String(parsed[key]))
-          }
-          return out
+          return JSON.parse(String(nextConfig || '{}')) as Record<string, unknown>
         } catch {
           return {}
         }
       })()
-      const check = await validateChannel(existing.type, creds)
-      if (!check.ok) {
-        // Persist any credential updates the user just typed, but stay DISCONNECTED
-        if (data.config) await db.channel.update({ where: { id: existing.id }, data })
-        return jsonError(`Connection failed: ${check.detail}`, 400)
+
+      // WhatsApp QR mode — validated against the reseller's own bridge
+      // (Baileys/WhatsApp-Web protocol needs a persistent socket, so it runs
+      // on their self-hosted bridge, not on serverless).
+      if (existing.type === 'WHATSAPP' && parsedNext.mode === 'qr') {
+        const bridgeUrl = String(parsedNext.bridgeUrl ?? '').trim().replace(/\/+$/, '')
+        const bridgeSession = String(parsedNext.bridgeSession ?? existing.id)
+        if (!bridgeUrl) {
+          if (data.config) await db.channel.update({ where: { id: existing.id }, data })
+          return jsonError('Bridge URL is required for QR linking (e.g. https://your-bridge.up.railway.app)', 400)
+        }
+        try {
+          const res = await fetch(`${bridgeUrl}/session/${encodeURIComponent(bridgeSession)}`, {
+            signal: AbortSignal.timeout(8000),
+          })
+          const state = (await res.json().catch(() => ({}))) as { status?: string; user?: string }
+          if (state.status !== 'connected') {
+            if (data.config) await db.channel.update({ where: { id: existing.id }, data })
+            return jsonError(
+              state.status === 'qr' || state.status === 'connecting'
+                ? 'Scan the QR with WhatsApp first (WhatsApp → Settings → Linked devices), then press Connect again'
+                : `Bridge reports session "${state.status}" — generate a fresh QR and scan it`,
+              400,
+            )
+          }
+          data.status = 'CONNECTED'
+          if (state.user && !existing.handle) data.handle = state.user
+        } catch {
+          if (data.config) await db.channel.update({ where: { id: existing.id }, data })
+          return jsonError('Could not reach the WhatsApp bridge — check the URL is public and online', 400)
+        }
+      } else {
+        const creds: ChannelCreds = (() => {
+          const out: ChannelCreds = {}
+          for (const key of ['botToken', 'accessToken', 'phoneNumberId', 'verifyToken']) {
+            if (parsedNext[key] !== undefined) out[key] = decryptSecret(String(parsedNext[key]))
+          }
+          return out
+        })()
+        const check = await validateChannel(existing.type, creds)
+        if (!check.ok) {
+          // Persist any credential updates the user just typed, but stay DISCONNECTED
+          if (data.config) await db.channel.update({ where: { id: existing.id }, data })
+          return jsonError(`Connection failed: ${check.detail}`, 400)
+        }
+        data.status = existing.type === 'INSTAGRAM' || existing.type === 'MESSENGER' || existing.type === 'EMAIL' ? 'PENDING' : 'CONNECTED'
+        if (check.handle && !existing.handle) data.handle = check.handle
       }
-      data.status = existing.type === 'INSTAGRAM' || existing.type === 'MESSENGER' || existing.type === 'EMAIL' ? 'PENDING' : 'CONNECTED'
-      if (check.handle && !existing.handle) data.handle = check.handle
       if (data.config) {
         // store the derived handle/verifyToken for the webhook verifier
         try {
