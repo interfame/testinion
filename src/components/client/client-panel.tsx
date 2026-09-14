@@ -8,12 +8,13 @@
 import { useCallback, useState } from 'react'
 import {
   Code2, Crown, LayoutDashboard, LayoutGrid, LifeBuoy, ListOrdered,
-  ReceiptText, Rocket, ShoppingCart, Store, UserCog, Wallet,
+  ReceiptText, Rocket, ShoppingCart, Store, UserCog, Wallet, UserRound,
 } from 'lucide-react'
 import { useApp } from '@/components/shared/app-context'
 import { useI18n } from '@/lib/i18n'
 import { PanelShell, type NavSection } from '@/components/shared/panel-shell'
 import { BalanceChip, CurrencyChip, LanguageChip } from '@/components/shared/chips'
+import { Button } from '@/components/ui/button'
 import type { PaletteService } from '@/components/shared/command-palette'
 import { api } from '@/lib/api'
 import { useGoto } from '@/lib/goto'
@@ -82,7 +83,8 @@ function ClientPanelInner({ user, onRefresh, onLogout }: {
   onRefresh: () => void
   onLogout: () => void
 }) {
-  const { publicSettings } = useApp()
+  const app = useApp()
+  const { publicSettings } = app
   const { t } = useI18n()
   const { tickets } = useClientData()
 
@@ -224,6 +226,12 @@ function ClientPanelInner({ user, onRefresh, onLogout }: {
       }
       topbarRight={
         <>
+          {/* Resellers can jump back to their panel — same account, same wallet */}
+          {user.role === 'RESELLER' && user.platform && (
+            <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[12px] font-bold" onClick={() => app.setView('reseller')}>
+              <UserRound className="mr-1.5 h-3.5 w-3.5" /> {t('rpanel.resellerVersion')}
+            </Button>
+          )}
           <BalanceChip onAddFunds={() => setActive('add-funds')} />
           <CurrencyChip />
           <LanguageChip />

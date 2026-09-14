@@ -272,9 +272,17 @@ export default function CrmInbox({
     const body = draft.trim()
     if (!body || !selectedId || sending) return
     setSending(true)
-    const res = await mutate(() => api.post('/api/reseller/crm/conversations', { id: selectedId, body }))
+    const res = await mutate(() => api.post<{ delivered?: boolean; deliveryError?: string | null }>('/api/reseller/crm/conversations', { id: selectedId, body }))
     setSending(false)
     if (res) {
+      // Honest delivery status: when the channel has no real API configured the
+      // message is stored in the inbox only (no provider send happened).
+      if (res.delivered === false) {
+        toast({
+          title: t('crm.inboxOnlyTitle'),
+          description: res.deliveryError || t('crm.inboxOnlyDesc'),
+        })
+      }
       setDraft('')
       refreshThread()
       refreshList()

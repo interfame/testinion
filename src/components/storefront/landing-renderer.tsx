@@ -67,6 +67,7 @@ export type StorefrontData = {
   posts?: Post[]
   stats?: { networks: number; services: number; minRate: number }
   landing?: LandingConfig | null
+  webchat?: { channelId: string } | null
 }
 
 type FeatureCopy = { icon: string; title: string; desc: string }
@@ -81,6 +82,9 @@ export type PreviewCtl = {
 }
 
 /* -------------------------------- constants -------------------------------- */
+
+/** How many catalog services render per category before the visitor presses "See more". */
+const CATALOG_PAGE = 9
 
 const FEATURE_ICONS: Record<string, typeof Zap> = {
   zap: Zap,
@@ -189,6 +193,9 @@ export function LandingRenderer({ platform, data, config, preview }: {
   const app = useApp()
   const [q, setQ] = useState('')
   const [activeCat, setActiveCat] = useState<string>('ALL')
+  // Catalog shows 9 services per category up front — "See more" reveals more.
+  const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({})
+  const more = (catId: string) => setVisibleCounts((m) => ({ ...m, [catId]: (m[catId] ?? CATALOG_PAGE) + CATALOG_PAGE }))
   const [menuOpen, setMenuOpen] = useState(false)
   const [pageSlug, setPageSlug] = useState<string | null>(null)
   const { data: pageData, loading: pageLoading } = useApi<PageResponse>(
@@ -824,7 +831,7 @@ export function LandingRenderer({ platform, data, config, preview }: {
                 <Badge variant="outline" className="text-[10px] text-zinc-400 dark:text-zinc-500">{c.services.length} services</Badge>
               </div>
               <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-                {c.services.map((sv) => (
+                {c.services.slice(0, q ? c.services.length : (visibleCounts[c.id] ?? CATALOG_PAGE)).map((sv) => (
                   <div key={sv.id} className="group rounded-2xl border bg-white dark:bg-zinc-900 p-4 transition hover:-translate-y-0.5 hover:shadow-md">
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-[13px] font-bold leading-snug">{sv.name}</p>
@@ -848,6 +855,20 @@ export function LandingRenderer({ platform, data, config, preview }: {
                   </div>
                 ))}
               </div>
+              {!q && c.services.length > (visibleCounts[c.id] ?? CATALOG_PAGE) && (
+                <div className="mt-4 flex justify-center">
+                  <button
+                    onClick={() => more(c.id)}
+                    className="flex items-center gap-2 rounded-full border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-5 py-2.5 text-[12.5px] font-extrabold text-zinc-700 dark:text-zinc-200 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                    style={{ color: undefined }}
+                  >
+                    <span style={{ color: 'var(--brand)' }}>See more services</span>
+                    <span className="rounded-full bg-zinc-100 dark:bg-zinc-800/80 px-2 py-0.5 text-[10.5px] font-bold text-zinc-500 dark:text-zinc-400">
+                      +{Math.min(CATALOG_PAGE, c.services.length - (visibleCounts[c.id] ?? CATALOG_PAGE))} · {c.services.length - (visibleCounts[c.id] ?? CATALOG_PAGE)} left
+                    </span>
+                  </button>
+                </div>
+              )}
             </div>
           ))}
           {!filtered.length && (
@@ -1248,6 +1269,125 @@ export function LandingRenderer({ platform, data, config, preview }: {
         </>
       )}
       {footerBlock}
+      {/* Live chat — only when the reseller connected a WEBCHAT channel */}
+      {!preview && data.webchat?.channelId && <WebchatWidget channelId={data.webchat.channelId} slug={platform.slug} />}
+    </div>
+  )
+}
+
+/* ============================= web chat widget ============================= */
+
+/**
+ * Floating live-chat bubble for the storefront. Messages POST to the public
+ * storefront chat endpoint, land in the reseller's CRM inbox and automations /
+ * AI agents answer in real time. Visitor identity is a localStorage id.
+ */
+function WebchatWidget({ channelId, slug }: { channelId: string; slug: string }) {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState('')
+  const [body, setBody] = useState('')
+  const [sending, setSending] = useState(false)
+  const [phase, setPhase] = useState<'idle' | 'sent' | 'error'>('idle')
+  const [visitorId] = useState(() => {
+    try {
+      const existing = localStorage.getItem('gr_chat_vid')
+      if (existing) return existing
+      const vid = `v-${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`
+      localStorage.setItem('gr_chat_vid', vid)
+      return vid
+    } catch {
+      return 'v-anon'
+    }
+  })
+
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!body.trim() || sending) return
+    setSending(true)
+    try {
+      const res = await fetch('/api/storefront/chat', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ slug, name, body, visitorId }),
+      })
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean }
+      setPhase(data?.ok ? 'sent' : 'error')
+      if (data?.ok) setBody('')
+    } catch {
+      setPhase('error')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div className="fixed bottom-5 right-5 z-[80] flex flex-col items-end gap-3" data-webchat-channel={channelId}>
+      {open && (
+        <div className="w-[min(92vw,340px)] overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl">
+          <div className="flex items-center gap-2.5 px-4 py-3" style={{ background: 'linear-gradient(135deg, var(--brand), var(--brand-2))' }}>
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-lg" aria-hidden>💬</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-black text-black">Live chat</p>
+              <p className="flex items-center gap-1 text-[10.5px] font-bold text-black/70">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" /> We reply in minutes
+              </p>
+            </div>
+            <button onClick={() => setOpen(false)} aria-label="Close chat" className="rounded-full p-1 text-black/70 transition hover:bg-white/20 hover:text-black">
+              ✕
+            </button>
+          </div>
+          <form onSubmit={send} className="space-y-2.5 p-4">
+            {phase !== 'sent' && (
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your name (optional)"
+                aria-label="Your name"
+                className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent px-3 py-2 text-[13px] outline-none focus:border-[var(--brand)]"
+              />
+            )}
+            {phase === 'sent' ? (
+              <div className="rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/40 px-3.5 py-4 text-center">
+                <p className="text-[13px] font-black text-emerald-600 dark:text-emerald-400">Message sent ✅</p>
+                <p className="mt-1 text-[11.5px] text-zinc-500 dark:text-zinc-400">Our team will reply right here in this chat.</p>
+                <button type="button" onClick={() => { setPhase('idle'); setOpen(false) }} className="mt-2 text-[11.5px] font-bold underline" style={{ color: 'var(--brand)' }}>
+                  Send another
+                </button>
+              </div>
+            ) : (
+              <>
+                <textarea
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  rows={3}
+                  required
+                  placeholder="Hi! I want 5k Instagram followers — how much?"
+                  aria-label="Your message"
+                  className="w-full resize-none rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent px-3 py-2 text-[13px] outline-none focus:border-[var(--brand)]"
+                />
+                {phase === 'error' && <p className="text-[11.5px] font-semibold text-rose-500">Could not send — try again.</p>}
+                <button
+                  type="submit"
+                  disabled={sending || !body.trim()}
+                  className="w-full rounded-xl py-2.5 text-[13px] font-black text-[var(--on-brand)] transition disabled:opacity-50"
+                  style={{ background: 'var(--brand)' }}
+                >
+                  {sending ? 'Sending…' : 'Send message'}
+                </button>
+              </>
+            )}
+          </form>
+        </div>
+      )}
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-label={open ? 'Close live chat' : 'Open live chat'}
+        aria-expanded={open}
+        className="flex h-14 w-14 items-center justify-center rounded-full text-2xl text-[var(--on-brand)] shadow-[0_12px_34px_-8px_var(--brand-glow)] transition-transform hover:scale-105"
+        style={{ background: 'linear-gradient(135deg, var(--brand), var(--brand-2))' }}
+      >
+        {open ? '✕' : '💬'}
+      </button>
     </div>
   )
 }

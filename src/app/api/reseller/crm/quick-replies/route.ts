@@ -9,10 +9,21 @@ async function requirePlatform(userId: string) {
   return platform
 }
 
+// First-run defaults so a fresh platform has something useful in the inbox composer.
+const DEFAULT_QUICK_REPLIES = [
+  { title: 'Welcome', body: 'Welcome! 👋 How can I help you today — pricing, delivery times or something else?', shortcut: '/welcome' },
+  { title: 'Prices', body: 'You can see all our services and live prices in the catalog: every rate is per 1,000 units. Tell me what you need and I will quote it for you.', shortcut: '/prices' },
+  { title: 'Delivery time', body: 'Most orders start within minutes and complete progressively. Delivery speed is shown on every service before you order.', shortcut: '/delivery' },
+]
+
 export async function GET() {
   return handle(async () => {
     const user = await requireUser()
     const platform = await requirePlatform(user.id)
+    const existing = await db.quickReply.count({ where: { platformId: platform.id } })
+    if (existing === 0) {
+      await db.quickReply.createMany({ data: DEFAULT_QUICK_REPLIES.map((r) => ({ ...r, platformId: platform.id })) })
+    }
     const quickReplies = await db.quickReply.findMany({
       where: { platformId: platform.id },
       orderBy: { title: 'asc' },

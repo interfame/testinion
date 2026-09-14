@@ -3,7 +3,7 @@
 
 import { useState } from 'react'
 import {
-  CreditCard, Wallet, WalletCards, BadgeDollarSign, ArrowLeftRight, Headset, Check,
+  CreditCard, Wallet, BadgeDollarSign, ArrowLeftRight, Headset, Check,
   CheckCircle2, XCircle, Plus, Trash2, Crown, Zap, Loader2, Rocket, TicketPercent, Dices, Ban, BadgePercent, Users, Store,
   QrCode, Bitcoin, Coins, Landmark, Plug, Unplug,
 } from 'lucide-react'
@@ -29,7 +29,6 @@ import { useI18n, type DictKey, type Lang } from '@/lib/i18n'
 
 type Tx = { id: string; type: string; amount: number; description: string; method: string | null; createdAt: string }
 type Gateway = { id: string; name: string; type: string; feePercent: number; instructions: string | null }
-type Method = { id: string; brand: string; last4: string; expMonth: number; expYear: number; primary: boolean }
 type Deposit = { id: string; amount: number; method: string; reference: string | null; note: string | null; status: string; createdAt: string; user: { name: string; email: string } }
 type PlanInfo = { platform: { plan: Plan; monthlyFee: number; nextBilling: string | null; externalApi: boolean; name: string } }
 type Plan = { id: string; name: string; monthlyPrice: number; externalApiPrice: number; customDomainPrice: number; maxServices: number; portalDesigns: string; features: string }
@@ -327,34 +326,20 @@ const PROVIDER_ICONS: Record<string, typeof Wallet> = {
   wallet: Wallet, card: CreditCard, qr: QrCode, bitcoin: Bitcoin, coins: Coins, landmark: Landmark,
 }
 
-/** My Payment Methods — connect the store's own payment gateways (PayPal,
- *  MercadoPago, Pix, Cryptomus, CoinPayments, Payoneer) with your own API
- *  credentials, plus saved cards for faster checkout. */
+/* My Payment Methods — the store's own payment gateways only (PayPal,
+ * MercadoPago, Pix, Cryptomus, CoinPayments, Payoneer) with the reseller's own
+ * API credentials. Deliberately NO saved-card storage: keeping card data in
+ * the panel is an avoidable security/PCI liability — gateway checkout keeps
+ * card data with the processor. */
 function PaymentMethods() {
   const { t } = useI18n()
-  const { data: fundsData, refresh: refreshCards } = useApi<{ methods: Method[] }>('/api/funds')
   return (
     <div className="space-y-5">
       <PanelPageHeader
         title={t('reseller.paymentMethods')}
         description={t('rfin.pmDesc')}
       />
-      <Tabs defaultValue="gateways">
-        <TabsList className="rounded-full">
-          <TabsTrigger value="gateways" className="rounded-full px-4"><Plug className="mr-1.5 h-3.5 w-3.5" /> {t('rfin.tabGateways')}</TabsTrigger>
-          <TabsTrigger value="cards" className="rounded-full px-4"><WalletCards className="mr-1.5 h-3.5 w-3.5" /> {t('rfin.tabCards')}</TabsTrigger>
-        </TabsList>
-
-        {/* ── Gateways (6 providers) ── */}
-        <TabsContent value="gateways" className="mt-4">
-          <PaymentGateways />
-        </TabsContent>
-
-        {/* ── Saved cards ── */}
-        <TabsContent value="cards" className="mt-4">
-          <SavedCards data={fundsData} refresh={refreshCards} />
-        </TabsContent>
-      </Tabs>
+      <PaymentGateways />
     </div>
   )
 }
@@ -552,91 +537,6 @@ function PaymentGateways() {
           <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction className="bg-rose-600 hover:bg-rose-700" onClick={disconnect}>{t('rfin.disconnectCta2')}</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
-  )
-}
-
-function SavedCards({ data, refresh }: { data?: { methods: Method[] } | null; refresh: () => void }) {
-  const [addOpen, setAddOpen] = useState(false)
-  const [form, setForm] = useState({ number: '', expMonth: '12', expYear: '2028' })
-  const [deleteM, setDeleteM] = useState<Method | null>(null)
-
-  const add = async () => {
-    const res = await mutate(() => api.post('/api/funds/methods', form), { success: 'Card added 💳' })
-    if (res) { setAddOpen(false); setForm({ number: '', expMonth: '12', expYear: '2028' }); refresh() }
-  }
-
-  const remove = async () => {
-    if (!deleteM) return
-    await fetch('/api/funds/methods', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: deleteM.id }) })
-    setDeleteM(null)
-    refresh()
-    toast({ title: 'Card removed' })
-  }
-
-  return (
-    <>
-      <div className="mb-3 flex justify-end">
-        <Button size="sm" className="font-bold" style={{ background: 'var(--brand)', color: '#15180a' }} onClick={() => setAddOpen(true)}>
-          <Plus className="mr-1.5 h-4 w-4" /> Add card
-        </Button>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {(data?.methods ?? []).map((m) => (
-          <div key={m.id} className="group relative overflow-hidden rounded-2xl border bg-white dark:bg-zinc-900 p-5">
-            <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-zinc-50 dark:bg-zinc-900/60" />
-            <div className="relative">
-              <div className="flex items-center justify-between">
-                <span className="flex h-9 w-12 items-center justify-center rounded-md bg-zinc-900 text-[10px] font-extrabold tracking-widest text-white">
-                  {m.brand.toUpperCase().slice(0, 4)}
-                </span>
-                {m.primary && <Badge className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400">PRIMARY</Badge>}
-              </div>
-              <p className="mt-4 font-mono text-[15px] font-bold tracking-wider">•••• •••• •••• {m.last4}</p>
-              <div className="mt-2 flex items-center justify-between">
-                <p className="text-[11px] text-zinc-400 dark:text-zinc-500">Exp {String(m.expMonth).padStart(2, '0')}/{m.expYear}</p>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 opacity-0 transition group-hover:opacity-100" onClick={() => setDeleteM(m)}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        ))}
-        {!(data?.methods ?? []).length && (
-          <div className="col-span-full rounded-2xl border border-dashed p-10 text-center">
-            <WalletCards className="mx-auto h-8 w-8 text-zinc-300 dark:text-zinc-600" />
-            <p className="mt-2 text-sm text-zinc-400 dark:text-zinc-500">No saved cards yet.</p>
-          </div>
-        )}
-      </div>
-
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Add payment card</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label>Card number</Label>
-              <Input placeholder="4242 4242 4242 4242" value={form.number} onChange={(e) => setForm({ ...form, number: e.target.value })} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5"><Label>Exp month</Label><Input type="number" min={1} max={12} value={form.expMonth} onChange={(e) => setForm({ ...form, expMonth: e.target.value })} /></div>
-              <div className="space-y-1.5"><Label>Exp year</Label><Input type="number" value={form.expYear} onChange={(e) => setForm({ ...form, expYear: e.target.value })} /></div>
-            </div>
-            <Button className="w-full font-bold" style={{ background: 'var(--brand)', color: '#15180a' }} onClick={add}>Save card</Button>
-            <p className="text-center text-[11px] text-zinc-400 dark:text-zinc-500">Demo only — no real charge, only last 4 digits stored.</p>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={!!deleteM} onOpenChange={(o) => !o && setDeleteM(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Remove card?</AlertDialogTitle></AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-rose-600 hover:bg-rose-700" onClick={remove}>Remove</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

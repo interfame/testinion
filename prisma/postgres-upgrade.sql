@@ -40,3 +40,12 @@ CREATE TABLE IF NOT EXISTS "Media" (
     CONSTRAINT "Media_pkey" PRIMARY KEY ("id")
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "Media_id_key" ON "Media"("id");
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Platform subscriptions: auto-expiry + 30-day grace before deletion
+-- ─────────────────────────────────────────────────────────────────────────────
+ALTER TABLE "Platform" ADD COLUMN IF NOT EXISTS "expiresAt" TIMESTAMP(3);
+ALTER TABLE "Platform" ADD COLUMN IF NOT EXISTS "suspendedAt" TIMESTAMP(3);
+
+-- AI Agents: bring-your-own-key (the reseller's own model API key, encrypted)
+ALTER TABLE "AiAgent" ADD COLUMN IF NOT EXISTS "apiKey" TEXT;

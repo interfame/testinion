@@ -69,6 +69,8 @@ model Platform {
   heroImage    String?
   currency     String    @default("USD")
   externalApi  Boolean   @default(false) // paid add-on: connect external providers API
+  expiresAt    DateTime? // subscription end — cron auto-suspends the storefront past this date
+  suspendedAt  DateTime? // when the storefront was auto-suspended (30-day grace before deletion)
   cycle        String    @default("monthly") // rental billing cycle: monthly | annual
   monthlyFee   Float     @default(0)
   nextBilling  DateTime?
@@ -372,6 +374,7 @@ model AiAgent {
   prompt      String?
   knowledge   String?
   temperature Float    @default(0.7)
+  apiKey      String?  // reseller's own model API key (BYOK — encrypted at rest; platform pays nothing)
   channels    String   @default("[]")
   active      Boolean  @default(true)
   resolved    Int      @default(0)

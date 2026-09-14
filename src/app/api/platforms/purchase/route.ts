@@ -64,6 +64,8 @@ export async function POST(req: NextRequest) {
     const nextBilling = new Date()
     if (cycle === 'annual') nextBilling.setFullYear(nextBilling.getFullYear() + 1)
     else nextBilling.setMonth(nextBilling.getMonth() + 1)
+    // Subscription window — the cron sweep auto-suspends the storefront past it
+    const expiresAt = new Date(nextBilling)
 
     // Clone the master landing_copy Setting (stats/steps/features storefront copy)
     // into the new platform's settings JSON so its storefront is a FULL clone of
@@ -110,6 +112,7 @@ export async function POST(req: NextRequest) {
           cycle,
           monthlyFee,
           nextBilling,
+          expiresAt,
           // Landing clone: same copy as the master site ("la landing del que compra
           // la plataforma es la misma que la mía") — editable later in Website → Landing.
           tagline: MASTER_LANDING.tagline,

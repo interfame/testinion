@@ -2220,6 +2220,26 @@ const en = {
   'rst.blogPh': 'Blog',
   'common.darkMode': 'Dark mode',
   'coupon.dismiss': 'Dismiss promotion',
+
+  // ── CRM real connections / BYOK / client-version switching ──
+  'crm.pendingReview': 'Saved — waiting for provider approval',
+  'crm.connecting': 'Connecting…',
+  'crm.connectCtaTitle': 'Connect channel',
+  'crm.connectDesc': 'Enter your own provider credentials. They are validated against the provider API in real time — a channel only turns Connected after the provider confirms.',
+  'crm.webchatConnectDesc': 'No credentials needed — connect to enable the floating live-chat widget on your storefront. Visitor messages land in your Inbox instantly.',
+  'crm.webhookHint': 'Paste this URL (and verify token) in the provider\'s webhook dashboard — Telegram BotFather /setWebhook or the Meta App webhooks panel.',
+  'crm.connectValidate': 'Validate & connect',
+  'crm.inboxOnlyTitle': 'Stored in inbox — no external send',
+  'crm.inboxOnlyDesc': 'This channel has no real API credentials yet, so the reply was saved to the conversation only. Connect the channel to deliver it.',
+  'crm.apiKeyLabel': 'Model API key (your own — BYOK)',
+  'crm.apiKeyHint': 'Calls are billed to YOUR provider account, never to the platform. The key is encrypted and never shown again.',
+  'rpanel.clientVersion': 'Client version',
+  'rpanel.resellerVersion': 'Reseller version',
+  'rpanel.suspendedTitle': 'Storefront suspended',
+  'rpanel.suspendedDesc': 'Your subscription expired or the platform was suspended, so the storefront is offline. Renew to restore it — or keep using your client account below. Data is kept during the grace period.',
+  'rpanel.goClient': 'Go to client version',
+  'rpanel.pendingTitle': 'Storefront pending activation',
+  'rpanel.pendingDesc': 'Your platform is not active yet. Once the subscription is confirmed the storefront goes live automatically.',
 }
 
 export type DictKey = keyof typeof en
@@ -4429,6 +4449,26 @@ const es: Record<DictKey, string> = {
   'rst.blogPh': 'Blog',
   'common.darkMode': 'Modo oscuro',
   'coupon.dismiss': 'Descartar promoción',
+
+  // ── CRM conexiones reales / BYOK / cambio de versión ──
+  'crm.pendingReview': 'Guardado — esperando aprobación del proveedor',
+  'crm.connecting': 'Conectando…',
+  'crm.connectCtaTitle': 'Conectar canal',
+  'crm.connectDesc': 'Introduce tus propias credenciales del proveedor. Se validan en tiempo real contra la API del proveedor: el canal solo pasa a Conectado cuando el proveedor confirma.',
+  'crm.webchatConnectDesc': 'No necesitas credenciales: conéctalo para activar el widget de chat en vivo en tu tienda. Los mensajes de los visitantes llegan al instante a tu Bandeja.',
+  'crm.webhookHint': 'Pega esta URL (y el verify token) en el panel de webhooks del proveedor: BotFather /setWebhook para Telegram o el panel de webhooks de Meta.',
+  'crm.connectValidate': 'Validar y conectar',
+  'crm.inboxOnlyTitle': 'Guardado en la bandeja — sin envío externo',
+  'crm.inboxOnlyDesc': 'Este canal aún no tiene credenciales reales de API: la respuesta solo se guardó en la conversación. Conecta el canal para enviarla.',
+  'crm.apiKeyLabel': 'API key del modelo (propia — BYOK)',
+  'crm.apiKeyHint': 'El uso se factura en TU cuenta del proveedor, nunca en la plataforma. La clave queda cifrada y no se vuelve a mostrar.',
+  'rpanel.clientVersion': 'Versión cliente',
+  'rpanel.resellerVersion': 'Versión reseller',
+  'rpanel.suspendedTitle': 'Tienda suspendida',
+  'rpanel.suspendedDesc': 'Tu suscripción venció o la plataforma fue suspendida: la tienda está fuera de línea. Renueva para restaurarla o sigue usando tu cuenta cliente abajo. Los datos se conservan durante el período de gracia.',
+  'rpanel.goClient': 'Ir a la versión cliente',
+  'rpanel.pendingTitle': 'Tienda pendiente de activación',
+  'rpanel.pendingDesc': 'Tu plataforma aún no está activa. Cuando se confirme la suscripción, la tienda se activa automáticamente.',
 }
 
 const pt: Record<DictKey, string> = {
@@ -6635,6 +6675,26 @@ const pt: Record<DictKey, string> = {
   'rst.blogPh': 'Blog',
   'common.darkMode': 'Modo escuro',
   'coupon.dismiss': 'Descartar promoção',
+
+  // ── CRM conexões reais / BYOK / troca de versão ──
+  'crm.pendingReview': 'Salvo — aguardando aprovação do provedor',
+  'crm.connecting': 'Conectando…',
+  'crm.connectCtaTitle': 'Conectar canal',
+  'crm.connectDesc': 'Insira suas próprias credenciais do provedor. Elas são validadas em tempo real na API do provedor — o canal só fica Conectado quando o provedor confirma.',
+  'crm.webchatConnectDesc': 'Sem credenciais necessárias — conecte para ativar o widget de chat ao vivo na sua loja. As mensagens dos visitantes chegam na sua Caixa de entrada na hora.',
+  'crm.webhookHint': 'Cole esta URL (e o verify token) no painel de webhooks do provedor: BotFather /setWebhook no Telegram ou o painel de webhooks da Meta.',
+  'crm.connectValidate': 'Validar e conectar',
+  'crm.inboxOnlyTitle': 'Salvo na caixa de entrada — sem envio externo',
+  'crm.inboxOnlyDesc': 'Este canal ainda não tem credenciais reais de API: a resposta foi apenas salva na conversa. Conecte o canal para enviá-la.',
+  'crm.apiKeyLabel': 'Chave de API do modelo (sua — BYOK)',
+  'crm.apiKeyHint': 'O uso é cobrado na SUA conta do provedor, nunca na plataforma. A chave fica criptografada e não é exibida novamente.',
+  'rpanel.clientVersion': 'Versão cliente',
+  'rpanel.resellerVersion': 'Versão revendedor',
+  'rpanel.suspendedTitle': 'Loja suspensa',
+  'rpanel.suspendedDesc': 'Sua assinatura expirou ou a plataforma foi suspensa: a loja está offline. Renove para restaurá-la ou continue usando sua conta cliente abaixo. Os dados ficam guardados durante o período de carência.',
+  'rpanel.goClient': 'Ir para a versão cliente',
+  'rpanel.pendingTitle': 'Loja pendente de ativação',
+  'rpanel.pendingDesc': 'Sua plataforma ainda não está ativa. Quando a assinatura for confirmada, a loja entra no ar automaticamente.',
 }
 
 export const DICTS: Record<Lang, Record<DictKey, string>> = { en, es, pt }

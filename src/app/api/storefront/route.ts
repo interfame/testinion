@@ -74,7 +74,13 @@ export async function GET(req: Request) {
     const pages = (landing?.pages ?? [])
       .filter((p) => p.visible)
       .map((p) => ({ id: p.id, slug: p.slug, title: p.title }))
+    // Connected web chat channel → the storefront shows the live-chat widget
+    const webchat = await db.channel.findFirst({
+      where: { platformId, type: 'WEBCHAT', status: 'CONNECTED' },
+      select: { id: true },
+    })
     return jsonOk({
+      webchat: webchat ? { channelId: webchat.id } : null,
       platform: {
         id: platformId, name: platform.name, slug: platform.slug, tagline: platform.tagline,
         heroTitle: platform.heroTitle, heroSubtitle: platform.heroSubtitle, heroCta: platform.heroCta,

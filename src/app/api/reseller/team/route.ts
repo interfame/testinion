@@ -3,6 +3,9 @@ import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
 
+const ROLES = ['ADMIN', 'SUPPORT', 'FINANCE', 'CONTENT', 'CRM']
+const STATUSES = ['ACTIVE', 'SUSPENDED']
+
 async function myPlatform(userId: string) {
   const p = await db.platform.findUnique({ where: { ownerId: userId } })
   if (!p) throw jsonError('No platform', 404)
@@ -30,7 +33,7 @@ export async function POST(req: NextRequest) {
         platformId: platform.id,
         name: String(name).trim().slice(0, 80),
         email: String(email).toLowerCase().trim(),
-        role: role || 'SUPPORT',
+        role: ROLES.includes(String(role)) ? String(role) : 'SUPPORT',
         permissions: JSON.stringify(body_permissions(role)),
       },
     })
@@ -47,8 +50,14 @@ export async function PATCH(req: NextRequest) {
     if (!member) return jsonError('Member not found', 404)
     const data: Record<string, string> = {}
     if (body.name !== undefined) data.name = String(body.name).slice(0, 80)
-    if (body.role !== undefined) data.role = String(body.role)
-    if (body.status !== undefined) data.status = String(body.status)
+    if (body.role !== undefined) {
+      if (!ROLES.includes(String(body.role))) return jsonError('Invalid role')
+      data.role = String(body.role)
+    }
+    if (body.status !== undefined) {
+      if (!STATUSES.includes(String(body.status))) return jsonError('Invalid status')
+      data.status = String(body.status)
+    }
     if (body.permissions !== undefined) data.permissions = JSON.stringify(body.permissions)
     const updated = await db.teamMember.update({ where: { id: member.id }, data })
     return jsonOk({ member: updated })

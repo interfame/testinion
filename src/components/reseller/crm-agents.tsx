@@ -2,9 +2,12 @@
 'use client'
 
 // AI Agents — manage the bots that answer conversations per channel.
+// BYOK: every agent runs on the reseller's OWN model API key (OpenAI · Claude ·
+// Gemini). The key is encrypted at rest and never returned by the API — calls
+// are billed to the reseller's provider account, never to the platform owner.
 
 import { useState } from 'react'
-import { Bot, Pencil, Plus, Sparkles } from 'lucide-react'
+import { Bot, KeyRound, Pencil, Plus, ShieldCheck, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { api, mutate, useApi } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -55,6 +58,12 @@ const DEFAULT_MODELS: Record<string, string> = {
   GEMINI: 'gemini-1.5-flash',
 }
 
+const DEFAULT_KEY_HINT: Record<string, string> = {
+  OPENAI: 'sk-proj-…',
+  CLAUDE: 'sk-ant-api03-…',
+  GEMINI: 'AIza…',
+}
+
 type AgentForm = {
   name: string
   provider: string
@@ -63,6 +72,7 @@ type AgentForm = {
   knowledge: string
   temperature: number
   channels: string[]
+  apiKey: string
 }
 
 const EMPTY_FORM: AgentForm = {
@@ -73,6 +83,7 @@ const EMPTY_FORM: AgentForm = {
   knowledge: '',
   temperature: 0.7,
   channels: ['WHATSAPP'],
+  apiKey: '',
 }
 
 export default function CrmAgents({ platformId }: { platformId: string }) {
@@ -100,6 +111,7 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
       knowledge: a.knowledge ?? '',
       temperature: a.temperature,
       channels: parseArr(a.channels),
+      apiKey: '', // blank = keep the stored key
     })
     setEditing(a)
     setCreateOpen(true)
@@ -109,6 +121,8 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
     if (!form.name.trim()) return
     setSaving(true)
     const payload = { ...form }
+    // never send a blank key on edit — blank means "keep the stored one"
+    if (editing && !payload.apiKey.trim()) delete (payload as Partial<typeof payload>).apiKey
     const res = editing
       ? await mutate(() => api.patch('/api/reseller/crm/agents', { id: editing.id, ...payload }), {
           success: t('crm.agentUpdated'),
@@ -187,7 +201,20 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
                 {a.prompt || t('crm.noPrompt')}
               </p>
 
-              <div className="mt-2 flex flex-wrap gap-1">
+              <div className="mt-2 flex flex-wrap items-center gap-1">
+                <span
+                  className={cn(
+                    'flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold',
+                    (a as CrmAgent & { hasKey?: boolean }).hasKey
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400',
+                  )}
+                >
+                  <KeyRound className="h-3 w-3" />
+                  {(a as CrmAgent & { hasKey?: boolean }).hasKey
+                    ? `API key ${(a as CrmAgent & { hasKey?: boolean; keyPreview?: string }).keyPreview ?? ''}`
+                    : 'API key missing'}
+                </span>
                 {parseArr(a.channels).length === 0 ? (
                   <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{t('crm.allChannels')}</span>
                 ) : (
@@ -268,6 +295,29 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ag-key" className="flex items-center gap-1.5">
+                <KeyRound className="h-3.5 w-3.5" /> {t('crm.apiKeyLabel')}
+                {editing && (editing as CrmAgent & { keyPreview?: string }).keyPreview && (
+                  <span className="rounded-md bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 font-mono text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                    {(editing as CrmAgent & { keyPreview?: string }).keyPreview}
+                  </span>
+                )}
+              </Label>
+              <Input
+                id="ag-key"
+                type="password"
+                value={form.apiKey}
+                onChange={(e) => setForm((f) => ({ ...f, apiKey: e.target.value }))}
+                placeholder={editing ? '•••••••• (leave blank to keep the current key)' : DEFAULT_KEY_HINT[form.provider] ?? 'sk-…'}
+                className="rounded-xl font-mono text-[13px]"
+                autoComplete="off"
+              />
+              <p className="flex items-start gap-1 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500">
+                <ShieldCheck className="mt-0.5 h-3 w-3 shrink-0 text-emerald-500" />
+                {t('crm.apiKeyHint')}
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="ag-model">{t('crm.model')}</Label>

@@ -2,7 +2,7 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
-import { emitToUsers } from '@/lib/realtime-server'
+import { sendOutboundMessage } from '@/lib/crm-engine'
 
 const CONTACT_SELECT = {
   id: true,
@@ -64,42 +64,9 @@ export async function POST(req: NextRequest) {
     const conversation = await db.conversation.findFirst({ where: { id, platformId: platform.id } })
     if (!conversation) return jsonError('Conversation not found', 404)
 
-    const content = String(text).trim().slice(0, 4000)
-    const [message] = await db.$transaction([
-      db.message.create({
-        data: { conversationId: conversation.id, direction: 'OUT', body: content },
-      }),
-      db.conversation.update({
-        where: { id: conversation.id },
-        data: { lastMessage: content, lastMessageAt: new Date(), unread: 0 },
-      }),
-    ])
+    const result = await sendOutboundMessage(platform.id, conversation.id, conversation.channel, String(text).trim())
 
-    // Live-push to every teammate watching this platform's inbox
-    const teammates = await db.user.findMany({
-      where: { OR: [{ id: user.id }, { role: 'TEAM', platformId: platform.id }] },
-      select: { id: true },
-    })
-    emitToUsers(teammates.map((t) => t.id), {
-      type: 'crm',
-      action: 'message',
-      conversationId: conversation.id,
-      contactName: (await db.contact.findUnique({ where: { id: conversation.contactId }, select: { name: true } }))?.name ?? 'Contact',
-      channel: conversation.channel,
-      direction: 'OUT',
-      message: {
-        id: message.id,
-        body: message.body,
-        direction: 'OUT',
-        aiGenerated: false,
-        createdAt: message.createdAt,
-      },
-      lastMessage: content,
-      lastMessageAt: message.createdAt,
-      preview: content.slice(0, 90),
-    })
-
-    return jsonOk({ message, sentBy: user.name })
+    return jsonOk({ message: { id: result.id }, sentBy: user.name, delivered: result.sent, deliveryError: result.error ?? null })
   })
 }
 

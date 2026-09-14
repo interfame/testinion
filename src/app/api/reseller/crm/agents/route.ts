@@ -2,6 +2,7 @@
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
+import { encryptSecret, maskSecret } from '@/lib/crypto'
 
 const PROVIDERS = ['OPENAI', 'CLAUDE', 'GEMINI']
 const CHANNELS = ['WHATSAPP', 'INSTAGRAM', 'TELEGRAM', 'MESSENGER', 'EMAIL', 'WEBCHAT']
@@ -27,6 +28,16 @@ function normalizeChannels(v: unknown): string {
   return JSON.stringify(arr.filter((c) => CHANNELS.includes(c)))
 }
 
+/** Client-safe agent: the API key is never returned — only a masked preview. */
+function agentView(agent: {
+  id: string; platformId: string; name: string; provider: string; model: string
+  prompt: string | null; knowledge: string | null; temperature: number
+  channels: string; active: boolean; resolved: number; apiKey: string | null; createdAt: Date
+}) {
+  const { apiKey, ...rest } = agent
+  return { ...rest, hasKey: !!apiKey, keyPreview: maskSecret(apiKey) }
+}
+
 export async function GET(req: NextRequest) {
   return handle(async () => {
     const user = await requireUser()
@@ -37,14 +48,14 @@ export async function GET(req: NextRequest) {
     if (id) {
       const agent = await db.aiAgent.findFirst({ where: { id, platformId: platform.id } })
       if (!agent) return jsonError('AI agent not found', 404)
-      return jsonOk({ agent })
+      return jsonOk({ agent: agentView(agent) })
     }
 
     const agents = await db.aiAgent.findMany({
       where: { platformId: platform.id },
       orderBy: { createdAt: 'asc' },
     })
-    return jsonOk({ agents })
+    return jsonOk({ agents: agents.map(agentView) })
   })
 }
 
@@ -53,7 +64,7 @@ export async function POST(req: NextRequest) {
     const user = await requireUser()
     const platform = await requirePlatform(user.id)
     const body = await req.json().catch(() => ({}))
-    const { name, provider, model, prompt, knowledge, temperature, channels, active } = body
+    const { name, provider, model, prompt, knowledge, temperature, channels, active, apiKey } = body
     if (!name?.trim()) return jsonError('Agent name is required')
 
     const agent = await db.aiAgent.create({
@@ -70,9 +81,10 @@ export async function POST(req: NextRequest) {
             : 0.7,
         channels: normalizeChannels(channels),
         active: active === undefined ? true : !!active,
+        apiKey: apiKey ? encryptSecret(String(apiKey).trim().slice(0, 400)) : null,
       },
     })
-    return jsonOk({ agent })
+    return jsonOk({ agent: agentView(agent) })
   })
 }
 
@@ -81,7 +93,7 @@ export async function PATCH(req: NextRequest) {
     const user = await requireUser()
     const platform = await requirePlatform(user.id)
     const body = await req.json().catch(() => ({}))
-    const { id, name, provider, model, prompt, knowledge, temperature, channels, active } = body
+    const { id, name, provider, model, prompt, knowledge, temperature, channels, active, apiKey } = body
     if (!id) return jsonError('Agent id is required')
 
     const existing = await db.aiAgent.findFirst({ where: { id, platformId: platform.id } })
@@ -97,9 +109,10 @@ export async function PATCH(req: NextRequest) {
       data.temperature = Math.min(1, Math.max(0, Number(temperature)))
     if (channels !== undefined) data.channels = normalizeChannels(channels)
     if (active !== undefined) data.active = !!active
+    if (apiKey !== undefined && String(apiKey).trim()) data.apiKey = encryptSecret(String(apiKey).trim().slice(0, 400))
 
     const agent = await db.aiAgent.update({ where: { id: existing.id }, data })
-    return jsonOk({ agent })
+    return jsonOk({ agent: agentView(agent) })
   })
 }
 

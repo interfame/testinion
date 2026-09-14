@@ -1,15 +1,80 @@
 // Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 import { NextRequest } from 'next/server'
+import crypto from 'crypto'
 import { db } from '@/lib/db'
 import { requireUser, handle, jsonError, jsonOk } from '@/lib/auth'
+import { encryptSecret, decryptSecret, maskSecret } from '@/lib/crypto'
+import { validateChannel, type ChannelCreds } from '@/lib/crm-send'
 
 const TYPES = ['WHATSAPP', 'INSTAGRAM', 'TELEGRAM', 'MESSENGER', 'EMAIL', 'WEBCHAT']
 const STATUSES = ['CONNECTED', 'DISCONNECTED', 'PENDING']
+
+// Config keys that hold credentials → encrypted at rest, masked on read.
+const SECRET_KEYS = ['botToken', 'accessToken', 'password', 'apiKey']
+const PLAIN_KEYS = ['phoneNumberId', 'verifyToken', 'email', 'host']
 
 async function requirePlatform(userId: string) {
   const platform = await db.platform.findUnique({ where: { ownerId: userId } })
   if (!platform) throw jsonError('No platform found for this account', 404)
   return platform
+}
+
+/** Encrypt credential fields before storing Channel.config */
+function encryptConfig(creds: Record<string, unknown>): string {
+  const out: Record<string, string> = {}
+  for (const [k, v] of Object.entries(creds)) {
+    if (v === undefined || v === null || v === '') continue
+    out[k] = SECRET_KEYS.includes(k) ? encryptSecret(String(v)) : String(v).slice(0, 300)
+  }
+  return JSON.stringify(out)
+}
+
+/** Merge new credentials into the existing config (keeps old values when blank). */
+function mergeConfig(existingRaw: string | null | undefined, patch: Record<string, unknown>): string {
+  let existing: Record<string, unknown> = {}
+  try {
+    existing = JSON.parse(existingRaw || '{}') as Record<string, unknown>
+  } catch {
+    existing = {}
+  }
+  const merged: Record<string, unknown> = { ...existing }
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === undefined) continue
+    if (v === '' && SECRET_KEYS.includes(k)) continue // blank = keep current secret
+    merged[k] = SECRET_KEYS.includes(k) ? encryptSecret(String(v)) : String(v).slice(0, 300)
+  }
+  return JSON.stringify(merged)
+}
+
+/** Client-safe view of a channel: masked secrets + the webhook URL to install. */
+function channelView(channel: { id: string; type: string; name: string; handle: string | null; status: string; config: string | null; createdAt: Date }, origin: string) {
+  let creds: Record<string, unknown> = {}
+  try {
+    creds = JSON.parse(channel.config || '{}') as Record<string, unknown>
+  } catch { /* ignore */ }
+  const configPreview: Record<string, string | null> = {}
+  for (const key of [...SECRET_KEYS, ...PLAIN_KEYS]) {
+    if (creds[key] === undefined) continue
+    configPreview[key] = SECRET_KEYS.includes(key) ? maskSecret(String(creds[key])) : String(creds[key])
+  }
+  const secret = String(creds.webhookSecret ?? '')
+  return {
+    id: channel.id,
+    type: channel.type,
+    name: channel.name,
+    handle: channel.handle,
+    status: channel.status,
+    createdAt: channel.createdAt,
+    configPreview,
+    webhookSecret: secret ? `${secret.slice(0, 4)}••••${secret.slice(-4)}` : null,
+    webhookUrl: secret ? `${origin}/api/webhooks/crm/${channel.id}?k=${secret}` : null,
+  }
+}
+
+function originOf(req: NextRequest): string {
+  const host = req.headers.get('x-forwarded-host') ?? req.headers.get('host')
+  const proto = req.headers.get('x-forwarded-proto') ?? (host?.startsWith('localhost') || host?.startsWith('127.') ? 'http' : 'https')
+  return host ? `${proto}://${host}` : new URL(req.url).origin
 }
 
 export async function GET(req: NextRequest) {
@@ -18,18 +83,19 @@ export async function GET(req: NextRequest) {
     const platform = await requirePlatform(user.id)
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')
+    const origin = originOf(req)
 
     if (id) {
       const channel = await db.channel.findFirst({ where: { id, platformId: platform.id } })
       if (!channel) return jsonError('Channel not found', 404)
-      return jsonOk({ channel })
+      return jsonOk({ channel: channelView(channel, origin) })
     }
 
     const channels = await db.channel.findMany({
       where: { platformId: platform.id },
       orderBy: { createdAt: 'asc' },
     })
-    return jsonOk({ channels })
+    return jsonOk({ channels: channels.map((c) => channelView(c, origin)) })
   })
 }
 
@@ -38,10 +104,12 @@ export async function POST(req: NextRequest) {
     const user = await requireUser()
     const platform = await requirePlatform(user.id)
     const body = await req.json().catch(() => ({}))
-    const { type, name, handle: channelHandle } = body
+    const { type, name, handle: channelHandle, config } = body
     if (!TYPES.includes(String(type))) return jsonError('Invalid channel type')
     if (!name?.trim()) return jsonError('Channel name is required')
 
+    const webhookSecret = crypto.randomBytes(16).toString('hex')
+    const configStr = encryptConfig({ ...(typeof config === 'object' && config ? config : {}), webhookSecret })
     const channel = await db.channel.create({
       data: {
         platformId: platform.id,
@@ -49,9 +117,10 @@ export async function POST(req: NextRequest) {
         name: String(name).trim().slice(0, 120),
         handle: channelHandle ? String(channelHandle).trim().slice(0, 160) : null,
         status: 'DISCONNECTED',
+        config: configStr,
       },
     })
-    return jsonOk({ channel })
+    return jsonOk({ channel: channelView(channel, originOf(req)) })
   })
 }
 
@@ -60,7 +129,7 @@ export async function PATCH(req: NextRequest) {
     const user = await requireUser()
     const platform = await requirePlatform(user.id)
     const body = await req.json().catch(() => ({}))
-    const { id, name, handle: channelHandle, status, type } = body
+    const { id, name, handle: channelHandle, type, config, action } = body
     if (!id) return jsonError('Channel id is required')
 
     const existing = await db.channel.findFirst({ where: { id, platformId: platform.id } })
@@ -70,14 +139,50 @@ export async function PATCH(req: NextRequest) {
     if (name !== undefined) data.name = String(name).trim().slice(0, 120)
     if (channelHandle !== undefined) data.handle = channelHandle ? String(channelHandle).trim().slice(0, 160) : null
     if (type !== undefined && TYPES.includes(String(type))) data.type = String(type)
-    if (status !== undefined) {
-      if (!STATUSES.includes(String(status))) return jsonError('Invalid channel status')
-      // Simulated connect/disconnect flow
-      data.status = String(status)
+    if (config && typeof config === 'object') data.config = mergeConfig(existing.config, config as Record<string, unknown>)
+
+    // REAL connect flow — validate the credentials against the provider API.
+    if (action === 'connect') {
+      const nextConfig = data.config ?? existing.config
+      const creds: ChannelCreds = (() => {
+        try {
+          const parsed = JSON.parse(String(nextConfig || '{}')) as Record<string, unknown>
+          const out: ChannelCreds = {}
+          for (const key of ['botToken', 'accessToken', 'phoneNumberId', 'verifyToken']) {
+            if (parsed[key] !== undefined) out[key] = decryptSecret(String(parsed[key]))
+          }
+          return out
+        } catch {
+          return {}
+        }
+      })()
+      const check = await validateChannel(existing.type, creds)
+      if (!check.ok) {
+        // Persist any credential updates the user just typed, but stay DISCONNECTED
+        if (data.config) await db.channel.update({ where: { id: existing.id }, data })
+        return jsonError(`Connection failed: ${check.detail}`, 400)
+      }
+      data.status = existing.type === 'INSTAGRAM' || existing.type === 'MESSENGER' || existing.type === 'EMAIL' ? 'PENDING' : 'CONNECTED'
+      if (check.handle && !existing.handle) data.handle = check.handle
+      if (data.config) {
+        // store the derived handle/verifyToken for the webhook verifier
+        try {
+          const parsed = JSON.parse(String(data.config)) as Record<string, unknown>
+          if (!parsed.verifyToken && parsed.webhookSecret) parsed.verifyToken = parsed.webhookSecret
+          data.config = JSON.stringify(parsed)
+        } catch { /* ignore */ }
+      }
+    } else if (action === 'disconnect') {
+      data.status = 'DISCONNECTED'
+    } else if (body.status !== undefined && STATUSES.includes(String(body.status)) && action === undefined) {
+      // Direct status set is no longer allowed for CONNECTED (must pass validation);
+      // disconnecting directly is still fine.
+      if (String(body.status) === 'CONNECTED') return jsonError('Use action:"connect" — credentials are validated against the provider first', 400)
+      data.status = String(body.status)
     }
 
     const channel = await db.channel.update({ where: { id: existing.id }, data })
-    return jsonOk({ channel })
+    return jsonOk({ channel: channelView(channel, originOf(req)) })
   })
 }
 

@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 import { jsonError, jsonOk } from '@/lib/auth'
 import { notify } from '@/lib/notify'
 import { emitToUsers } from '@/lib/realtime-server'
-import { generateAgentReply } from '@/lib/ai-agent'
+import { sweepNoReply } from '@/lib/crm-engine'
 import { getReferralConfig, usdLabel } from '@/lib/referral'
 import { sendTemplateEmail, brandNameOf } from '@/lib/email'
 
@@ -206,15 +206,124 @@ async function runTick(req: NextRequest) {
     }
   }
 
-  // 3) CRM live chatter — simulated incoming customer messages (+ AI autopilot)
-  let chatter = { messages: 0, aiReplies: 0 }
+  // 3) CRM real sweeps — NO_REPLY automations + AI autopilot follow-ups
+  //    (real inbound arrives via webhooks; nothing here fabricates messages)
+  let noReply = { ai: 0 }
   try {
-    chatter = await crmChatter()
+    noReply = await sweepNoReply()
   } catch (e) {
-    console.error('[tick] chatter failed:', e instanceof Error ? e.message : e)
+    console.error('[tick] crm sweep failed:', e instanceof Error ? e.message : e)
   }
 
-  return jsonOk({ started: started.count, advanced, completed, partial, chatter, speed: cfg.speed, at: new Date().toISOString() })
+  // 4) Platform subscription sweep — auto-suspend expired storefronts and
+  //    permanently delete suspended ones after the 30-day grace period.
+  let expiry = { suspended: 0, deleted: 0, reminded: 0 }
+  try {
+    expiry = await sweepPlatforms()
+  } catch (e) {
+    console.error('[tick] platform sweep failed:', e instanceof Error ? e.message : e)
+  }
+
+  return jsonOk({ started: started.count, advanced, completed, partial, noReply, expiry, speed: cfg.speed, at: new Date().toISOString() })
+}
+
+// ───────────────────────── Platform subscription sweep ─────────────────────
+//
+//   · ACTIVE  + expiresAt < now                     → SUSPENDED (+ owner notice)
+//   · ACTIVE  + expiresAt within 3 days             → renewal reminder notice
+//   · SUSPENDED + suspendedAt < now − GRACE (30 d)  → PERMANENT DELETION
+//
+// After the grace period the storefront, its catalog, CRM data and branding are
+// removed for good. Clients (User.platformId) survive and simply become users
+// of the master GrowthRush panel.
+
+const GRACE_DAYS = 30
+
+async function sweepPlatforms(): Promise<{ suspended: number; deleted: number; reminded: number }> {
+  const now = new Date()
+  let suspended = 0
+  let deleted = 0
+  let reminded = 0
+
+  // 5a) expire overdue ACTIVE platforms
+  const expired = await db.platform.findMany({
+    where: { status: 'ACTIVE', expiresAt: { lt: now } },
+    select: { id: true, name: true, ownerId: true, slug: true },
+    take: 50,
+  })
+  for (const platform of expired) {
+    await db.platform.update({
+      where: { id: platform.id },
+      data: { status: 'SUSPENDED', suspendedAt: now },
+    })
+    suspended++
+    await notify(
+      platform.ownerId,
+      'SYSTEM',
+      `Storefront "${platform.name}" suspended ⏸`,
+      `Your subscription expired, so the storefront is offline. Renew within ${GRACE_DAYS} days to restore it — after that the platform is deleted permanently.`,
+      'plan-billing'
+    )
+  }
+
+  // 5b) renewal reminder 3 days before expiry (once — only ACTIVE platforms)
+  const soon = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
+  const expiring = await db.platform.findMany({
+    where: { status: 'ACTIVE', expiresAt: { gt: now, lt: soon } },
+    select: { id: true, name: true, ownerId: true, expiresAt: true },
+    take: 50,
+  })
+  for (const platform of expiring) {
+    const days = Math.max(1, Math.ceil(((platform.expiresAt?.getTime() ?? now.getTime()) - now.getTime()) / 86_400_000))
+    reminded++
+    await notify(
+      platform.ownerId,
+      'SYSTEM',
+      `Storefront "${platform.name}" expires in ${days} day${days === 1 ? '' : 's'} ⏳`,
+      'Renew from Plan & Billing to keep the storefront online without interruption.',
+      'plan-billing'
+    )
+  }
+
+  // 5c) permanent deletion after the grace period
+  const cutoff = new Date(now.getTime() - GRACE_DAYS * 24 * 60 * 60 * 1000)
+  const doomed = await db.platform.findMany({
+    where: { status: 'SUSPENDED', OR: [{ suspendedAt: { lt: cutoff } }, { suspendedAt: null, updatedAt: { lt: cutoff } }] },
+    select: { id: true, name: true, ownerId: true },
+    take: 20,
+  })
+  for (const platform of doomed) {
+    try {
+      await deletePlatformCompletely(platform.id)
+      deleted++
+      await notify(
+        platform.ownerId,
+        'SYSTEM',
+        `Storefront "${platform.name}" deleted`,
+        `The ${GRACE_DAYS}-day grace period ended and the platform was permanently removed. Your client account keeps its balance and history on the master panel.`,
+        'plan-billing'
+      )
+    } catch (e) {
+      console.error('[tick] platform delete failed:', platform.id, e instanceof Error ? e.message : e)
+    }
+  }
+
+  return { suspended, deleted, reminded }
+}
+
+/** Delete a platform and every required-relation child (CRM suite). */
+async function deletePlatformCompletely(platformId: string) {
+  await db.$transaction([
+    db.message.deleteMany({ where: { conversation: { platformId } } }),
+    db.conversation.deleteMany({ where: { platformId } }),
+    db.contact.deleteMany({ where: { platformId } }),
+    db.channel.deleteMany({ where: { platformId } }),
+    db.label.deleteMany({ where: { platformId } }),
+    db.quickReply.deleteMany({ where: { platformId } }),
+    db.aiAgent.deleteMany({ where: { platformId } }),
+    db.automation.deleteMany({ where: { platformId } }),
+    db.platform.delete({ where: { id: platformId } }),
+  ])
 }
 
 export async function POST(req: NextRequest) {
@@ -223,109 +332,4 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   return runTick(req)
-}
-
-// ───────────────────────────── CRM live chatter ─────────────────────────────
-//
-// Simulates customers writing into the omnichannel inbox so the CRM feels
-// alive end-to-end: an IN message lands → unread badges bump → the owner gets
-// a realtime push + bell notification → conversations on "AI" status get an
-// automatic AI-generated reply (agent autopilot).
-//
-// Admin → Settings → "CRM live chatter" toggles it (crm_chatter, default on).
-
-const CHATTER_LINES = [
-  'hola! quisiera 5k seguidores para mi cuenta, cuánto sale? 🙌',
-  'hi! do you have a discount if I order 10k likes?',
-  '¿hola? hice un pedido hace un rato y todavía no llega nada',
-  'How long does delivery usually take for Instagram followers?',
-  'oi! vocês têm seguidores brasileiros reais? preciso de 2k',
-  'Can you refill my last order? it dropped a bit overnight',
-  '¿manejan TikTok? quiero promocionar un video 🙏',
-  'hey, my crypto payment went through but the balance is not updated',
-  'bom dia! tem alguma promoção hoje?',
-  'Do you support Telegram members? I need 2k for my channel',
-  'Buenas! el panel acepta MercadoPago?',
-  'Is the 30-day refill guarantee included in all services?',
-  'holaa me hass censurado la cuenta?? 😅 era broma, todo bien?',
-  'I want the same order as last week — 5k YouTube views again',
-]
-
-async function crmChatter() {
-  const chatterRow = await db.setting.findUnique({ where: { key: 'crm_chatter' } })
-  if (chatterRow?.value === '0') return { messages: 0, aiReplies: 0 }
-
-  // ~18% of ticks produce a customer message (≈ 1 per minute with a 10s tick)
-  if (Math.random() > 0.18) return { messages: 0, aiReplies: 0 }
-
-  const candidates = await db.conversation.findMany({
-    where: {
-      status: { in: ['OPEN', 'AI', 'HANDED'] },
-      lastMessageAt: { lt: new Date(Date.now() - 25_000) },
-    },
-    include: { contact: { select: { name: true } } },
-    take: 25,
-    orderBy: { lastMessageAt: 'desc' },
-  })
-  if (!candidates.length) return { messages: 0, aiReplies: 0 }
-
-  const conversation = candidates[Math.floor(Math.random() * candidates.length)]
-  const body = CHATTER_LINES[Math.floor(Math.random() * CHATTER_LINES.length)]
-  const at = new Date()
-
-  const [message] = await db.$transaction([
-    db.message.create({
-      data: { conversationId: conversation.id, direction: 'IN', body },
-    }),
-    db.conversation.update({
-      where: { id: conversation.id },
-      data: { lastMessage: body, lastMessageAt: at, unread: { increment: 1 } },
-    }),
-    db.contact.update({
-      where: { id: conversation.contactId },
-      data: { lastSeen: at },
-    }),
-  ])
-
-  const owner = await db.platform.findUnique({
-    where: { id: conversation.platformId },
-    select: { ownerId: true },
-  })
-  const ownerId = owner?.ownerId ?? null
-
-  emitToUsers([ownerId], {
-    type: 'crm',
-    action: 'message',
-    conversationId: conversation.id,
-    contactName: conversation.contact.name,
-    channel: conversation.channel,
-    direction: 'IN',
-    message: {
-      id: message.id,
-      body: message.body,
-      direction: 'IN',
-      aiGenerated: false,
-      createdAt: message.createdAt,
-    },
-    lastMessage: body,
-    lastMessageAt: at,
-    preview: body.slice(0, 90),
-  })
-
-  await notify(
-    ownerId ?? '',
-    'CRM',
-    `New message · ${conversation.contact.name}`,
-    body.slice(0, 120),
-    `crm-inbox:${conversation.id}`,
-  )
-
-  // AI autopilot: conversations handled by the bot answer on their own
-  let aiReplies = 0
-  if (conversation.status === 'AI' && Math.random() < 0.85) {
-    const reply = await generateAgentReply(conversation.id)
-    if (reply.ok) aiReplies = 1
-  }
-
-  return { messages: 1, aiReplies }
 }

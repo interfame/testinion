@@ -8,7 +8,7 @@ import {
   CreditCard, Wallet, WalletCards, BadgeDollarSign, ArrowLeftRight, Headset, Ticket,
   Newspaper, HelpCircle, FileText, FileStack, UsersRound, Settings2, Blocks, ShieldBan,
   MonitorSmartphone, Globe, TrendingUp, UserPlus, Rocket, Sparkles, Gift,
-  ChevronRight, Mail,
+  ChevronRight, Mail, PauseCircle, UserRound,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { PanelShell, PanelPageHeader, StatCard, StatusBadge, type NavSection } from '@/components/shared/panel-shell'
@@ -53,8 +53,12 @@ export default function ResellerPanel({ user, onRefresh, onLogout }: {
 }) {
   const app = useApp()
   const { t } = useI18n()
-  const platform = app.user.platform
+  const platform = app.user.platform as
+    | { id: string; name: string; slug: string; status: string; theme: string; accent: string; monthlyFee: number; cycle: string; nextBilling: string | null; expiresAt?: string | null; externalApi: boolean; domainType: string; customDomain: string | null }
+    | undefined
   const [active, setActive] = useState('dashboard')
+  const [renewing, setRenewing] = useState(false)
+  const [renewError, setRenewError] = useState<string | null>(null)
   // Deep-linked conversation from notifications/toasts ("crm-inbox:<convId>")
   const [focusConv, setFocusConv] = useState<string | null>(null)
 
@@ -91,6 +95,57 @@ export default function ResellerPanel({ user, onRefresh, onLogout }: {
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('rpanel.noPlatformDesc')}</p>
           <Button className="mt-5 w-full font-bold text-[var(--on-brand)]" onClick={() => app.setView('buy')} style={{ background: 'var(--brand)' }}>
             {t('rpanel.buyPlatform')} <ChevronRight className="ml-1 h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Subscription expired / suspended / pending → the storefront is forced OFF:
+  // the reseller must renew here or fall back to the client version. Nothing
+  // else in the reseller panel is reachable while the platform is not ACTIVE.
+  if (platform.status !== 'ACTIVE') {
+    const pending = platform.status === 'PENDING'
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f6f6f8] dark:bg-zinc-950 p-4" style={{ ['--brand' as string]: platform.accent || '#7c3aed' }}>
+        <div className="w-full max-w-md rounded-3xl border bg-white dark:bg-zinc-900 p-8 text-center shadow-xl">
+          <span className={`mx-auto flex h-14 w-14 items-center justify-center rounded-2xl ${pending ? 'bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400' : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'}`}>
+            <PauseCircle className="h-7 w-7" />
+          </span>
+          <h1 className="mt-4 text-xl font-extrabold">{pending ? t('rpanel.pendingTitle') : t('rpanel.suspendedTitle')}</h1>
+          <p className="mt-1 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{pending ? t('rpanel.pendingDesc') : t('rpanel.suspendedDesc')}</p>
+          {!pending && (
+            <div className="mt-4 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/40 px-4 py-3 text-left text-[12.5px]">
+              <p className="flex justify-between"><span className="text-zinc-400 dark:text-zinc-500">{platform.name}</span><span className="font-bold">{platform.slug}</span></p>
+              <p className="mt-1 flex justify-between"><span className="text-zinc-400 dark:text-zinc-500">{t('reseller.dash.nextBilling')}</span><span className="font-bold">{formatMoney(platform.monthlyFee, app.currencyOf(app.user.currency), app.lang as Lang)}{platform.cycle === 'annual' ? ' /yr' : ' /mo'}</span></p>
+            </div>
+          )}
+          {!pending && (
+            <>
+              <Button
+                className="mt-4 w-full font-bold text-[var(--on-brand)]"
+                style={{ background: 'var(--brand)' }}
+                disabled={renewing}
+                onClick={async () => {
+                  setRenewing(true)
+                  setRenewError(null)
+                  try {
+                    await api.patch('/api/platform/mine', { renew: true })
+                    await app.refresh()
+                  } catch (e) {
+                    setRenewError(e instanceof Error ? e.message : 'Error')
+                  } finally {
+                    setRenewing(false)
+                  }
+                }}
+              >
+                <BadgeDollarSign className="mr-1.5 h-4 w-4" /> {renewing ? t('crm.connecting') : t('reseller.dash.managePlan')}
+              </Button>
+              {renewError && <p className="mt-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 px-3 py-2 text-[12px] font-semibold text-rose-600 dark:text-rose-400">{renewError}</p>}
+            </>
+          )}
+          <Button variant="outline" className="mt-2.5 w-full font-bold" onClick={() => app.setView('client')}>
+            <UserRound className="mr-1.5 h-4 w-4" /> {t('rpanel.goClient')}
           </Button>
         </div>
       </div>
@@ -243,6 +298,10 @@ export default function ResellerPanel({ user, onRefresh, onLogout }: {
       onLogout={onLogout}
       topbarRight={
         <>
+          {/* Switch to the plain client experience — the reseller wallet & data stay the same */}
+          <Button variant="outline" size="sm" className="h-8 rounded-full px-3 text-[12px] font-bold" onClick={() => app.setView('client')}>
+            <UserRound className="mr-1.5 h-3.5 w-3.5" /> {t('rpanel.clientVersion')}
+          </Button>
           <BalanceChip onAddFunds={() => setActive('add-funds')} />
           <CurrencyChip />
           <LanguageChip />

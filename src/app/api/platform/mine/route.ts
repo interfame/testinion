@@ -31,6 +31,32 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json()
     const data: Record<string, string | boolean | Date | null> = {}
 
+    // Renew the subscription (charged from balance) — restores a suspended storefront
+    if (body.renew) {
+      const months = platform.cycle === 'annual' ? 12 : 1
+      const price = platform.cycle === 'annual'
+        ? (platform.plan.annualPrice ?? platform.plan.monthlyPrice)
+        : platform.plan.monthlyPrice
+      if (user.balance < price)
+        return jsonError(`You need $${price.toFixed(2)} in your wallet — add funds first (Client version → Add funds)`)
+      const until = new Date()
+      until.setMonth(until.getMonth() + months)
+      await db.$transaction(async (tx) => {
+        await tx.user.update({ where: { id: user.id }, data: { balance: { decrement: price } } })
+        await tx.transaction.create({
+          data: { userId: user.id, type: 'PLAN', amount: -price, description: `${platform.plan.name} plan — renewal (${platform.cycle})`, method: 'Balance' },
+        })
+        await tx.platform.update({
+          where: { id: platform.id },
+          data: { status: 'ACTIVE', expiresAt: until, nextBilling: until, suspendedAt: null },
+        })
+      })
+      await notify(user.id, 'MONEY', `Storefront renewed ✅`, `${platform.name} is back online until ${until.toISOString().slice(0, 10)}.`, 'plan-billing')
+      const updated = await db.platform.findUnique({ where: { ownerId: user.id }, include: { plan: true } })
+      const fresh = await db.user.findUnique({ where: { id: user.id }, select: { balance: true } })
+      return jsonOk({ platform: updated, balance: fresh?.balance ?? 0 })
+    }
+
     // Plan change (charged from balance immediately)
     if (body.changePlan) {
       const newPlan = await db.plan.findUnique({ where: { id: String(body.changePlan) } })
@@ -47,7 +73,7 @@ export async function PATCH(req: NextRequest) {
         })
         await tx.platform.update({
           where: { id: platform.id },
-          data: { planId: newPlan.id, monthlyFee: newPlan.monthlyPrice, nextBilling, theme: newPlan.portalDesigns.includes(platform.theme) ? platform.theme : 'nova' },
+          data: { planId: newPlan.id, monthlyFee: newPlan.monthlyPrice, nextBilling, expiresAt: nextBilling, suspendedAt: null, status: 'ACTIVE', theme: newPlan.portalDesigns.includes(platform.theme) ? platform.theme : 'nova' },
         })
       })
       await notify(user.id, 'MONEY', `Plan upgraded to ${newPlan.name} 👑`, `$${newPlan.monthlyPrice.toFixed(2)} charged. New features are active now.`, 'plan-billing')

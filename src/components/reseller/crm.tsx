@@ -58,7 +58,7 @@ export default function CrmRouter({
     case 'reports':
       content = <CrmReports platformId={pid} />
       break
-    case 'crm-settings':
+    case 'settings':
       content = <CrmSettings platformId={pid} />
       break
     case 'inbox':

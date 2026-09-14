@@ -1,18 +1,22 @@
 // Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 import { db } from '@/lib/db'
-import ZAI from 'z-ai-web-dev-sdk'
 import { emitToUsers } from '@/lib/realtime-server'
+import { decryptSecret } from '@/lib/crypto'
 
-// GrowthRush — AI agent autopilot (shared core)
+// GrowthRush — AI agent autopilot (shared core, BYOK)
+//
+// COST MODEL (important): every AI agent runs on the RESELLER'S OWN model API
+// key (OpenAI · Claude · Gemini — entered in AI Agents, encrypted at rest).
+// The Growthrush platform owner pays nothing for reseller AI usage.
 //
 // Used by:
 //   · POST /api/reseller/crm/ai-reply   (manual "AI reply" button in the inbox)
-//   · /api/cron/tick chatter simulator  (auto-pilot when a conversation is on AI)
+//   · CRM engine inbound pipeline       (auto-pilot when a conversation is on AI)
 //
 // Generates an agent reply with the platform's active AI agent, persists it as
 // an OUT message and pushes it over the websocket so the inbox updates live.
 
-type CompletionShape = { choices?: { message?: { content?: string } }[] }
+type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string }
 
 function parseChannels(raw: string | null | undefined): string[] {
   try {
@@ -27,13 +31,76 @@ export type AgentReplyResult =
   | { ok: true; message: { id: string; body: string; createdAt: Date; direction: string; aiGenerated: boolean }; agentName: string }
   | { ok: false; reason: string }
 
+/** Call the provider REST API with the agent's own key. Throws on failure. */
+async function callProvider(
+  provider: string,
+  model: string,
+  apiKey: string,
+  temperature: number,
+  messages: ChatMessage[]
+): Promise<string> {
+  if (provider === 'CLAUDE') {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({ model, max_tokens: 300, temperature, messages }),
+    })
+    const data = (await res.json().catch(() => ({}))) as {
+      content?: { text?: string }[]
+      error?: { message?: string }
+    }
+    if (!res.ok) throw new Error(data?.error?.message || `Claude API error ${res.status}`)
+    return (data.content?.map((c) => c.text ?? '').join('') ?? '').trim()
+  }
+
+  if (provider === 'GEMINI') {
+    const sys = messages.find((m) => m.role === 'system')?.content ?? ''
+    const rest = messages.filter((m) => m.role !== 'system')
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: sys ? { parts: [{ text: sys }] } : undefined,
+          contents: rest.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
+          generationConfig: { temperature, maxOutputTokens: 300 },
+        }),
+      }
+    )
+    const data = (await res.json().catch(() => ({}))) as {
+      candidates?: { content?: { parts?: { text?: string }[] } }[]
+      error?: { message?: string }
+    }
+    if (!res.ok) throw new Error(data?.error?.message || `Gemini API error ${res.status}`)
+    return (data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '').trim()
+  }
+
+  // Default: OpenAI-compatible chat completions (OPENAI)
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({ model, temperature, max_tokens: 300, messages }),
+  })
+  const data = (await res.json().catch(() => ({}))) as {
+    choices?: { message?: { content?: string } }[]
+    error?: { message?: string }
+  }
+  if (!res.ok) throw new Error(data?.error?.message || `OpenAI API error ${res.status}`)
+  return (data.choices?.[0]?.message?.content ?? '').trim()
+}
+
 /**
- * Generate + persist an AI reply for a conversation.
+ * Generate + persist an AI reply for a conversation using the agent's OWN key.
  * Emits a realtime `crm` event to the platform owner when done.
  */
 export async function generateAgentReply(
   conversationId: string,
-  opts?: { emit?: boolean },
+  opts?: { emit?: boolean }
 ): Promise<AgentReplyResult> {
   const conversation = await db.conversation.findUnique({
     where: { id: conversationId },
@@ -48,6 +115,15 @@ export async function generateAgentReply(
   })
   if (!agents.length) return { ok: false, reason: 'No active AI agent' }
   const agent = agents.find((a) => parseChannels(a.channels).includes(conversation.channel)) ?? agents[0]
+
+  // BYOK: the agent MUST have its own key — the platform funds nothing.
+  const apiKey = decryptSecret(agent.apiKey)
+  if (!apiKey) {
+    return {
+      ok: false,
+      reason: `Agent "${agent.name}" has no API key. Open AI Agents and add your own ${agent.provider} key — calls are billed to your provider account, not to Growthrush.`,
+    }
+  }
 
   // Last 10 messages as context
   const recent = await db.message.findMany({
@@ -73,9 +149,12 @@ export async function generateAgentReply(
 
   let reply = ''
   try {
-    const zai = await ZAI.create()
-    const completion = (await zai.chat.completions.create({
-      messages: [
+    reply = await callProvider(
+      agent.provider,
+      agent.model || 'gpt-4o-mini',
+      apiKey,
+      Math.min(1, Math.max(0, agent.temperature)),
+      [
         { role: 'system', content: system },
         {
           role: 'user',
@@ -83,18 +162,15 @@ export async function generateAgentReply(
             lastIncoming?.body ??
             'Send a short, helpful follow-up message to re-engage the customer.',
         },
-      ],
-      thinking: { type: 'disabled' },
-    })) as CompletionShape
-    reply = (completion.choices?.[0]?.message?.content ?? '').trim()
+      ]
+    )
   } catch (e) {
-    console.error('[ai-agent] SDK failure, using canned fallback:', e instanceof Error ? e.message : e)
+    const msg = e instanceof Error ? e.message : 'Provider request failed'
+    console.error('[ai-agent] provider call failed:', msg)
+    return { ok: false, reason: `${agent.provider} request failed: ${msg}` }
   }
 
-  if (!reply) {
-    const topic = (lastIncoming?.body ?? 'your request').slice(0, 60)
-    reply = `Thanks for reaching out! 👋 We received your message about "${topic}" — a specialist is on it and will reply in a few minutes. Meanwhile, you can browse our full catalog and prices from your dashboard.`
-  }
+  if (!reply) return { ok: false, reason: 'The model returned an empty reply — try again or adjust the agent prompt.' }
   reply = reply.slice(0, 1200)
 
   const [message] = await db.$transaction([
