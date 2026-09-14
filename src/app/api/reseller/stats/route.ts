@@ -39,7 +39,7 @@ export async function GET() {
           where: { platformId: platform.id, createdAt: { gte: since14 } },
           select: { createdAt: true, charge: true, status: true },
         }),
-        db.paymentMethod.count({ where: { userId: user.id } }),
+        db.gateway.count({ where: { platformId: platform.id } }),
         db.coupon.count({ where: { platformId: platform.id } }),
       ])
 

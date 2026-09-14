@@ -39,7 +39,7 @@ const TYPE_ICONS: Record<string, typeof CreditCard> = {
   CARD: CreditCard, PAYPAL: Wallet, CRYPTO: Bitcoin, BANK: Landmark, MANUAL: PenLine,
   PIX: QrCode, COINPAYMENT: Coins,
 }
-const GATEWAY_TYPES = ['CARD', 'PAYPAL', 'CRYPTO', 'BANK', 'MANUAL']
+const GATEWAY_TYPES = ['PAYPAL', 'CRYPTO', 'BANK', 'MANUAL']
 
 type GwForm = {
   name: string
@@ -54,7 +54,7 @@ type GwForm = {
 }
 
 const EMPTY: GwForm = {
-  name: '', type: 'CARD', code: 'CUSTOM', feePercent: '0', instructions: '', enabled: true, sortOrder: '0',
+  name: '', type: 'MANUAL', code: 'CUSTOM', feePercent: '0', instructions: '', enabled: true, sortOrder: '0',
   values: {}, touched: {},
 }
 

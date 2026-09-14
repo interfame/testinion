@@ -37,7 +37,8 @@ async function callProvider(
   model: string,
   apiKey: string,
   temperature: number,
-  messages: ChatMessage[]
+  messages: ChatMessage[],
+  baseUrl?: string | null
 ): Promise<string> {
   if (provider === 'CLAUDE') {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -80,8 +81,11 @@ async function callProvider(
     return (data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '').trim()
   }
 
-  // Default: OpenAI-compatible chat completions (OPENAI)
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  // Default: OpenAI-compatible chat completions (OPENAI). A custom base URL
+  // lets resellers point the agent at OpenRouter, Groq, Together, a local LLM,
+  // or any OpenAI-compatible gateway — billed to THEIR account, never ours.
+  const base = (baseUrl || 'https://api.openai.com/v1').replace(/\/+$/, '')
+  const res = await fetch(`${base}/chat/completions`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({ model, temperature, max_tokens: 300, messages }),
@@ -162,7 +166,8 @@ export async function generateAgentReply(
             lastIncoming?.body ??
             'Send a short, helpful follow-up message to re-engage the customer.',
         },
-      ]
+      ],
+      agent.baseUrl
     )
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Provider request failed'

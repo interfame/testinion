@@ -28,11 +28,28 @@ function normalizeChannels(v: unknown): string {
   return JSON.stringify(arr.filter((c) => CHANNELS.includes(c)))
 }
 
+/** Optional custom OpenAI-compatible endpoint (OpenRouter, Groq, Together, local LLM…). */
+function normalizeBaseUrl(v: unknown): string | null {
+  if (v === undefined || v === null) return undefined as unknown as string | null
+  const raw = String(v).trim()
+  if (!raw) return null
+  try {
+    const url = new URL(raw.includes('://') ? raw : `https://${raw}`)
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null
+    // Strip trailing slashes + anything after /v1 to keep just the origin+base path
+    let s = `${url.protocol}//${url.host}${url.pathname.replace(/\/+$/, '')}`
+    s = s.replace(/\/(chat\/completions|completions|models)$/i, '')
+    return s.slice(0, 300) || null
+  } catch {
+    return null
+  }
+}
+
 /** Client-safe agent: the API key is never returned — only a masked preview. */
 function agentView(agent: {
   id: string; platformId: string; name: string; provider: string; model: string
   prompt: string | null; knowledge: string | null; temperature: number
-  channels: string; active: boolean; resolved: number; apiKey: string | null; createdAt: Date
+  channels: string; active: boolean; resolved: number; apiKey: string | null; baseUrl: string | null; createdAt: Date
 }) {
   const { apiKey, ...rest } = agent
   return { ...rest, hasKey: !!apiKey, keyPreview: maskSecret(apiKey) }
@@ -64,7 +81,7 @@ export async function POST(req: NextRequest) {
     const user = await requireUser()
     const platform = await requirePlatform(user.id)
     const body = await req.json().catch(() => ({}))
-    const { name, provider, model, prompt, knowledge, temperature, channels, active, apiKey } = body
+    const { name, provider, model, prompt, knowledge, temperature, channels, active, apiKey, baseUrl } = body
     if (!name?.trim()) return jsonError('Agent name is required')
 
     const agent = await db.aiAgent.create({
@@ -82,6 +99,7 @@ export async function POST(req: NextRequest) {
         channels: normalizeChannels(channels),
         active: active === undefined ? true : !!active,
         apiKey: apiKey ? encryptSecret(String(apiKey).trim().slice(0, 400)) : null,
+        baseUrl: normalizeBaseUrl(baseUrl),
       },
     })
     return jsonOk({ agent: agentView(agent) })
@@ -93,7 +111,7 @@ export async function PATCH(req: NextRequest) {
     const user = await requireUser()
     const platform = await requirePlatform(user.id)
     const body = await req.json().catch(() => ({}))
-    const { id, name, provider, model, prompt, knowledge, temperature, channels, active, apiKey } = body
+    const { id, name, provider, model, prompt, knowledge, temperature, channels, active, apiKey, baseUrl } = body
     if (!id) return jsonError('Agent id is required')
 
     const existing = await db.aiAgent.findFirst({ where: { id, platformId: platform.id } })
@@ -110,6 +128,7 @@ export async function PATCH(req: NextRequest) {
     if (channels !== undefined) data.channels = normalizeChannels(channels)
     if (active !== undefined) data.active = !!active
     if (apiKey !== undefined && String(apiKey).trim()) data.apiKey = encryptSecret(String(apiKey).trim().slice(0, 400))
+    if (baseUrl !== undefined) data.baseUrl = normalizeBaseUrl(baseUrl)
 
     const agent = await db.aiAgent.update({ where: { id: existing.id }, data })
     return jsonOk({ agent: agentView(agent) })

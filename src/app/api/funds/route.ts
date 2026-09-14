@@ -12,7 +12,7 @@ import {
 } from '@/lib/payments'
 
 /**
- * GET  → gateways enabled for user's scope + transactions + deposits + saved methods
+ * GET  → gateways enabled for user's scope + transactions + deposits
  * POST → create a deposit. Real payment system: every deposit starts PENDING.
  *        - Configured PayPal/MercadoPago/Cryptomus/CoinPayments → real provider checkout
  *          (redirect or crypto invoice); the wallet is credited only after the provider
@@ -25,18 +25,17 @@ export async function GET() {
   return handle(async () => {
     const user = await requireUser()
     const platformId = user.platformId ?? null
-    const [gateways, transactions, deposits, methods] = await Promise.all([
+    const [gateways, transactions, deposits] = await Promise.all([
       db.gateway.findMany({ where: { platformId, enabled: true }, orderBy: { sortOrder: 'asc' } }),
       db.transaction.findMany({ where: { userId: user.id }, orderBy: { createdAt: 'desc' }, take: 60 }),
       db.deposit.findMany({ where: { userId: user.id }, orderBy: { createdAt: 'desc' }, take: 30 }),
-      db.paymentMethod.findMany({ where: { userId: user.id }, orderBy: { createdAt: 'desc' } }),
     ])
     // Security: raw credentials never leave the server — return masked config only.
     const safeGateways = gateways.map((g) => ({
       ...g,
       config: g.config ? JSON.stringify(maskConfig(g.code ?? '', parseConfig(g.config))) : g.config,
     }))
-    return jsonOk({ gateways: safeGateways, transactions, deposits, methods })
+    return jsonOk({ gateways: safeGateways, transactions, deposits })
   })
 }
 

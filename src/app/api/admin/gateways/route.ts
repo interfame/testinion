@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       data: {
         platformId: null,
         name: String(b.name).trim().slice(0, 60),
-        type: b.type || 'CARD',
+        type: b.type || 'MANUAL',
         code,
         instructions: b.instructions ? String(b.instructions).slice(0, 2000) : null,
         feePercent: parseFloat(b.feePercent) || 0,

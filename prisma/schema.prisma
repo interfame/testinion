@@ -42,7 +42,6 @@ model User {
   orders         Order[]
   transactions   Transaction[]
   tickets        Ticket[]
-  paymentMethods PaymentMethod[]
   deposits       Deposit[]
   contactOwner   Contact[]       @relation("ContactOwner")
 }
@@ -259,18 +258,6 @@ model Gateway {
   sortOrder    Int       @default(0)
 }
 
-model PaymentMethod {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  brand     String
-  last4     String
-  expMonth  Int
-  expYear   Int
-  primary   Boolean  @default(false)
-  createdAt DateTime @default(now())
-}
-
 // ─────────────────────────── Support ───────────────────────────
 
 model Ticket {
@@ -375,6 +362,7 @@ model AiAgent {
   knowledge   String?
   temperature Float    @default(0.7)
   apiKey      String?  // reseller's own model API key (BYOK — encrypted at rest; platform pays nothing)
+  baseUrl     String?  // optional custom OpenAI-compatible endpoint (OpenRouter, Groq, Together, local…)
   channels    String   @default("[]")
   active      Boolean  @default(true)
   resolved    Int      @default(0)

@@ -1,12 +1,12 @@
 // Growthrush SMM Suite — © 2026 Growthrush. All rights reserved.
 'use client'
 
-// Client portal — Add Funds (gateways, deposits, saved cards)
+// Client portal — Add Funds (gateways, deposits, promo codes)
 
 import { useEffect, useMemo, useState } from 'react'
 import {
   Bitcoin, CheckCircle2, CircleDollarSign, CreditCard, Clock3, Landmark,
-  Loader2, Lock, Plus, RefreshCw, ShieldCheck, Sparkles, Ticket, Trash2, Wallet, XCircle,
+  Loader2, Lock, RefreshCw, ShieldCheck, Sparkles, Ticket, Wallet, XCircle,
 } from 'lucide-react'
 import { useApp } from '@/components/shared/app-context'
 import { useI18n } from '@/lib/i18n'
@@ -15,19 +15,12 @@ import { api, mutate } from '@/lib/api'
 import { ceil2 } from '@/lib/pricing'
 import { toast } from '@/hooks/use-toast'
 import { formatDateTime } from '@/lib/format'
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useClientData } from '../client-data'
-import { useMoney, Card, CardHead, EmptyState, LoadingRows, Pill, BrandButton } from '../bits'
-import type { FundPostResult, Gateway, PaymentMethod } from '../types'
+import { useMoney, Card, CardHead, EmptyState, LoadingRows, BrandButton } from '../bits'
+import type { FundPostResult, Gateway } from '../types'
 
 const QUICK = [10, 25, 50, 100, 250]
 
@@ -66,15 +59,6 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
   const [cryptoPendingId, setCryptoPendingId] = useState<string | null>(null)
   const [checking, setChecking] = useState(false)
 
-  // Saved methods state
-  const [addOpen, setAddOpen] = useState(false)
-  const [cardNumber, setCardNumber] = useState('')
-  const [cardBrand, setCardBrand] = useState('')
-  const [cardExp, setCardExp] = useState('')
-  const [addingCard, setAddingCard] = useState(false)
-  const [deleteMethod, setDeleteMethod] = useState<PaymentMethod | null>(null)
-  const [deletingCard, setDeletingCard] = useState(false)
-
   // Promo code state
   const [promo, setPromo] = useState('')
   const [promoBusy, setPromoBusy] = useState(false)
@@ -82,7 +66,6 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
 
   const gateways = funds?.gateways ?? []
   const deposits = funds?.deposits ?? []
-  const methods = funds?.methods ?? []
   const isPlatformUser = user.platformId != null
 
   const gateway: Gateway | undefined = useMemo(
@@ -228,49 +211,6 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
       reloadFunds()
       refresh()
       onRefresh?.()
-    }
-  }
-
-  async function addCard() {
-    setAddingCard(true)
-    const [expMonth, expYear] = cardExp.split('/').map((p) => parseInt(p.trim()))
-    const res = await mutate(
-      () => api.post<{ method: PaymentMethod }>('/api/funds/methods', {
-        number: cardNumber,
-        brand: cardBrand || undefined,
-        expMonth,
-        expYear,
-      }),
-      { success: t('cfund.cardSaved') },
-    )
-    setAddingCard(false)
-    if (res) {
-      setAddOpen(false)
-      setCardNumber('')
-      setCardBrand('')
-      setCardExp('')
-      reloadFunds()
-    }
-  }
-
-  async function removeCard() {
-    if (!deleteMethod) return
-    setDeletingCard(true)
-    const res = await mutate(async () => {
-      // DELETE with JSON body — use fetch directly (api.del has no body support)
-      const r = await fetch('/api/funds/methods', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: deleteMethod.id }),
-      })
-      const data = await r.json().catch(() => ({}))
-      if (!r.ok) throw new Error((data as { error?: string }).error || t('cfund.cardRemoveFail'))
-      return data as { ok: boolean }
-    }, { success: t('cfund.cardRemoved') })
-    setDeletingCard(false)
-    if (res) {
-      setDeleteMethod(null)
-      reloadFunds()
     }
   }
 
@@ -441,49 +381,8 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
           </Card>
         </div>
 
-        {/* Right: methods + deposits */}
+        {/* Right: deposits */}
         <div className="space-y-4 lg:col-span-2">
-          <Card>
-            <CardHead
-              icon={CreditCard}
-              title={t('client.paymentMethod')}
-              sub={t('cfund.savedSub')}
-              right={
-                <Button size="sm" variant="outline" className="h-8 min-h-[32px] gap-1 rounded-full text-[12px] font-bold" onClick={() => setAddOpen(true)}>
-                  <Plus className="h-3.5 w-3.5" /> {t('cfund.add')}
-                </Button>
-              }
-            />
-            {methods.length === 0 ? (
-              <EmptyState icon={CreditCard} title={t('cfund.noCardsTitle')} message={t('cfund.noCardsDesc')} />
-            ) : (
-              <div className="space-y-2">
-                {methods.map((pm) => (
-                  <div key={pm.id} className="flex items-center gap-3 rounded-xl border border-zinc-200 dark:border-zinc-800 p-3">
-                    <span className="flex h-9 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-zinc-700 dark:from-zinc-800 to-zinc-900 dark:to-zinc-950 text-white">
-                      <CreditCard className="h-4 w-4" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-bold text-zinc-900 dark:text-zinc-50">
-                        {pm.brand} •••• {pm.last4}
-                        {pm.primary && <Pill tone="emerald" className="ml-2">{t('cfund.default')}</Pill>}
-                      </p>
-                      <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{t('cfund.exp').replace('{d}', `${String(pm.expMonth).padStart(2, '0')}/${pm.expYear}`)}</p>
-                    </div>
-                    <Button
-                      size="icon" variant="ghost"
-                      className="h-8 w-8 text-zinc-400 dark:text-zinc-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400"
-                      aria-label={t('cfund.removeCardAria').replace('{brand}', pm.brand).replace('{last4}', pm.last4)}
-                      onClick={() => setDeleteMethod(pm)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-
           {/* Promo code — ticket-styled card with side notches */}
           <div className="relative overflow-hidden rounded-2xl border border-dashed border-[var(--brand)]/45 bg-gradient-to-br from-[var(--brand)]/[0.05] via-transparent to-[var(--brand)]/[0.09] p-4">
             <span aria-hidden className="absolute -left-2.5 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full border border-dashed border-[var(--brand)]/45 bg-background" />
@@ -562,68 +461,6 @@ export default function AddFundsSection({ onRefresh }: { onRefresh?: () => void 
           </Card>
         </div>
       </div>
-
-      {/* Add card dialog */}
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t('cfund.addCardTitle')}</DialogTitle>
-            <DialogDescription>
-              {t('cfund.addCardDesc')}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3.5">
-            <div className="space-y-1.5">
-              <Label htmlFor="card-number">{t('cfund.cardNumber')}</Label>
-              <Input
-                id="card-number"
-                className="min-h-[40px]"
-                inputMode="numeric"
-                placeholder="4242 4242 4242 4242"
-                value={cardNumber}
-                onChange={(e) => setCardNumber(e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="card-brand">{t('cfund.cardBrand')}</Label>
-                <Input id="card-brand" className="min-h-[40px]" placeholder={t('cfund.cardBrandPh')} value={cardBrand} onChange={(e) => setCardBrand(e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="card-exp">{t('cfund.cardExp')}</Label>
-                <Input id="card-exp" className="min-h-[40px]" placeholder="12/28" value={cardExp} onChange={(e) => setCardExp(e.target.value)} />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddOpen(false)}>{t('common.cancel')}</Button>
-            <BrandButton onClick={addCard} disabled={addingCard || cardNumber.replace(/\D/g, '').length < 12}>
-              {addingCard && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />} {t('cfund.saveCard')}
-            </BrandButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete card confirm */}
-      <AlertDialog open={!!deleteMethod} onOpenChange={(open) => !open && setDeleteMethod(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('cfund.removeCardQ')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('cfund.removeCardDesc').replace('{brand}', deleteMethod?.brand ?? '').replace('{last4}', deleteMethod?.last4 ?? '')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('cfund.keepCard')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => { e.preventDefault(); removeCard() }}
-              className="bg-rose-600 text-white hover:bg-rose-700"
-            >
-              {deletingCard && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />} {t('admin.removeCta')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

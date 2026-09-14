@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     const existing = await db.gateway.findFirst({ where: { platformId: platform.id, code } })
     const base = {
       name: provider.name,
-      type: code === 'CRYPTOMUS' || code === 'COINPAYMENT' ? 'CRYPTO' : code === 'PAYPAL' ? 'PAYPAL' : code === 'PIX' ? 'BANK' : 'CARD',
+      type: code === 'CRYPTOMUS' || code === 'COINPAYMENT' ? 'CRYPTO' : code === 'PAYPAL' ? 'PAYPAL' : code === 'PIX' ? 'BANK' : 'MANUAL',
       code,
       config: JSON.stringify(config),
       feePercent: b.feePercent !== undefined ? Math.max(0, Math.min(50, parseFloat(b.feePercent) || 0)) : undefined,

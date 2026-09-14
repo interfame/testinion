@@ -445,11 +445,10 @@ async function main() {
   await tx(reseller.id, 'DEPOSIT', 500, 'Deposit via Crypto (Binance Pay)', 20, 'Crypto')
   await tx(reseller.id, 'PLAN', -59, 'Kaya Social — Pro plan subscription', 8, 'Balance')
   await tx(reseller.id, 'ADDON', -25, 'External API connector — monthly', 8, 'Balance')
-  await tx(reseller.id, 'DEPOSIT', 400, 'Deposit via Card', 2, 'Card')
+  await tx(reseller.id, 'DEPOSIT', 400, 'Deposit via PayPal', 2, 'PayPal')
 
   // ── Gateways ──────────────────────────
   const gatewayData = [
-    { name: 'Credit / Debit Card', type: 'CARD', feePercent: 2.9, sortOrder: 1 },
     { name: 'PayPal', type: 'PAYPAL', code: 'PAYPAL', feePercent: 0, sortOrder: 10 },
     { name: 'MercadoPago', type: 'CARD', code: 'MERCADOPAGO', feePercent: 0, sortOrder: 11 },
     { name: 'Pix', type: 'BANK', code: 'PIX', feePercent: 0, sortOrder: 12 },
@@ -459,18 +458,14 @@ async function main() {
     { name: 'Bank Transfer', type: 'BANK', feePercent: 0, instructions: 'Send to IBAN AR30 0170 0911 0000 0012 3456 789 and submit the reference.', sortOrder: 20 },
   ]
   for (const g of gatewayData) await db.gateway.create({ data: { platformId: null, ...g } })
-  await db.gateway.create({ data: { platformId: platform.id, name: 'Credit / Debit Card', type: 'CARD', feePercent: 2.9, sortOrder: 1 } })
   await db.gateway.create({ data: { platformId: platform.id, name: 'Crypto (USDT TRC20)', type: 'CRYPTO', sortOrder: 2 } })
-
-  await db.paymentMethod.create({ data: { userId: client.id, brand: 'Visa', last4: '4242', expMonth: 8, expYear: 2027, primary: true } })
-  await db.paymentMethod.create({ data: { userId: reseller.id, brand: 'Mastercard', last4: '8210', expMonth: 3, expYear: 2026, primary: true } })
 
   // ── Deposits (reseller approval queue) ─
   await db.deposit.create({ data: { platformId: platform.id, userId: extraClients[0].id, amount: 50, method: 'Crypto (USDT)', reference: 'TX-8842', status: 'PENDING', note: 'Sent from TRON wallet' } })
-  await db.deposit.create({ data: { platformId: platform.id, userId: extraClients[1].id, amount: 25, method: 'Card', reference: 'ORD-2231', status: 'PENDING' } })
+  await db.deposit.create({ data: { platformId: platform.id, userId: extraClients[1].id, amount: 25, method: 'MercadoPago', reference: 'ORD-2231', status: 'PENDING' } })
   await db.deposit.create({ data: { platformId: platform.id, userId: extraClients[1].id, amount: 100, method: 'Crypto (USDT)', reference: 'TX-9910', status: 'APPROVED', createdAt: new Date(Date.now() - 5 * 86400000) } })
-  await db.deposit.create({ data: { platformId: platform.id, userId: extraClients[2].id, amount: 18.5, method: 'Card', reference: 'ORD-2207', status: 'APPROVED', createdAt: new Date(Date.now() - 9 * 86400000) } })
-  await db.deposit.create({ data: { platformId: platform.id, userId: extraClients[2].id, amount: 40, method: 'Card', reference: 'ORD-2101', status: 'REJECTED', createdAt: new Date(Date.now() - 11 * 86400000), note: 'No payment received' } })
+  await db.deposit.create({ data: { platformId: platform.id, userId: extraClients[2].id, amount: 18.5, method: 'MercadoPago', reference: 'ORD-2207', status: 'APPROVED', createdAt: new Date(Date.now() - 9 * 86400000) } })
+  await db.deposit.create({ data: { platformId: platform.id, userId: extraClients[2].id, amount: 40, method: 'PayPal', reference: 'ORD-2101', status: 'REJECTED', createdAt: new Date(Date.now() - 11 * 86400000), note: 'No payment received' } })
 
   // ── Tickets ───────────────────────────
   const t1 = await db.ticket.create({

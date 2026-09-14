@@ -83,20 +83,10 @@ export type Deposit = {
   createdAt: string
 }
 
-export type PaymentMethod = {
-  id: string
-  brand: string
-  last4: string
-  expMonth: number
-  expYear: number
-  primary: boolean
-}
-
 export type FundsData = {
   gateways: Gateway[]
   transactions: Tx[]
   deposits: Deposit[]
-  methods: PaymentMethod[]
 }
 
 export type NewsItem = {

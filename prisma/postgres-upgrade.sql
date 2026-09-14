@@ -49,3 +49,14 @@ ALTER TABLE "Platform" ADD COLUMN IF NOT EXISTS "suspendedAt" TIMESTAMP(3);
 
 -- AI Agents: bring-your-own-key (the reseller's own model API key, encrypted)
 ALTER TABLE "AiAgent" ADD COLUMN IF NOT EXISTS "apiKey" TEXT;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Remove payment cards entirely (PCI risk: raw card data must never touch
+-- this server). Saved-card storage is gone; gateways (PayPal, MercadoPago,
+-- Pix, Cryptomus, CoinPayments, Payoneer) process cards on THEIR side.
+-- ─────────────────────────────────────────────────────────────────────────────
+DROP TABLE IF EXISTS "PaymentMethod";
+
+-- AI Agents: optional custom OpenAI-compatible endpoint (OpenRouter, Groq,
+-- Together, Ollama…) so each reseller bills model usage to their own account.
+ALTER TABLE "AiAgent" ADD COLUMN IF NOT EXISTS "baseUrl" TEXT;

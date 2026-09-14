@@ -7,7 +7,7 @@
 // are billed to the reseller's provider account, never to the platform owner.
 
 import { useState } from 'react'
-import { Bot, KeyRound, Pencil, Plus, ShieldCheck, Sparkles } from 'lucide-react'
+import { Bot, Globe, KeyRound, Pencil, Plus, ShieldCheck, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { api, mutate, useApi } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -73,6 +73,7 @@ type AgentForm = {
   temperature: number
   channels: string[]
   apiKey: string
+  baseUrl: string
 }
 
 const EMPTY_FORM: AgentForm = {
@@ -84,6 +85,7 @@ const EMPTY_FORM: AgentForm = {
   temperature: 0.7,
   channels: ['WHATSAPP'],
   apiKey: '',
+  baseUrl: '',
 }
 
 export default function CrmAgents({ platformId }: { platformId: string }) {
@@ -112,6 +114,7 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
       temperature: a.temperature,
       channels: parseArr(a.channels),
       apiKey: '', // blank = keep the stored key
+      baseUrl: (a as CrmAgent & { baseUrl?: string | null }).baseUrl ?? '',
     })
     setEditing(a)
     setCreateOpen(true)
@@ -328,6 +331,23 @@ export default function CrmAgents({ platformId }: { platformId: string }) {
                 className="rounded-xl font-mono text-[13px]"
               />
             </div>
+            {form.provider === 'OPENAI' && (
+              <div className="space-y-1.5">
+                <Label htmlFor="ag-baseurl">API base URL (optional)</Label>
+                <Input
+                  id="ag-baseurl"
+                  value={form.baseUrl}
+                  onChange={(e) => setForm((f) => ({ ...f, baseUrl: e.target.value }))}
+                  placeholder="https://api.openai.com/v1"
+                  className="rounded-xl font-mono text-[13px]"
+                  autoComplete="off"
+                />
+                <p className="flex items-start gap-1 text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500">
+                  <Globe className="mt-0.5 h-3 w-3 shrink-0" />
+                  {'Any OpenAI-compatible endpoint: OpenRouter (https://openrouter.ai/api/v1), Groq, Together, Ollama… Leave empty to use OpenAI directly.'}
+                </p>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="ag-prompt">{t('crm.prompt')}</Label>
               <Textarea

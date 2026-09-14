@@ -222,19 +222,6 @@ CREATE TABLE IF NOT EXISTS "Gateway" (
 );
 
 -- CreateTable
-CREATE TABLE IF NOT EXISTS "PaymentMethod" (
-    "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "brand" TEXT NOT NULL,
-    "last4" TEXT NOT NULL,
-    "expMonth" INTEGER NOT NULL,
-    "expYear" INTEGER NOT NULL,
-    "primary" BOOLEAN NOT NULL DEFAULT false,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "PaymentMethod_pkey" PRIMARY KEY ("id")
-);
-
 -- CreateTable
 CREATE TABLE IF NOT EXISTS "Ticket" (
     "id" TEXT NOT NULL,
@@ -327,6 +314,7 @@ CREATE TABLE IF NOT EXISTS "AiAgent" (
     "knowledge" TEXT,
     "temperature" DOUBLE PRECISION NOT NULL DEFAULT 0.7,
     "apiKey" TEXT,
+    "baseUrl" TEXT,
     "channels" TEXT NOT NULL DEFAULT '[]',
     "active" BOOLEAN NOT NULL DEFAULT true,
     "resolved" INTEGER NOT NULL DEFAULT 0,
@@ -627,7 +615,6 @@ DO $$ BEGIN ALTER TABLE "Deposit" ADD CONSTRAINT "Deposit_userId_fkey" FOREIGN K
 DO $$ BEGIN ALTER TABLE "Gateway" ADD CONSTRAINT "Gateway_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
-DO $$ BEGIN ALTER TABLE "PaymentMethod" ADD CONSTRAINT "PaymentMethod_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AddForeignKey
 DO $$ BEGIN ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_platformId_fkey" FOREIGN KEY ("platformId") REFERENCES "Platform"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
